@@ -5,10 +5,10 @@ import { getLookingAt } from '../../utils/Raytrace';
 class BlockVisual extends ModuleBase {
     constructor() {
         super({
-            name: 'Block Visual',
+            name: 'modules.block_visual.name',
             subcategory: 'Visuals',
-            description: 'renders a box where youre looking / etherwarping',
-            tooltip: 'renders a box where youre looking / etherwarping',
+            description: 'modules.block_visual.description',
+            tooltip: 'modules.block_visual.tooltip',
         });
 
         this.baseColor = new RenderColor(255, 0, 0, 255);
@@ -18,8 +18,8 @@ class BlockVisual extends ModuleBase {
         this.currentBlock = null;
 
         this.addMultiToggle(
-            'Effect',
-            ['None', 'Breathing', 'Gradient'],
+            'labels.effect',
+            ['options.none', 'options.breathing', 'options.gradient'],
             true,
             (v) => {
                 this.EFFECT = v.find((o) => o.enabled)?.name || 'None';
@@ -28,21 +28,21 @@ class BlockVisual extends ModuleBase {
         );
 
         this.addToggle(
-            'Draw Box Lines',
+            'labels.draw_box_lines',
             (v) => {
                 this.DRAWLINES = v;
             },
-            'Whether or not to draw the lines of the box'
+            'descriptions.draw_box_lines'
         );
 
         this.addColorPicker(
-            'Block Color',
+            'labels.block_color',
             java.awt.Color.RED,
             (color) => {
                 this.baseColor = new RenderColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
                 this.RGBA = this.baseColor;
             },
-            'Color of the block box'
+            'descriptions.block_color'
         );
 
         this.on('tick', () => {

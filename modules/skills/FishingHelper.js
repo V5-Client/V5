@@ -5,10 +5,10 @@ import { clickSlot } from '../../utils/player/Inventory';
 class FishingHelper extends ModuleBase {
     constructor() {
         super({
-            name: 'Fishing Helper',
+            name: 'modules.fishing_helper.name',
             subcategory: 'Skills',
-            description: 'Auto reel + recast + pet swap',
-            tooltip: 'Auto stuff',
+            description: 'modules.fishing_helper.description',
+            tooltip: 'modules.fishing_helper.tooltip',
             autoDisableOnWorldUnload: true,
             isMacro: true,
         });
@@ -29,14 +29,14 @@ class FishingHelper extends ModuleBase {
             this.tick();
         });
 
-        this.addToggle('Pet swap after recast', (v) => (this.petSwapRecast = v));
-        this.addSlider('Pet slot (recast)', 10, 43, 10, (v) => (this.petSlotRecast = v));
+        this.addToggle('labels.pet_swap_after_recast', (v) => (this.petSwapRecast = v));
+        this.addSlider('labels.pet_slot_recast', 10, 43, 10, (v) => (this.petSlotRecast = v));
         let slugfishWaitTime;
-        this.addToggle('Slugfish Mode', (v) => {
+        this.addToggle('labels.slugfish_mode', (v) => {
             this.slugfishMode = v;
             slugfishWaitTime.visible = v;
         });
-        slugfishWaitTime = this.addSlider('Slugfish wait time', 0, 30, 0, (v) => (this.slugfishWaitTime = v));
+        slugfishWaitTime = this.addSlider('labels.slugfish_wait_time', 0, 30, 0, (v) => (this.slugfishWaitTime = v));
         slugfishWaitTime.visible = false;
     }
     tick() {
@@ -94,14 +94,14 @@ class FishingHelper extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
 
         this.resetSequence();
         Client.setKey('shift', false);
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Client.setKey('shift', false);
     }
 }

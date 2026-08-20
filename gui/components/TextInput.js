@@ -15,6 +15,7 @@ import {
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 import { GuiState } from '../core/GuiState';
+import { t } from '../../utils/I18n';
 
 let activeTextInput = null;
 const allTextInputs = [];
@@ -76,8 +77,9 @@ export class TextInput {
 
         this.drawHighlight(panelWidth, componentHeight);
 
-        const titleWidth = getTextWidth(this.title, FontSizes.REGULAR);
-        drawText(this.title, this.x, this.y + componentHeight / 2, FontSizes.REGULAR, textColor);
+        const displayTitle = this.getDisplayTitle?.() || t(this.title, {}, this.title);
+        const titleWidth = getTextWidth(displayTitle, FontSizes.REGULAR);
+        drawText(displayTitle, this.x, this.y + componentHeight / 2, FontSizes.REGULAR, textColor);
 
         const displayText = this.text;
         const textWidth = getTextWidth(displayText, FontSizes.REGULAR);
@@ -164,7 +166,7 @@ export class TextInput {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            setTooltip(this.description);
+            setTooltip(this.getDisplayDescription?.() || t(this.description, {}, this.description));
         }
     }
 

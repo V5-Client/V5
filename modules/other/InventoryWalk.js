@@ -6,10 +6,10 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 class InventoryWalk extends ModuleBase {
     constructor() {
         super({
-            name: 'Inventory Walk',
+            name: 'modules.inventory_walk.name',
             subcategory: 'Other',
-            description: 'Use at your own risk!\nTested on 150 ping and no ban but idk',
-            tooltip: 'Use at your own risk.',
+            description: 'modules.inventory_walk.description',
+            tooltip: 'modules.inventory_walk.tooltip',
         });
 
         this.clicked = false;

@@ -4,10 +4,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class HuntingHelper extends ModuleBase {
     constructor() {
         super({
-            name: 'Hunting Helpers',
+            name: 'modules.hunting_helpers.name',
             subcategory: 'Foraging',
-            description: 'Random features to help with hunting',
-            tooltip: 'Manual use',
+            description: 'modules.hunting_helpers.description',
+            tooltip: 'modules.hunting_helpers.tooltip',
         });
 
         this.autoLassoReel = false;
@@ -27,7 +27,7 @@ class HuntingHelper extends ModuleBase {
             this.reeled = true;
         });
 
-        this.addToggle('Auto Lasso Reel', (v) => {
+        this.addToggle('labels.auto_lasso_reel', (v) => {
             this.autoLassoReel = v;
             if (!v) this.reeled = false;
         });

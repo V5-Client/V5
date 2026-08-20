@@ -30,10 +30,10 @@ const LANDING_COLOR = new RenderColor(50, 255, 50, 255);
 class Beachballer extends ModuleBase {
     constructor() {
         super({
-            name: 'Beachballer',
+            name: 'modules.beachballer.name',
             subcategory: 'Other',
-            description: 'Automatically bounces beach balls',
-            tooltip: 'Bounces beach balls and returns to start position at 40 bounces',
+            description: 'modules.beachballer.description',
+            tooltip: 'modules.beachballer.tooltip',
             theme: '#ffb347',
             isMacro: true,
         });
@@ -60,23 +60,23 @@ class Beachballer extends ModuleBase {
         this.holdShift = true;
 
         this.addToggle(
-            'Hold Shift',
+            'labels.hold_shift',
             (value) => {
                 this.holdShift = value;
                 if (!value) Client.setKey('shift', false);
             },
-            'Hold Shift.',
+            'descriptions.hold_shift',
             true
         );
 
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.getStateName(),
                         Bounces: () => `${this.bounceCount}/40`,
-                        'Total Completed': () => this.getTotalBallsBounced(),
+                        'overlay.total_completed': () => this.getTotalBallsBounced(),
                     },
                 },
             ],
@@ -372,7 +372,7 @@ class Beachballer extends ModuleBase {
             if (this.trackedBall) {
                 this.bounceCount = 0;
                 this.hasActiveRun = false;
-                this.message('Found ball!');
+                this.message('messages.beachBaller.ballFound');
                 this.setState(States.BOUNCE);
                 return;
             }
@@ -380,7 +380,7 @@ class Beachballer extends ModuleBase {
 
         const ballSlot = findItemInHotbar('Bouncy Beach Ball');
         if (ballSlot === -1) {
-            this.message('&cNo bouncy balls in hotbar!');
+            this.message('messages.beachBaller.ballsMissing');
             this.toggle(false);
             return;
         }
@@ -461,7 +461,7 @@ class Beachballer extends ModuleBase {
         this.lastVelocityY = 0;
         this.hasActiveRun = false;
         ungrab();
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
@@ -474,7 +474,7 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.ballDescending = false;
         regrab();
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

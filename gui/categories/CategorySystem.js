@@ -6,6 +6,16 @@ import { Separator } from '../components/Separator';
 import { Slider } from '../components/Slider';
 import { TextInput } from '../components/TextInput';
 import { ToggleButton } from '../components/Toggle';
+import { normalizeTranslationKey, resolveEnglishTranslation, t, translationKey } from '../../utils/I18n';
+
+const setComponentTranslationKeys = (component) => {
+    component.titleKey = component.titleKey || normalizeTranslationKey('labels', component.title);
+    component.title = resolveEnglishTranslation(component.title, component.title);
+    component.descriptionKey = component.descriptionKey || (component.description ? normalizeTranslationKey('descriptions', component.description) : null);
+    component.description = resolveEnglishTranslation(component.description, component.description);
+    component.getDisplayTitle = () => t(component.titleKey, {}, component.title);
+    component.getDisplayDescription = () => (component.description ? t(component.descriptionKey, {}, component.description) : null);
+};
 
 export const Categories = {
     categories: [
@@ -71,14 +81,33 @@ export const Categories = {
         return Categories.categories.filter((category) => !category.hiddenInSidebar);
     },
 
-    addCategoryItem(subcategoryName, title, description, tooltip = null, moduleType = null) {
+    addCategoryItem(
+        subcategoryName,
+        title,
+        description,
+        tooltip = null,
+        moduleType = null,
+        id = null,
+        titleKey = null,
+        descriptionKey = null,
+        tooltipKey = null
+    ) {
         const category = Categories.categories.find((c) => c.name === 'Modules');
         if (!category) return;
 
         const newItem = {
+            id:
+                id ||
+                String(title)
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_|_$/g, ''),
             title,
+            titleKey,
             description,
+            descriptionKey,
             tooltip,
+            tooltipKey,
             expanded: false,
             animation: 40,
             components: [],
@@ -86,12 +115,13 @@ export const Categories = {
             subcategoryName: subcategoryName,
             moduleType,
         };
-
         if (subcategoryName) {
             let subcategory = category.items.find((item) => item.type === 'separator' && item.title === subcategoryName);
 
             if (!subcategory) {
                 subcategory = new Separator(subcategoryName, true);
+                subcategory.titleKey = translationKey('categories.subcategory', subcategoryName);
+                subcategory.getDisplayTitle = () => t(subcategory.titleKey, {}, subcategoryName);
                 category.items.push(subcategory);
                 category.subcategories.push(subcategoryName);
             }
@@ -122,6 +152,7 @@ export const Categories = {
         if (!item) return null;
 
         if (description !== undefined) component.description = description;
+        setComponentTranslationKeys(component);
         item.components.push(component);
         Categories.dataRevision++;
         return component;
@@ -186,6 +217,7 @@ export const Categories = {
         }
         component.sectionName = sectionName;
         if (description !== undefined) component.description = description;
+        setComponentTranslationKeys(component);
         settingsCat.directComponents.push(component);
         Categories.dataRevision++;
         return component;

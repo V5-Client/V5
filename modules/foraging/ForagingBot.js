@@ -20,11 +20,11 @@ const DEBUG_BLOCK_COLOR = new RenderColor(205, 133, 63, 255);
 class ForagingBot extends ModuleBase {
     constructor() {
         super({
-            name: 'Foraging Bot',
+            name: 'modules.foraging_bot.name',
             subcategory: 'Foraging',
             developerMode: true,
-            description: 'unfinished.',
-            tooltip: 'unfinished.',
+            description: 'modules.foraging_bot.description',
+            tooltip: 'modules.foraging_bot.tooltip',
             isMacro: true,
         });
 
@@ -70,18 +70,18 @@ class ForagingBot extends ModuleBase {
         this.state = this.STATES.WAITING;
 
         this.bindToggleKey();
-        this.addToggle('Debug', (value) => (this.debug = !!value), 'Render stuff');
+        this.addToggle('labels.debug', (value) => (this.debug = !!value), 'descriptions.debug');
 
         this.on('tick', this.tick.bind(this));
         this.on('postRenderWorld', this.renderConnectedBlocks.bind(this));
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    'Route Index': () => `${this.pointIndex + 1}/${this.route.length}`,
-                    'Blocks Found': () => this.connectedBlocks.length,
+                    'overlay.route_index': () => `${this.pointIndex + 1}/${this.route.length}`,
+                    'overlay.blocks_found': () => this.connectedBlocks.length,
                 },
             },
         ]);
@@ -182,7 +182,7 @@ class ForagingBot extends ModuleBase {
         const target = World.getBlockAt(start[0], start[1], start[2]);
         const targetId = target?.type?.getID();
         if (targetId === undefined || targetId === null) {
-            this.message('&cStart block has no ID.');
+            this.message('messages.foraging.startBlockMissing');
             this.connectedBlocks = [];
             this.scannedBlocksSnapshot = [];
             this.targetBlock = null;
@@ -254,7 +254,7 @@ class ForagingBot extends ModuleBase {
 
     advanceRoutePoint() {
         if (this.route.length <= 1) {
-            this.message('Route complete. Stopping.');
+            this.message('messages.foraging.routeComplete');
             this.toggle(false);
             return false;
         }
@@ -331,12 +331,12 @@ class ForagingBot extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.resetState(this.STATES.PATHFINDING, 0);
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Rotations.stop();
         Pathfinder.resetPath();
         this.resetState(this.STATES.WAITING, this.pointIndex);

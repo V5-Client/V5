@@ -3,6 +3,7 @@ import { ColorPicker } from './ColorPicker';
 import { MultiToggle } from './Dropdown';
 import { Separator } from './Separator';
 import { PADDING } from '../Utils';
+import { t } from '../../utils/I18n';
 
 const SEPARATOR_HEIGHT = 16;
 const COMPONENT_HEIGHT = 26;
@@ -27,7 +28,11 @@ export const getComponentLayoutHeight = (component, useExpandedHeightWhenStatic 
     if (!isComponentVisible(component)) return 0;
     if (component instanceof Separator) return SEPARATOR_HEIGHT;
     const baseHeight =
-        component.layoutHeight || (component instanceof Button && component.title === component.buttonText ? BUTTON_ONLY_HEIGHT : COMPONENT_HEIGHT);
+        component.layoutHeight ||
+        (component instanceof Button &&
+        (component.getDisplayTitle?.() || t(component.title, {}, component.title)) === t(component.buttonText, {}, component.buttonText)
+            ? BUTTON_ONLY_HEIGHT
+            : COMPONENT_HEIGHT);
     return baseHeight + getComponentExpansionHeight(component, useExpandedHeightWhenStatic);
 };
 

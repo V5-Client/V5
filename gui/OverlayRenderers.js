@@ -1,9 +1,11 @@
 import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
 import { BORDER_WIDTH, colorWithAlpha, CORNER_RADIUS, drawRoundedRectangleWithBorder, drawText, FontSizes, getTextWidth, THEME } from './Utils';
+import { onLocaleChange, t } from '../utils/I18n';
 
-const STATS_LABELS = ['FPS:', 'Ping:', 'TPS:'];
+const STATS_LABELS = ['overlay.fps', 'overlay.ping', 'overlay.tps'];
 const STATS_VALUES = ['999', '999ms', '20.00'];
 const statsGeometry = new Map();
+onLocaleChange(() => statsGeometry.clear());
 
 const getStatsGeometry = (scale) => {
     if (statsGeometry.has(scale)) return statsGeometry.get(scale);
@@ -11,7 +13,7 @@ const getStatsGeometry = (scale) => {
     const fontSize = FontSizes.MEDIUM * 1.25 * scale;
     const gaps = [2 * scale, scale, 2 * scale];
     const separatorWidth = getTextWidth(' | ', fontSize);
-    const labelWidths = STATS_LABELS.map((label) => getTextWidth(label, fontSize));
+    const labelWidths = STATS_LABELS.map((key) => getTextWidth(`${t(key)}:`, fontSize));
     const slotWidths = labelWidths.map((width, index) => width + gaps[index] + getTextWidth(STATS_VALUES[index], fontSize));
     const geometry = {
         pad,
@@ -38,14 +40,14 @@ export const getStatsHudLines = () => {
     const ping = getPing();
     const tps = getTPS();
     return [
-        { label: 'FPS', value: String(fps), color: THEME.TEXT },
+        { label: 'overlay.fps', value: String(fps), color: THEME.TEXT },
         {
-            label: 'Ping',
+            label: 'overlay.ping',
             value: `${ping}ms`,
             color: (0xff000000 | getPingColor(ping)) >>> 0,
         },
         {
-            label: 'TPS',
+            label: 'overlay.tps',
             value: tps.toFixed(2),
             color: (0xff000000 | getTpsColor(tps)) >>> 0,
         },
@@ -76,7 +78,7 @@ export function drawStatsHud(overlay, lines = getStatsHudLines()) {
     let x = overlay.x + pad;
     const centerY = overlay.y + overlay.height / 2;
     lines.forEach((line, index) => {
-        const label = `${line.label}:`;
+        const label = `${t(line.label, {}, line.label)}:`;
         drawText(label, x, centerY, fontSize, THEME.TEXT_MUTED, 17);
         drawText(String(line.value), x + labelWidths[index] + gaps[index], centerY, fontSize, line.color, 17);
         x += slotWidths[index];

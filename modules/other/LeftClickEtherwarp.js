@@ -3,10 +3,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class LeftClickEtherwarp extends ModuleBase {
     constructor() {
         super({
-            name: 'Leftclick Etherwarp',
+            name: 'modules.leftclick_etherwarp.name',
             subcategory: 'Other',
-            description: 'Allows etherwarping with leftclick',
-            tooltip: 'allows etherwarping with leftclick',
+            description: 'modules.leftclick_etherwarp.description',
+            tooltip: 'modules.leftclick_etherwarp.tooltip',
         });
 
         this.clickStart = Infinity;

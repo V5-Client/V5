@@ -102,9 +102,9 @@ const ETHERWARP_BLACKLIST_CUBE_HALF = 1;
 class PeltMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Pelt Macro',
+            name: 'modules.pelt_macro.name',
             subcategory: 'Other',
-            description: 'Pathfinds to Trevor hunt coordinates from chat.',
+            description: 'modules.pelt_macro.description',
             theme: '#d99a3e',
             isMacro: true,
         });
@@ -137,36 +137,36 @@ class PeltMacro extends ModuleBase {
         this.etherwarpLandingBlacklist = new Set();
 
         this.addToggle(
-            'Etherwarp Pathfinder',
+            'labels.etherwarp_pathfinder',
             (enabled) => {
                 this.useEtherwarpPathfinder = !!enabled;
             },
-            'Use etherwarp pathfinding (Aspect of the Void/End) for area travel and reaching pelt mobs instead of walking paths when possible.',
+            'descriptions.etherwarp_pathfinder',
             false
         );
         this.addMultiToggle(
-            'Travel Mode',
+            'labels.travel_mode',
             TRAVEL_MODES,
             true,
             (selected) => {
                 const enabled = Array.isArray(selected) ? selected.find((item) => item.enabled) : null;
                 this.travelMode = enabled?.name || TRAVEL_MODES[0];
             },
-            'How Trevor area travel is handled.',
+            'descriptions.travel_mode_trevor',
             TRAVEL_MODES[0]
         );
         this.addSlider(
-            'Weapon Slot',
+            'labels.weapon_slot',
             1,
             9,
             1,
             (value) => {
                 this.weaponSlot = Math.max(0, Math.min(8, Math.round(value) - 1));
             },
-            'Hotbar slot to swap to before shooting the pelt mob.'
+            'descriptions.weapon_slot_pelt'
         );
         this.addSlider(
-            'Mob Kill Timeout',
+            'labels.mob_kill_timeout',
             MOB_KILL_TIMEOUT_MIN_SECONDS,
             MOB_KILL_TIMEOUT_MAX_SECONDS,
             MOB_KILL_TIMEOUT_DEFAULT_SECONDS,
@@ -174,16 +174,16 @@ class PeltMacro extends ModuleBase {
                 const timeoutSeconds = Math.max(MOB_KILL_TIMEOUT_MIN_SECONDS, Math.min(MOB_KILL_TIMEOUT_MAX_SECONDS, Math.round(value)));
                 this.mobKillTimeoutMs = timeoutSeconds * 1000;
             },
-            'How long to track a pelt mob before restarting Trevor hunt.'
+            'descriptions.mob_kill_timeout'
         );
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.status,
                         Pelts: () => this.getPeltsDisplay(),
-                        'Pelts/hr': () => this.getPeltsPerHourDisplay(),
+                        'overlay.pelts_per_hour': () => this.getPeltsPerHourDisplay(),
                     },
                 },
             ],
@@ -586,7 +586,7 @@ class PeltMacro extends ModuleBase {
         const atTrapWarp = this.isAtTrapWarpPosition();
         const slot = this.getAOTESlot();
         if (slot === -1) {
-            this.message('&cNo Aspect of the Void/End in hotbar. Falling back to pathing.');
+            this.message('messages.pelt.etherwarpFallback');
             this.startAreaPath();
             return;
         }

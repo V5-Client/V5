@@ -11,8 +11,8 @@ class SShapeCropMacro extends FarmingMacro {
     constructor() {
         super(
             {
-                name: 'S-Shape Macro',
-                description: 'Simple horizonal S-Shape crop macro.',
+                name: 'modules.s_shape_macro.name',
+                description: 'modules.s_shape_macro.description',
             },
             'farming sshape'
         );
@@ -24,16 +24,16 @@ class SShapeCropMacro extends FarmingMacro {
         this.lastDirection = STATES.LEFT;
         this.addLaneSwitchDelaySettings();
         this.addMultiToggle(
-            'Lane Change Direction',
-            ['Forward', 'Backward'],
+            'labels.lane_change_direction',
+            ['options.forward', 'options.backward'],
             true,
             (value) => (this.laneChangeKey = value.find((option) => option.enabled)?.name === 'Backward' ? 's' : 'w'),
             null,
             'Forward'
         );
-        this.addToggle('Always Hold Lane Change Key', (value) => (this.alwaysHoldLaneChangeKey = value));
+        this.addToggle('labels.always_hold_lane_change_key', (value) => (this.alwaysHoldLaneChangeKey = value));
         const pitch = this.addRangeSlider(
-            'Pitch',
+            'labels.pitch',
             -90,
             90,
             { low: this.pitchMin, high: this.pitchMax },
@@ -41,7 +41,7 @@ class SShapeCropMacro extends FarmingMacro {
                 this.pitchMin = value.low;
                 this.pitchMax = value.high;
             },
-            'Random pitch.'
+            'descriptions.random_pitch'
         );
         pitch.step = 0.01;
         pitch.precision = 2;

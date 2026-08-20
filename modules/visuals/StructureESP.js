@@ -9,10 +9,10 @@ const STRUCTURE_COLOR = new RenderColor(0, 255, 200, 100);
 class StructureESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Structure ESP',
+            name: 'modules.structure_esp.name',
             subcategory: 'Visuals',
             developerMode: true,
-            description: 'Super quick Structure ESP',
+            description: 'modules.structure_esp.description',
         });
 
         this.on('packetReceived', (packet) => {

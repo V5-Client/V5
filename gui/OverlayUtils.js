@@ -26,6 +26,7 @@ import {
     getStatsHudBounds,
     getStatsHudLines,
 } from './OverlayRenderers';
+import { onLocaleChange, t, translateText } from '../utils/I18n';
 
 class OverlayUtils {
     constructor() {
@@ -71,6 +72,8 @@ class OverlayUtils {
         this.sessionTrackedValues = {};
         this.renderActive = false;
         this.drawingGUI = false;
+
+        onLocaleChange(() => this.ids.forEach((id) => delete id.renderLayout));
 
         this.renderCallback = () => {
             if (!Overlays.Gui.isOpen() && !this.renderActive) return;
@@ -274,6 +277,7 @@ class OverlayUtils {
 
         if (existing) {
             existing.sections = sectionsArray;
+            existing.nameKey = options.nameKey || existing.nameKey;
             delete existing.renderLayout;
             if (options.isScheduler !== undefined) {
                 existing.isScheduler = options.isScheduler === true;
@@ -281,6 +285,7 @@ class OverlayUtils {
         } else {
             const newId = {
                 name: idName,
+                nameKey: options.nameKey || null,
                 sections: sectionsArray,
                 width: 0,
                 height: 0,
@@ -551,18 +556,19 @@ class OverlayUtils {
         const basePadding = boxPadding;
 
         const sections = this.ensureArray(id.sections);
+        const displayName = id.nameKey ? t(id.nameKey, {}, id.name) : translateText(id.name);
         const uptimeVal = forceGUI ? '0.00s' : formatUptime(this.startTimes[id.name]);
 
         let layout = id.renderLayout;
         if (!layout || layout.sections !== sections || layout.scale !== scale || layout.showUptime !== showUptime) {
-            let contentBaseWidth = getTextWidth(id.name, fontSize);
+            let contentBaseWidth = getTextWidth(displayName, fontSize);
             let calculatedHeight = 30 * scale;
             const renderSections = [];
 
             sections.forEach((section, sIdx) => {
                 if (!section || typeof section !== 'object') return;
                 const sectionLines = [];
-                const title = section.title ? section.title.toUpperCase() : null;
+                const title = section.title ? translateText(section.title).toUpperCase() : null;
 
                 if (title) {
                     contentBaseWidth = Math.max(contentBaseWidth, getTextWidth(title, argFontSize * 0.85) + 10 * scale);
@@ -572,8 +578,8 @@ class OverlayUtils {
 
                 if (sIdx === 0 && showUptime) {
                     sectionLines.push({
-                        label: 'Uptime:',
-                        labelWidth: getTextWidth('Uptime:', argFontSize),
+                        label: `${t('overlay.uptime')}:`,
+                        labelWidth: getTextWidth(`${t('overlay.uptime')}:`, argFontSize),
                         source: null,
                         value: null,
                         valueWidth: 0,
@@ -582,7 +588,7 @@ class OverlayUtils {
                 }
 
                 Object.entries(section.data || {}).forEach(([key, source]) => {
-                    const label = `${key}:`;
+                    const label = `${translateText(key)}:`;
                     sectionLines.push({
                         label,
                         labelWidth: getTextWidth(label, argFontSize),
@@ -662,8 +668,8 @@ class OverlayUtils {
                 const titleX = x + id.width / 2;
                 const titleAlign = 18;
 
-                drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0xff000000, 0.35 * contentAlpha), titleAlign);
-                drawText(id.name, titleX, titleY, fontSize, colorWithAlpha(THEME.TEXT, contentAlpha), titleAlign);
+                drawText(displayName, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0xff000000, 0.35 * contentAlpha), titleAlign);
+                drawText(displayName, titleX, titleY, fontSize, colorWithAlpha(THEME.TEXT, contentAlpha), titleAlign);
 
                 let contentY = titleY + 10 * scale;
 
@@ -713,7 +719,6 @@ class OverlayUtils {
         const sw = Render2D.screen.getWidth();
         const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
-        Render2D.blurBackground();
         this.editorBoxes = {};
         this.drawingGUI = true;
 

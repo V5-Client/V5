@@ -18,10 +18,10 @@ const HELD_ITEM_SWAP_BLACKLIST = ['ragnarock'];
 class VoidgloomHelper extends ModuleBase {
     constructor() {
         super({
-            name: 'Voidgloom Helper',
+            name: 'modules.voidgloom_helper.name',
             subcategory: 'Other',
-            description: 'Auto soulcry + deployables for Enderman Slayer. You must toggle with keybind!',
-            tooltip: 'meow',
+            description: 'modules.voidgloom_helper.description',
+            tooltip: 'modules.voidgloom_helper.tooltip',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
         });
@@ -40,27 +40,27 @@ class VoidgloomHelper extends ModuleBase {
         this.enableDeploy = true;
 
         this.addToggle(
-            'Auto Soulcry',
+            'labels.auto_soulcry',
             (value) => {
                 this.enableSoulcry = !!value;
                 if (!this.enableSoulcry && this.currentFeature === FEATURE.SOULCRY) this.resetAction();
             },
-            'Automatically uses soulcry with katana',
+            'descriptions.auto_soulcry',
             true
         );
 
         this.addToggle(
-            'Boss Only Soulcry',
+            'labels.boss_only_soulcry',
             (value) => {
                 this.soulcryBossOnly = !!value;
                 if (this.soulcryBossOnly && !this.bossActive && this.currentFeature === FEATURE.SOULCRY) this.resetAction();
             },
-            'Only auto soulcry while your Voidgloom boss is active',
+            'descriptions.boss_only_soulcry',
             false
         );
 
         this.addToggle(
-            'Auto Deployable',
+            'labels.auto_deployable',
             (value) => {
                 this.enableDeploy = !!value;
                 if (!this.enableDeploy) {
@@ -68,7 +68,7 @@ class VoidgloomHelper extends ModuleBase {
                     if (this.currentFeature === FEATURE.DEPLOY) this.resetAction();
                 }
             },
-            'Deploy Power Orb/Flare on boss spawn',
+            'descriptions.auto_deployable',
             true
         );
 
@@ -103,7 +103,7 @@ class VoidgloomHelper extends ModuleBase {
                 this.bossActive = true;
                 if (this.enableDeploy) {
                     this.pendingDeploy = true;
-                    this.message('Boss detected! Deploying orb/flare.');
+                    this.message('messages.voidgloom.deployingOrb');
                 }
             }
         }
@@ -224,11 +224,11 @@ class VoidgloomHelper extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.resetAction();
         this.pendingDeploy = false;
         this.bossActive = false;

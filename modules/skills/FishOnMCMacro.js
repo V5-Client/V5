@@ -38,10 +38,10 @@ const STATES = {
 class FishOnMCMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'FishOnMCMacro',
+            name: 'modules.fishonmcmacro.name',
             subcategory: 'Skills',
-            description: 'Keeps the fishing minigame marker centred',
-            tooltip: 'Holds Shift below the centre and releases it above.',
+            description: 'modules.fishonmcmacro.description',
+            tooltip: 'modules.fishonmcmacro.tooltip',
             autoDisableOnWorldUnload: true,
             isMacro: true,
         });
@@ -83,7 +83,7 @@ class FishOnMCMacro extends ModuleBase {
         registerSkyblockEvent('fishquestready', () => {
             if (!this.enabled) return;
             this.questPending = true;
-            this.message('&eQuest queued.');
+            this.message('messages.fishOnMc.questQueued');
         });
 
         this.on('tick', () => {
@@ -130,7 +130,7 @@ class FishOnMCMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.lastFishAt = 0;
         this.lastCastAt = 0;
         this.state = STATES.FISHING;
@@ -149,7 +149,7 @@ class FishOnMCMacro extends ModuleBase {
 
     onDisable() {
         this.castToken++;
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Client.setKey('shift', false);
         Pathfinder.resetPath();
         Rotations.stop();
@@ -160,11 +160,11 @@ class FishOnMCMacro extends ModuleBase {
     sellInventory() {
         const merchants = World.getAllEntities().filter((entity) => ChatLib.removeFormatting(String(entity.getName?.() || '')).includes('FISH MERCHANT'));
         if (!merchants.length) {
-            this.message('&cNo Fish Merchant found.');
+            this.message('messages.fishOnMc.merchantMissing');
             return;
         }
 
-        this.message('&eInventory full! Selling items...');
+        this.message('messages.common.inventoryFullSelling');
         this.lastFishAt = 0;
         Client.setKey('shift', false);
         this.merchant = merchants.reduce((closest, entity) => {
@@ -187,7 +187,7 @@ class FishOnMCMacro extends ModuleBase {
             (success) => {
                 if (!this.enabled || this.state !== STATES.PATHING_TO_MERCHANT) return;
                 if (!success) {
-                    this.message('&cCould not path to Fish Merchant.');
+                    this.message('messages.fishOnMc.merchantPathFailed');
                     this.state = STATES.FISHING;
                     return;
                 }
@@ -242,7 +242,7 @@ class FishOnMCMacro extends ModuleBase {
         Pathfinder.findPath([this.start.position], (success) => {
             if (!this.enabled || this.state !== STATES.RETURNING) return;
             if (!success) {
-                this.message('&cCould not return to fishing spot.');
+                this.message('messages.fishOnMc.returnFailed');
                 this.state = STATES.FISHING;
                 return;
             }
@@ -272,7 +272,7 @@ class FishOnMCMacro extends ModuleBase {
         this.questPending = false;
         this.state = STATES.QUEST_OPENING;
         this.lastQuestActionAt = 0;
-        this.message('&eOpening quests...');
+        this.message('messages.fishOnMc.openingQuests');
         if (this.hasFishingHook()) Client.rightClick();
         ScheduleTask(3, () => {
             if (this.enabled && this.state === STATES.QUEST_OPENING) ChatLib.command('quests');

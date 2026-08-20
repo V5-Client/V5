@@ -60,28 +60,28 @@ const initThemeSettings = () => {
         return picker;
     };
 
-    addThemePicker('Window Background', THEME.BG_WINDOW, (c) => (THEME.BG_WINDOW = c), 'Main window panel background.', 'Window', DEFAULT_THEME.BG_WINDOW);
-
     addThemePicker(
-        'Window Overlay',
-        THEME.BG_OVERLAY,
-        (c) => (THEME.BG_OVERLAY = c),
-        'Dimmed background behind the window.',
+        'labels.window_background',
+        THEME.BG_WINDOW,
+        (c) => (THEME.BG_WINDOW = c),
+        'descriptions.window_background',
         'Window',
-        DEFAULT_THEME.BG_OVERLAY
+        DEFAULT_THEME.BG_WINDOW
     );
 
+    addThemePicker('labels.window_overlay', THEME.BG_OVERLAY, (c) => (THEME.BG_OVERLAY = c), 'descriptions.window_overlay', 'Window', DEFAULT_THEME.BG_OVERLAY);
+
     Categories.addSettingsToggle(
-        'Limit Content Width',
+        'labels.limit_content_width',
         (value) => (GuiState.limitRightPanelWidth = !!value),
-        'Caps the main content area at 440px. Disable to use the total available width (OBJECTIVELY LOOKS BETTER).',
+        'descriptions.limit_content_width',
         GuiState.limitRightPanelWidth,
         'Window',
         'Theme'
     );
 
     addThemePicker(
-        'Global Accent',
+        'labels.global_accent',
         THEME.ACCENT,
         (c) => {
             THEME.ACCENT = c;
@@ -91,49 +91,49 @@ const initThemeSettings = () => {
             THEME.TOOLTIP_BORDER = withAlpha(c, 0.3);
             THEME.NOTIF_PROGRESS = withAlpha(c, 0.5);
         },
-        'Main accent color.',
+        'descriptions.global_accent',
         'Interface',
         DEFAULT_THEME.ACCENT
     );
 
     addThemePicker(
-        'Component Background',
+        'labels.component_background',
         THEME.BG_COMPONENT,
         (c) => {
             THEME.BG_COMPONENT = c;
             THEME.NOTIF_BG = withAlpha(c, 0.95);
             THEME.TOOLTIP_BG = c;
         },
-        'Background for all modules, toggles, sliders, dropdowns, and color pickers.',
+        'descriptions.component_background',
         'Interface',
         DEFAULT_THEME.BG_COMPONENT
     );
 
-    addThemePicker('Component Border', THEME.BORDER, (c) => (THEME.BORDER = c), 'Outline color for modules and components.', 'Interface', DEFAULT_THEME.BORDER);
+    addThemePicker('labels.component_border', THEME.BORDER, (c) => (THEME.BORDER = c), 'descriptions.component_border', 'Interface', DEFAULT_THEME.BORDER);
 
     addThemePicker(
-        'Hover/Surface',
+        'labels.hover_surface',
         THEME.HOVER,
         (c) => {
             THEME.HOVER = c;
             THEME.BG_INSET = c;
             THEME.BG_ELEVATED = c;
         },
-        'Color for hovered items. Also ends up affecting secondary surfaces (separators and stuff).',
+        'descriptions.hover_surface',
         'Interface',
         DEFAULT_THEME.HOVER
     );
 
-    addThemePicker('Primary Text', THEME.TEXT, (c) => (THEME.TEXT = c), 'Main text color.', 'Text', DEFAULT_THEME.TEXT);
+    addThemePicker('labels.primary_text', THEME.TEXT, (c) => (THEME.TEXT = c), 'descriptions.primary_text', 'Text', DEFAULT_THEME.TEXT);
 
-    addThemePicker('Secondary Text', THEME.TEXT_MUTED, (c) => (THEME.TEXT_MUTED = c), 'Description text color.', 'Text', DEFAULT_THEME.TEXT_MUTED);
+    addThemePicker('labels.secondary_text', THEME.TEXT_MUTED, (c) => (THEME.TEXT_MUTED = c), 'descriptions.secondary_text', 'Text', DEFAULT_THEME.TEXT_MUTED);
 
     Categories.addSettingsButton(
-        'Reset Theme Colors',
+        'labels.reset_theme_colors',
         () => {
             themePickers.forEach(({ picker, defaultColor }) => setPickerColor(picker, defaultColor));
         },
-        'Reset all theme colors back to defaults.',
+        'descriptions.reset_theme_colors',
         'Reset',
         'Theme'
     );

@@ -7,9 +7,9 @@ const LOADOUT_SLOTS = [14, 15, 16, 23, 24, 25, 32, 33, 34, 41, 42, 43];
 class LoadoutHandler extends ModuleBase {
     constructor() {
         super({
-            name: 'Loadout Settings',
+            name: 'modules.loadout_settings.name',
             subcategory: 'Farming',
-            description: 'Loadouts used while farming.',
+            description: 'modules.loadout_settings.description',
             showEnabledToggle: false,
         });
 
@@ -22,17 +22,17 @@ class LoadoutHandler extends ModuleBase {
         this.targetSlot = null;
         this.switching = false;
 
-        this.addSlider('Farming Loadout Slot', 1, 12, this.farmingSlot, (value) => (this.farmingSlot = Math.round(value)));
-        this.addSlider('Pest Spawning Loadout Slot', 1, 12, this.pestSpawningSlot, (value) => (this.pestSpawningSlot = Math.round(value)));
-        this.addSlider('Pest Killing Loadout Slot', 1, 12, this.pestKillingSlot, (value) => (this.pestKillingSlot = Math.round(value)));
-        this.addSlider('Visitor Loadout Slot', 1, 12, this.visitorSlot, (value) => (this.visitorSlot = Math.round(value)));
+        this.addSlider('labels.farming_loadout_slot', 1, 12, this.farmingSlot, (value) => (this.farmingSlot = Math.round(value)));
+        this.addSlider('labels.pest_spawning_loadout_slot', 1, 12, this.pestSpawningSlot, (value) => (this.pestSpawningSlot = Math.round(value)));
+        this.addSlider('labels.pest_killing_loadout_slot', 1, 12, this.pestKillingSlot, (value) => (this.pestKillingSlot = Math.round(value)));
+        this.addSlider('labels.visitor_loadout_slot', 1, 12, this.visitorSlot, (value) => (this.visitorSlot = Math.round(value)));
         this.addSlider(
-            'Pest Spawn Swap Cooldown',
+            'labels.pest_spawn_swap_cooldown',
             0,
             300,
             this.pestSpawnSwapCooldown,
             (value) => (this.pestSpawnSwapCooldown = Math.round(value)),
-            'Switches to the pest spawning loadout at or below this cooldown in seconds.'
+            'descriptions.pest_spawn_swap_cooldown'
         );
 
         register('tick', () => this.tick());

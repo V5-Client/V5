@@ -4,9 +4,9 @@ import { clickItem, getGuiName } from '../../utils/player/Inventory';
 class AuctionHelper extends ModuleBase {
     constructor() {
         super({
-            name: 'Auction Helper',
+            name: 'modules.auction_helper.name',
             subcategory: 'Other',
-            description: 'Automatically sets BIN auctions to two days and confirms them.',
+            description: 'modules.auction_helper.description',
             showEnabledToggle: false,
         });
 
@@ -15,11 +15,11 @@ class AuctionHelper extends ModuleBase {
         this.selectingDuration = false;
         this.lastBinConfirmAt = 0;
 
-        this.addToggle('Auto 2 Day', (value) => {
+        this.addToggle('labels.auto_2_day', (value) => {
             this.auto2Day = !!value;
             if (!this.auto2Day) this.selectingDuration = false;
         });
-        this.addToggle('Quick Create', (value) => (this.quickCreate = !!value));
+        this.addToggle('labels.quick_create', (value) => (this.quickCreate = !!value));
 
         register('tick', () => this.onTick());
     }

@@ -1,3 +1,5 @@
+import { t } from './I18n';
+
 const CONFIG_ROOT = 'V5Config';
 const STATE_FILE = 'developerMode.json';
 
@@ -52,9 +54,9 @@ function warnDeveloper() {
         if (!World.isLoaded()) {
             warnDeveloper();
         } else {
-            ChatLib.chat("&cDeveloper Mode is enabled. Run '/V5 developerMode false' to disable.");
-            ChatLib.chat('&cDeveloper Mode is UAYOR and disables auto updates.');
-            ChatLib.chat('&cSupport is not provided for developer mode macros as they are unfinished AND DONT WORK.');
+            ChatLib.chat(t('messages.runtime.developerModeIsEnabledRunV5DevelopermodeFalseToDisable'));
+            ChatLib.chat(t('messages.runtime.developerModeIsUayorAndDisablesAutoUpdates'));
+            ChatLib.chat(t('messages.runtime.supportIsNotProvidedForDeveloperModeMacrosAsTheyAreUnfinishedAndDontWork'));
         }
     }, 7000);
 }

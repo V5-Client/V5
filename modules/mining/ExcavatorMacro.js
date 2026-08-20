@@ -8,10 +8,10 @@ import { area } from '../../utils/Utils';
 class ExcavatorMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Excavator Macro',
+            name: 'modules.excavator_macro.name',
             subcategory: 'Mining',
-            description: 'Automatically gets glacite powder from the Fossil Excavator using suspicious scrap.',
-            tooltip: 'Glacite Powder Macro',
+            description: 'modules.excavator_macro.description',
+            tooltip: 'modules.excavator_macro.tooltip',
             theme: '#c4682b',
             autoDisableOnWorldUnload: false,
             isMacro: true,
@@ -24,22 +24,23 @@ class ExcavatorMacro extends ModuleBase {
         this.TICKDELAY = 0;
 
         this.addToggle(
-            'No delay',
+            'labels.no_delay',
             (v) => {
                 this.NODELAY = v;
             },
-            'Ignores tick delay and clicks as soon as possible'
+            'descriptions.no_delay'
         );
 
         this.addSlider(
-            'Tick delay',
+            'labels.tick_delay',
             1,
             10,
             5,
             (v) => {
                 this.TICKDELAY = v;
             },
-            'Amount of ticks until the player can click again'
+            'descriptions.tick_delay_excavator',
+            'tick_delay_excavator'
         );
 
         this.STATES = {
@@ -58,7 +59,7 @@ class ExcavatorMacro extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
                 },
@@ -74,7 +75,7 @@ class ExcavatorMacro extends ModuleBase {
 
             if (this.inExcavator) {
                 if (getGuiName() !== 'Fossil Excavator') {
-                    this.message('Excavator closed.');
+                    this.message('messages.excavator.closed');
                     this.toggle(false);
                     return;
                 }
@@ -216,13 +217,13 @@ class ExcavatorMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.state = this.STATES.OPENING;
         this.warpCooldownTicks = 0;
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.state = this.STATES.WAITING;
         this.inExcavator = false;
         this.blacklistedSlots.clear();

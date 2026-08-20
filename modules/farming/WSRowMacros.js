@@ -26,7 +26,7 @@ class CycleMacro extends FarmingMacro {
 
         if (![0, 45].includes(config.yaw)) {
             const yawOffset = this.addRangeSlider(
-                'Yaw Offset',
+                'labels.yaw_offset',
                 -45,
                 45,
                 { low: this.yawMin, high: this.yawMax },
@@ -34,14 +34,14 @@ class CycleMacro extends FarmingMacro {
                     this.yawMin = value.low;
                     this.yawMax = value.high;
                 },
-                'Random yaw offset from cardinal.'
+                'descriptions.yaw_offset'
             );
             yawOffset.step = 0.01;
             yawOffset.precision = 2;
         }
         if (config.adjustablePitch) {
             const pitch = this.addRangeSlider(
-                'Pitch',
+                'labels.pitch',
                 -90,
                 90,
                 { low: this.pitchMin, high: this.pitchMax },
@@ -49,7 +49,7 @@ class CycleMacro extends FarmingMacro {
                     this.pitchMin = value.low;
                     this.pitchMax = value.high;
                 },
-                'Random pitch.'
+                'descriptions.random_pitch'
             );
             pitch.step = 0.01;
             pitch.precision = 2;
@@ -93,23 +93,23 @@ class CycleMacro extends FarmingMacro {
 
 const garden = (name) => ({
     name,
-    description: 'Designed for 16thGarden megafarm.',
-    tooltip: '/visit 16thGarden for design.',
+    description: name.replace(/\.name$/, '.description'),
+    tooltip: name.replace(/\.name$/, '.tooltip'),
 });
 
 [
-    [garden('A/D Cactus Macro'), 'farming ad cactus', -68.19, -17.4, true],
-    [garden('A/D Cocoa Macro'), 'farming ad cocoa', -166.4, -79, true],
-    [garden('W/S Crop Macro'), 'farming ws crop', -26.6],
-    [garden('W/S Flower Macro'), 'farming ws flower', -106.88],
-    [garden('W/S Melon Macro'), 'farming ws melon', -119.99, 25],
-    [garden('W/S Mushroom Macro'), 'farming ws mushroom', -116.57],
-    [garden('W/S Sugar Cane Macro'), 'farming ws cane', -123.61],
+    [garden('modules.a_d_cactus_macro.name'), 'farming ad cactus', -68.19, -17.4, true],
+    [garden('modules.a_d_cocoa_macro.name'), 'farming ad cocoa', -166.4, -79, true],
+    [garden('modules.w_s_crop_macro.name'), 'farming ws crop', -26.6],
+    [garden('modules.w_s_flower_macro.name'), 'farming ws flower', -106.88],
+    [garden('modules.w_s_melon_macro.name'), 'farming ws melon', -119.99, 25],
+    [garden('modules.w_s_mushroom_macro.name'), 'farming ws mushroom', -116.57],
+    [garden('modules.w_s_sugar_cane_macro.name'), 'farming ws cane', -123.61],
     [
         {
-            name: 'Vertical Crop Macro',
-            description: 'Designed for taunahi megafarm.',
-            tooltip: 'Basic Vertical S-Shape Crop Macro.',
+            name: 'modules.vertical_crop_macro.name',
+            description: 'modules.vertical_crop_macro.description',
+            tooltip: 'modules.vertical_crop_macro.tooltip',
         },
         'farming ad vertical',
         0,
@@ -129,8 +129,8 @@ const garden = (name) => ({
 
 new CycleMacro(
     {
-        name: 'SDS Staircase Mushroom Macro',
-        description: 'Staircase Mushroom Farming.',
+        name: 'modules.sds_staircase_mushroom_macro.name',
+        description: 'modules.sds_staircase_mushroom_macro.description',
     },
     'farming sds mushroom',
     {
@@ -147,8 +147,8 @@ new CycleMacro(
 
 new CycleMacro(
     {
-        name: 'S-Shape Sugar Cane Macro',
-        description: '45° sugar cane S-Shape.',
+        name: 'modules.s_shape_sugar_cane_macro.name',
+        description: 'modules.s_shape_sugar_cane_macro.description',
     },
     'farming cane',
     {

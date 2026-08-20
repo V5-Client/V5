@@ -11,10 +11,10 @@ const clean = (value) => TabListUtils.stripFormatting(value).trim();
 class AutoForge extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Forge',
+            name: 'modules.auto_forge.name',
             subcategory: 'Other',
-            description: 'Forges and claims items.',
-            tooltip: 'Look at forger before enabling. Have forge in tablist.',
+            description: 'modules.auto_forge.description',
+            tooltip: 'modules.auto_forge.tooltip',
             autoDisableOnWorldUnload: true,
             isMacro: true,
         });
@@ -26,18 +26,18 @@ class AutoForge extends ModuleBase {
         this.waitForAll = false;
 
         this.addMultiToggle(
-            'Item',
+            'labels.item',
             ITEM_MODES,
             true,
             (options) => (this.itemMode = options.find((option) => option.enabled)?.name || ITEM_MODES[0]),
             'Tungber Keys makes Tungsten Keys first, then switches to Umber Keys when materials run out.',
             ITEM_MODES[0]
         );
-        this.addRangeSlider('Click Delay (ms)', 50, 2000, { low: this.minDelay, high: this.maxDelay }, (value) => {
+        this.addRangeSlider('labels.click_delay_ms', 50, 2000, { low: this.minDelay, high: this.maxDelay }, (value) => {
             this.minDelay = Math.round(value.low);
             this.maxDelay = Math.round(value.high);
         });
-        this.addToggle('Wait For All Slots', (value) => (this.waitForAll = !!value), 'Wait until all seven Forge slots are ready before claiming.');
+        this.addToggle('labels.wait_for_all_slots', (value) => (this.waitForAll = !!value), 'descriptions.wait_for_all_slots');
 
         this.reset();
         this.on('tick', () => this.action());
@@ -45,17 +45,17 @@ class AutoForge extends ModuleBase {
 
     onEnable() {
         if (this.forgeTabLines()?.length !== FORGE_SLOTS.length) {
-            this.message('&cForge widget must show all 7 slots. Enable/move it to the top!');
+            this.message('messages.autoForge.invalidWidget');
             return this.toggle(false);
         }
 
         this.reset();
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.startOpening(this.freeSlot);
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.reset();
     }
 
@@ -160,10 +160,10 @@ class AutoForge extends ModuleBase {
             closeInventory();
             if (this.itemMode === 'Tungber Keys' && this.activeItem === 'Tungsten Key') {
                 this.activeItem = 'Umber Key';
-                this.message('&eOut of Tungsten materials, switching to Umber Keys.');
+                this.message('messages.autoForge.switchingToUmber');
                 this.startOpening(this.freeSlot);
             } else {
-                this.message('&cNot enough materials!');
+                this.message('messages.autoForge.materialsMissing');
                 this.toggle(false);
             }
             return;
@@ -176,7 +176,7 @@ class AutoForge extends ModuleBase {
         const container = Player.getContainer();
         if (container) return container;
         if (wait && ++this.waitTicks <= GUI_TIMEOUT_TICKS) return null;
-        this.message('&cUh oh... GUI closed manually? Stopping.');
+        this.message('messages.autoForge.guiClosed');
         this.toggle(false);
         return null;
     }

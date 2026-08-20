@@ -6,9 +6,9 @@ import { getWebhookData, sendScreenshot, setFailsafeEmbedsEnabled, setLoadEmbeds
 class DiscordIntegration extends ModuleBase {
     constructor() {
         super({
-            name: 'Discord Integration',
+            name: 'modules.discord_integration.name',
             subcategory: 'Core',
-            description: 'Discord Integration',
+            description: 'modules.discord_integration.description',
             theme: '#7289da',
             hideInModules: true,
         });
@@ -26,26 +26,26 @@ class DiscordIntegration extends ModuleBase {
         this.FIVE_MINUTES = 5 * 60 * 1000;
 
         Categories.addSettingsTextInput(
-            'Webhook URL',
+            'labels.webhook_url',
             this.URL,
             (v) => this.handleWebhookUrlChange(v),
             'Enter your webhook URL here.',
             this.sectionName,
             'Discord'
         );
-        Categories.addSettingsTextInput('User ID', this.ID, (v) => this.handleIDChange(v), 'Enter your user ID here.', this.sectionName, 'Discord');
+        Categories.addSettingsTextInput('labels.user_id', this.ID, (v) => this.handleIDChange(v), 'Enter your user ID here.', this.sectionName, 'Discord');
 
         Categories.addSettingsToggle(
-            'Send Embed on CT load',
+            'labels.send_embed_on_load',
             (v) => setLoadEmbedsEnabled(!!v),
-            'Sends an embed to your webhook when CT loads',
+            'descriptions.send_embed_on_load',
             true,
             this.sectionName,
             'Discord'
         );
 
         Categories.addSettingsToggle(
-            'Macro Embeds',
+            'labels.macro_embeds',
             (v) => {
                 this.MACRO_EMBEDS = !!v;
                 if (!this.MACRO_EMBEDS) {
@@ -60,12 +60,12 @@ class DiscordIntegration extends ModuleBase {
         );
 
         Categories.addSettingsToggle(
-            'Failsafe Embeds',
+            'labels.failsafe_embeds',
             (v) => {
                 this.FAILSAFE_EMBEDS = !!v;
                 setFailsafeEmbedsEnabled(this.FAILSAFE_EMBEDS);
             },
-            'Sends failsafe embeds and screenshots to your webhook',
+            'descriptions.failsafe_embeds',
             true,
             this.sectionName,
             'Discord'
@@ -149,11 +149,11 @@ class DiscordIntegration extends ModuleBase {
 
         const canonical = trimmed.split(/[?#]/)[0];
         const valid = canonical === '' || /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s/]+\/?$/.test(canonical);
-        if (!valid) return this.message('&cInvalid Discord webhook format.');
+        if (!valid) return this.message('messages.discord.invalidWebhook');
 
         this.URL = trimmed;
         setWebhook(trimmed);
-        this.message('&aDiscord webhook endpoint updated.');
+        this.message('messages.discord.endpointUpdated');
     }
 
     handleIDChange(id) {
@@ -161,7 +161,7 @@ class DiscordIntegration extends ModuleBase {
         if (trimmed === String(this.ID ?? '').trim()) return;
         this.ID = trimmed;
         setWebhookUserId(trimmed);
-        this.message('&aDiscord webhook ID updated.');
+        this.message('messages.discord.idUpdated');
     }
 }
 

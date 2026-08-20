@@ -10,8 +10,8 @@ class CocoaBeansMacro extends FarmingMacro {
     constructor() {
         super(
             {
-                name: 'Forward S-Shape Cocoa Macro',
-                description: 'Forward cocoa S-Shape.',
+                name: 'modules.forward_s_shape_cocoa_macro.name',
+                description: 'modules.forward_s_shape_cocoa_macro.description',
             },
             'farming cocoa'
         );
@@ -19,7 +19,7 @@ class CocoaBeansMacro extends FarmingMacro {
         this.state = STATES.FORWARD;
         this.lastDirection = STATES.FORWARD;
         this.moveLeft = true;
-        this.addToggle('Move Left', (value) => (this.moveLeft = !!value), 'Use A to change lanes. Disable to use D.', true);
+        this.addToggle('labels.move_left', (value) => (this.moveLeft = !!value), 'descriptions.move_left', true);
     }
 
     onFarmStart(player) {

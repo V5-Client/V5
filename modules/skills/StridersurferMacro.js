@@ -30,10 +30,10 @@ const STEPS = {
 class StridersurferMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Stridersurfer Macro',
+            name: 'modules.stridersurfer_macro.name',
             subcategory: 'Skills',
-            description: 'Automates the stridersurfer fishing loop and kill sequence',
-            tooltip: 'Automates the stridersurfer fishing loop and kill sequence',
+            description: 'modules.stridersurfer_macro.description',
+            tooltip: 'modules.stridersurfer_macro.tooltip',
             autoDisableOnWorldUnload: true,
             isMacro: true,
         });
@@ -52,18 +52,8 @@ class StridersurferMacro extends ModuleBase {
             this.tick();
         });
 
-        this.addTextInput(
-            'Pet name (kill)',
-            '',
-            (v) => (this.petNameKill = this.normalizeInput(v)),
-            'Optional. Leave blank to skip the pet swap after the kill combo'
-        );
-        this.addTextInput(
-            'Pet name (recast)',
-            '',
-            (v) => (this.petNameRecast = this.normalizeInput(v)),
-            'Optional. Leave blank to skip the pet swap after recasting'
-        );
+        this.addTextInput('labels.pet_name_kill', '', (v) => (this.petNameKill = this.normalizeInput(v)), 'descriptions.pet_name_kill');
+        this.addTextInput('labels.pet_name_recast', '', (v) => (this.petNameRecast = this.normalizeInput(v)), 'descriptions.pet_name_recast');
 
         this.stridersurferTarget = null;
         this.previousYaw = null;
@@ -74,16 +64,16 @@ class StridersurferMacro extends ModuleBase {
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         Phase: () => this.getStepDescription(),
                     },
                 },
                 {
-                    title: 'Performance',
+                    title: 'overlay.performance',
                     data: {
                         Kills: () => this.getKills(),
-                        'Kills/hr': () => this.getKillsPerHour(),
+                        'overlay.kills_per_hour': () => this.getKillsPerHour(),
                     },
                 },
             ],
@@ -468,7 +458,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.lastStriderCount = null;
         this.clearPendingPetSwap();
         this.clearStriderState();
@@ -478,7 +468,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Client.setKey('shift', false);
         Rotations.stop();
         this.lastStriderCount = null;

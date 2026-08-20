@@ -69,10 +69,10 @@ const COMBAT_PRESETS = {
 class Combat extends ModuleBase {
     constructor() {
         super({
-            name: 'Combat Bot',
+            name: 'modules.combat_bot.name',
             subcategory: 'Combat',
-            description: 'Automatically hunts entities matching configured names.',
-            tooltip: 'Enter one or more entity names, then toggle with the module keybind.',
+            description: 'modules.combat_bot.description',
+            tooltip: 'modules.combat_bot.tooltip',
             theme: '#c74d4d',
             isMacro: true,
         });
@@ -106,30 +106,30 @@ class Combat extends ModuleBase {
         this.combatRotationSpeed = 400;
 
         this.addSlider(
-            'Pathfinding Threshold',
+            'labels.pathfinding_threshold',
             5,
             30,
             15,
             (value) => {
                 this.pathfindingThreshold = value;
             },
-            'Distance to switch from direct pursuit to pathfinding'
+            'descriptions.pathfinding_threshold'
         );
 
         this.addSlider(
-            'Attack CPS',
+            'labels.attack_cps',
             5,
             15,
             10,
             (value) => {
                 this.attackCPS = value;
             },
-            'Average attacks per second'
+            'descriptions.attack_cps'
         );
 
         this.addMultiToggle(
-            'Attack Button',
-            ['Left Click', 'Right Click'],
+            'labels.attack_button',
+            ['options.left_click', 'options.right_click'],
             true,
             (selected) => {
                 this.attackButton = selected.find((item) => item.enabled)?.name || 'Left Click';
@@ -140,16 +140,16 @@ class Combat extends ModuleBase {
 
         let rotationSpeedSlider;
         this.addToggle(
-            'Override Rotation Speed',
+            'labels.override_rotation_speed',
             (value) => {
                 this.overrideRotationSpeed = !!value;
                 rotationSpeedSlider.visible = this.overrideRotationSpeed;
                 this.refreshTargetRotation();
             },
-            'Use a Combat Bot-specific rotation speed instead of the global setting.'
+            'descriptions.override_rotation_speed'
         );
         rotationSpeedSlider = this.addSlider(
-            'Combat Rotation Speed',
+            'labels.combat_rotation_speed',
             30,
             60,
             40,
@@ -157,12 +157,12 @@ class Combat extends ModuleBase {
                 this.combatRotationSpeed = value * 10;
                 if (this.overrideRotationSpeed) this.refreshTargetRotation();
             },
-            'Degrees per second.'
+            'descriptions.combat_rotation_speed'
         );
         rotationSpeedSlider.visible = false;
 
         this.addMultiToggle(
-            'Target Presets',
+            'labels.target_presets',
             Object.keys(COMBAT_PRESETS),
             false,
             (selected) => {
@@ -175,28 +175,18 @@ class Combat extends ModuleBase {
             'Graveyard'
         );
 
-        this.addTextInput(
-            'Target Names',
-            '',
-            (value) => (this.targetNames = parseNames(value)),
-            'Generic internal entity names separated by commas. Use presets for location-specific mobs.'
-        );
+        this.addTextInput('labels.target_names', '', (value) => (this.targetNames = parseNames(value)), 'descriptions.target_names');
 
-        this.addTextInput(
-            'Target Name Blacklist',
-            '',
-            (value) => (this.targetNameBlacklist = parseNames(value)),
-            'Case-insensitive entity names to exclude, separated by commas.'
-        );
+        this.addTextInput('labels.target_name_blacklist', '', (value) => (this.targetNameBlacklist = parseNames(value)), 'descriptions.target_name_blacklist');
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => this.state,
                     Target: () => this.getTargetDisplayName(this.target),
-                    'Targets Found': () => this.targets.length,
-                    'Known Blackholes': () => this.activeBlackholes.length,
+                    'overlay.targets_found': () => this.targets.length,
+                    'overlay.known_blackholes': () => this.activeBlackholes.length,
                 },
             },
         ]);
@@ -655,7 +645,7 @@ class Combat extends ModuleBase {
     }
 
     onDisable() {
-        if (!this.isParentManaged) this.message('&cDisabled');
+        if (!this.isParentManaged) this.message('messages.common.disabled');
 
         this.cancelPath();
         Client.stopMovement();

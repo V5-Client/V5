@@ -1,12 +1,13 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { isDeveloperModeEnabled } from './DeveloperModeState';
+import { translateText } from './I18n';
 
 const sendGradient = (prefix, ...args) => {
     if (!args.length) return;
     Client.getMinecraft().execute(() => GradientChat.sendGradientMsg(prefix, 0x05b9f9, 0x0539f9, ...args));
 };
 
-export const chat = (message) => sendGradient('V5 »', message);
+export const chat = (message, params = {}) => sendGradient('V5 »', translateText(message, params));
 
 export function chatDebug(message) {
     if (isDeveloperModeEnabled()) sendGradient('V5 Debug »', message);

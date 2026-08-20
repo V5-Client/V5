@@ -8,10 +8,10 @@ import { area } from '../../utils/Utils';
 class Pingless extends ModuleBase {
     constructor() {
         super({
-            name: 'Pingless Miner',
+            name: 'modules.pingless_miner.name',
             subcategory: 'Mining',
-            description: 'Breaks hardstone quicker in the Crystal Hollows',
-            tooltip: 'Removes hardstone instantly client-side.',
+            description: 'modules.pingless_miner.description',
+            tooltip: 'modules.pingless_miner.tooltip',
         });
 
         this.mining = false;
@@ -63,7 +63,7 @@ class Pingless extends ModuleBase {
             }
         }).setFilteredClass(ServerboundSwingPacket);
 
-        this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickDelay = v), 'How long to wait before removing hardstone.');
+        this.addSlider('labels.tick_delay', 0, 5, 1, (v) => (this.tickDelay = v), 'descriptions.tick_delay_pingless');
     }
 
     onDisable() {

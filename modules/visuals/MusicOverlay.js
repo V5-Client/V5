@@ -11,7 +11,7 @@ import { clamp, drawMusicOverlay, getMusicOverlayBounds } from '../../gui/Overla
 
 class Music extends ModuleBase {
     constructor() {
-        super({ name: 'Music Overlay', subcategory: 'Visuals' });
+        super({ name: 'modules.music_overlay.name', subcategory: 'Visuals' });
 
         this.musicProcess = null;
         this.assetsDir = globalAssetsDir.getAbsoluteFile();
@@ -232,7 +232,7 @@ class Music extends ModuleBase {
 
         Executor.execute(() => {
             try {
-                chat('&7WindowsMusicHelper.exe not found. Downloading...');
+                chat('messages.runtime.windowsmusichelperExeNotFoundDownloading');
                 let lastUpdate = -25;
                 streamDownloadToFile(this.windowsExeDownloadUrl, this.exePath, (percent) => {
                     if (percent >= lastUpdate + 25) {
@@ -240,7 +240,7 @@ class Music extends ModuleBase {
                         lastUpdate = percent;
                     }
                 });
-                chat('&aWindows music helper installed.');
+                chat('messages.runtime.windowsMusicHelperInstalled');
             } catch (e) {
                 chat(`&cWindows music helper download failed: ${e}`);
                 console.error(`[Music] Download error: ${e}`);

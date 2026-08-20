@@ -6,11 +6,11 @@ import { clickSlot, setItemSlot } from '../../utils/player/Inventory';
 class FishingMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Fishing Macro',
+            name: 'modules.fishing_macro.name',
             subcategory: 'Skills',
             developerMode: true,
-            description: 'Fishing Macro general hype',
-            tooltip: 'Fishing Macro general hype',
+            description: 'modules.fishing_macro.description',
+            tooltip: 'modules.fishing_macro.tooltip',
             isMacro: true,
         });
         this.bindToggleKey();
@@ -50,22 +50,22 @@ class FishingMacro extends ModuleBase {
             }
         });
 
-        this.addSlider('Hype Slot', 0, 8, 1, (v) => (this.hypeSlot = v));
-        this.addSlider('Rod Slot', 0, 8, 0, (v) => (this.rodSlot = v));
-        this.addToggle('Pet swap', (v) => (this.petSwap = v));
-        this.addSlider('Pet slot', 10, 43, 10, (v) => (this.petSlot = v));
-        this.addSlider('Tick cooldown', 3, 7, 5, (v) => (this.cooldown = v));
-        this.addSlider('Additional random tick cooldown', 0, 5, 2, (v) => (this.randomCooldown = v));
-        this.addSlider('Hyperion click amount', 1, 4, 1, (v) => (this.hypeClickAmount = v));
-        this.addSlider('Hyperion click amount (thunder)', 1, 50, 1, (v) => (this.hypeClickAmountThunder = v));
+        this.addSlider('labels.hype_slot', 0, 8, 1, (v) => (this.hypeSlot = v));
+        this.addSlider('labels.rod_slot', 0, 8, 0, (v) => (this.rodSlot = v));
+        this.addToggle('labels.pet_swap', (v) => (this.petSwap = v));
+        this.addSlider('labels.pet_slot', 10, 43, 10, (v) => (this.petSlot = v));
+        this.addSlider('labels.tick_cooldown', 3, 7, 5, (v) => (this.cooldown = v));
+        this.addSlider('labels.additional_random_tick_cooldown', 0, 5, 2, (v) => (this.randomCooldown = v));
+        this.addSlider('labels.hyperion_click_amount', 1, 4, 1, (v) => (this.hypeClickAmount = v));
+        this.addSlider('labels.hyperion_click_amount_thunder', 1, 50, 1, (v) => (this.hypeClickAmountThunder = v));
 
-        this.addToggle('Use deployable', (v) => (this.useDeployable = v));
-        this.addSlider('Deployable slot', 0, 8, 2, (v) => (this.deployableSlot = v));
-        this.addSlider('Deployable cooldown', 0, 300, 180, (v) => (this.deployableCooldown = v));
+        this.addToggle('labels.use_deployable', (v) => (this.useDeployable = v));
+        this.addSlider('labels.deployable_slot', 0, 8, 2, (v) => (this.deployableSlot = v));
+        this.addSlider('labels.deployable_cooldown', 0, 300, 180, (v) => (this.deployableCooldown = v));
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     Step: () => this.step,
                     Delay: () => this.tickDelay,
@@ -156,7 +156,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.step = -2;
         this.tickDelay = 0;
         this.thunderSpawn = false;
@@ -164,7 +164,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

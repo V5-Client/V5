@@ -32,10 +32,10 @@ const TRAVEL_MODES = ['Walk', 'Fast Etherwarp'];
 class CommissionMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Commission Macro',
+            name: 'modules.commission_macro.name',
             subcategory: 'Mining',
-            description: 'Completes Commissions for you',
-            tooltip: 'Completes Commissions for you (Dwarven).',
+            description: 'modules.commission_macro.description',
+            tooltip: 'modules.commission_macro.tooltip',
             theme: '#4cdfd2',
             autoDisableOnWorldUnload: false,
             isMacro: true,
@@ -89,7 +89,7 @@ class CommissionMacro extends ModuleBase {
         });
 
         this.addMultiToggle(
-            'Travel Mode',
+            'labels.travel_mode',
             TRAVEL_MODES,
             true,
             (selected) => {
@@ -97,13 +97,14 @@ class CommissionMacro extends ModuleBase {
                 this.travelMode = enabled?.name || TRAVEL_MODES[0];
             },
             'How the macro travels to commission locations.',
-            TRAVEL_MODES[0]
+            TRAVEL_MODES[0],
+            'travel_mode_commission'
         );
 
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.currentState,
                         Commission: () => this.currentCommission?.name || 'None',
@@ -112,10 +113,10 @@ class CommissionMacro extends ModuleBase {
                     },
                 },
                 {
-                    title: 'Profits',
+                    title: 'overlay.profits',
                     data: {
-                        'Completed Commissions': () => this.getCompletedCommissions(),
-                        'Last Commission': () => this.getLastCommissionDisplay(),
+                        'overlay.completed_commissions': () => this.getCompletedCommissions(),
+                        'overlay.last_commission': () => this.getLastCommissionDisplay(),
                         'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
                     },
                 },
@@ -161,25 +162,25 @@ class CommissionMacro extends ModuleBase {
         });
 
         this.addSlider(
-            'Avoidance Radius',
+            'labels.avoidance_radius',
             0,
             30,
             10,
             (value) => {
                 this.avoidanceRadius = value;
             },
-            'How close players/Star Sentries can be to a mining spot before it is considered occupied.'
+            'descriptions.avoidance_radius'
         );
 
         this.addSlider(
-            'Weapon Slot (Goblin)',
+            'labels.weapon_slot_goblin',
             1,
             8,
             1,
             (value) => {
                 this.goblinWeaponSlot = value;
             },
-            'Hotbar slot with weapon for Goblin Slayer (1-8)'
+            'descriptions.weapon_slot_goblin'
         );
     }
 
@@ -250,7 +251,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.emissariesUnlocked = true;
 
         const drills = getDrills();
@@ -258,7 +259,7 @@ class CommissionMacro extends ModuleBase {
         this.pickaxe = this.drill;
 
         if (!this.drill) {
-            this.message('&cNo drill or pickaxe found in hotbar!');
+            this.message('messages.commission.toolMissing');
             this.toggle(false);
             return;
         }
@@ -268,12 +269,17 @@ class CommissionMacro extends ModuleBase {
 
         this.weapon = this.getWeaponFromSlot();
         if (!this.weapon) {
-            notificationManager.add(`No weapon found in slot ${this.goblinWeaponSlot}`, 'Goblin commissions will be skipped.', 'ERROR', '5000');
+            notificationManager.add(
+                { key: 'messages.commission.weaponMissing', params: { slot: this.goblinWeaponSlot } },
+                'messages.commission.goblinSkipped',
+                'ERROR',
+                '5000'
+            );
         }
 
         this.miningSpeed = getMiningSpeed('Dwarven Mines');
         if (!this.miningSpeed) {
-            notificationManager.add('No mining speed saved!', "Run '/v5 mining stats' first.", 'ERROR', '5000');
+            notificationManager.add('messages.commission.miningSpeedMissing', 'messages.commission.runMiningStats', 'ERROR', '5000');
             this.toggle(false);
             return;
         }
@@ -283,7 +289,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.resetState();
 
         regrab();
@@ -371,7 +377,7 @@ class CommissionMacro extends ModuleBase {
         const now = Date.now();
         if (areaName !== 'Dwarven Mines') {
             if (!this.areaCheckTime) {
-                this.message('&eNot in Dwarven Mines, warping...');
+                this.message('messages.commission.warpingToDwarven');
                 ChatLib.command('warpforge');
                 this.areaCheckTime = now;
                 return;
@@ -408,16 +414,16 @@ class CommissionMacro extends ModuleBase {
 
         const activeCommissions = this.getActiveCommissions();
         if (activeCommissions.length === 0) {
-            this.message('No commissions detected.');
-            this.message('Ensure commissions are enabled in /tab');
-            this.message('You might have to speak to the king first.');
+            this.message('messages.commission.noneDetected');
+            this.message('messages.commission.enableTabDisplay');
+            this.message('messages.commission.speakToKing');
             this.toggle(false);
             return;
         }
 
         const supportedTasks = this.getSupportedTasks(activeCommissions);
         if (supportedTasks.length === 0) {
-            this.message('&eNo supported commissions available.');
+            this.message('messages.commission.noneSupported');
             this.toggle(false);
             return;
         }
@@ -558,7 +564,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleNoAvailableSpots() {
-        this.message('No available spots! Finding new lobby');
+        this.message('messages.commission.findingLobby');
         ChatLib.command('hub');
         this.resetState();
         this.delay(80);
@@ -661,7 +667,7 @@ class CommissionMacro extends ModuleBase {
     checkEmissaryUnlocked() {
         if (!World.getAllEntities().find((e) => e.getName().includes('Emissary'))) {
             this.emissariesUnlocked = false;
-            this.message('Emissary not found! Reverting to king.');
+            this.message('messages.commission.emissaryFallback');
             return false;
         }
         return true;
@@ -755,7 +761,7 @@ class CommissionMacro extends ModuleBase {
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = now;
 
-        this.message('&eAvoidance radius breached for 5s, repathing to a different vein...');
+        this.message('messages.commission.avoidanceRepath');
         Pathfinder.resetPath();
         Pathfinder.findPath(safeWaypoints, (success) => this.onPathComplete(success));
     }
@@ -838,7 +844,7 @@ class CommissionMacro extends ModuleBase {
 
     startMining() {
         if (Client.isInGui()) {
-            this.message('&eWaiting for GUI to close before mining...');
+            this.message('messages.commission.waitingForGui');
             this.setState(STATES.WAITING_GUI_CLOSE);
             return;
         }
@@ -847,7 +853,7 @@ class CommissionMacro extends ModuleBase {
         this.drill = drills.drill;
 
         if (!this.drill) {
-            notificationManager.add('No drill or pickaxe found!', 'What happened?', 'ERROR', '5000');
+            notificationManager.add('messages.commission.drillMissingTitle', 'messages.commission.drillMissingDescription', 'ERROR', '5000');
             this.toggle(false);
             return;
         }
@@ -911,7 +917,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onInventoryFull() {
-        this.message('&eInventory full! Selling items...');
+        this.message('messages.common.inventoryFullSelling');
         MiningBot.toggle(false, true);
         this.savedState = this.currentState;
         this.setState(STATES.SELLING);
@@ -925,19 +931,19 @@ class CommissionMacro extends ModuleBase {
         const stateAfterRefueling = this.currentState === STATES.CLAIMING ? STATES.CLAIMING : STATES.IDLE;
         this.commissionClaimer.cancelNpcRotation();
 
-        this.message('&eDrill empty! Refueling...');
+        this.message('messages.common.drillEmptyRefueling');
         MiningBot.toggle(false, true);
         this.setState(STATES.REFUELING);
 
         refuel((success) => {
             if (!this.enabled || this.currentState !== STATES.REFUELING) return;
             if (!success) {
-                this.message('&cRefueling failed!');
+                this.message('messages.commission.refuelFailed');
                 this.toggle(false);
                 return;
             }
 
-            this.message('&aRefueling successful!');
+            this.message('messages.common.refuelSucceeded');
             const drills = getDrills();
             this.drill = drills.drill;
 

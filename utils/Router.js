@@ -109,7 +109,7 @@ class Routes {
      */
     saveRouteToFile(fileName, routeData) {
         if (!this._canSaveRoute(fileName)) {
-            chat('&cNo route file selected. Select a route before editing.');
+            chat('messages.runtime.noRouteFileSelectedSelectARouteBeforeEditing');
             return false;
         }
 
@@ -140,13 +140,13 @@ class Routes {
         }
 
         if (!this._canSaveRoute(file)) {
-            chat('&cNo route file selected. Select one in the settings first.');
+            chat('messages.runtime.noRouteFileSelectedSelectOneInTheSettingsFirst');
             return this._normalizeRoute(route);
         }
 
         let normalizedRoute = this._normalizeRoute(route);
         if (route !== null && route !== undefined && !Array.isArray(route)) {
-            chat('Invalid route data. Resetting to an empty route.');
+            chat('messages.runtime.invalidRouteDataResettingToAnEmptyRoute');
         }
 
         let routeModified = false;
@@ -159,7 +159,7 @@ class Routes {
                 if (addPoinToLook) {
                     let looking = Player.lookingAt();
                     if (!looking) {
-                        chat('You are not looking at anything');
+                        chat('messages.runtime.youAreNotLookingAtAnything');
                         return normalizedRoute;
                     }
                     point.x = Math.floor(looking.x);
@@ -177,7 +177,7 @@ class Routes {
                     let movementToVerify = Array.isArray(userMovementInput) ? userMovementInput[0] : userMovementInput;
 
                     if (!movementToVerify) {
-                        chat('ERROR: Movement type required. Waypoint not added.');
+                        chat('messages.runtime.errorMovementTypeRequiredWaypointNotAdded');
                         return normalizedRoute;
                     }
 
@@ -224,7 +224,7 @@ class Routes {
                             routeModified = true;
                             chat(`Invalid waypoint position, removing the last waypoint.`);
                         } else {
-                            chat('Route is already empty!');
+                            chat('messages.runtime.routeIsAlreadyEmpty');
                         }
                     }
                 } else {
@@ -233,7 +233,7 @@ class Routes {
                         routeModified = true;
                         chat(`Removed the last waypoint.`);
                     } else {
-                        chat('Route is already empty!');
+                        chat('messages.runtime.routeIsAlreadyEmpty');
                     }
                 }
                 break;
@@ -246,12 +246,12 @@ class Routes {
 
                     chat(`Cleared all waypoints from the route ${filename}`);
                 } else {
-                    chat('Route is already empty!');
+                    chat('messages.runtime.routeIsAlreadyEmpty');
                 }
                 break;
 
             default:
-                chat('You did not state an action!');
+                chat('messages.runtime.youDidNotStateAnAction');
                 return normalizedRoute;
         }
 

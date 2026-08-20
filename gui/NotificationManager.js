@@ -1,4 +1,5 @@
 import { colorWithAlpha, drawRoundedRectangle, drawText, easeOutCubic, FontSizes, THEME } from './Utils';
+import { translateText } from '../utils/I18n';
 
 // Configuration
 const NOTIFICATION_WIDTH = 250;
@@ -81,8 +82,8 @@ const NOTIFICATION_TYPES = {
 
 class Notification {
     constructor(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
-        this.title = title;
-        this.description = description;
+        this.title = translateText(title);
+        this.description = translateText(description);
         this.type = NOTIFICATION_TYPES[type] ? type : 'SUCCESS';
         this.duration = duration;
         this.isSticky = duration == 'sticky';

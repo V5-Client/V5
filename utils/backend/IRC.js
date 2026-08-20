@@ -4,16 +4,9 @@ import { Categories } from '../../gui/categories/CategorySystem';
 let ircEnabled = true;
 let autoMeowEnabled = false;
 let randomChoiceMeow = false;
-Categories.addSettingsToggle('IRC', (v) => (ircEnabled = !!v), "Messages can be sent with '#msg'", true, 'IRC', 'Discord');
-Categories.addSettingsToggle('Auto Meow', (v) => (autoMeowEnabled = !!v), 'Auto-reply "meow!" when someone sends "meow"', false, 'IRC', 'Discord');
-Categories.addSettingsToggle(
-    'Random choice meow',
-    (v) => (randomChoiceMeow = !!v),
-    'Pick a random meow instead of the default "meow!" (REQUIRES AUTO MEOW)',
-    true,
-    'IRC',
-    'Discord'
-);
+Categories.addSettingsToggle('labels.irc', (v) => (ircEnabled = !!v), 'descriptions.irc', true, 'IRC', 'Discord');
+Categories.addSettingsToggle('labels.auto_meow', (v) => (autoMeowEnabled = !!v), 'descriptions.auto_meow', false, 'IRC', 'Discord');
+Categories.addSettingsToggle('labels.random_choice_meow', (v) => (randomChoiceMeow = !!v), 'descriptions.random_choice_meow', true, 'IRC', 'Discord');
 
 export const isAutoMeowEnabled = () => autoMeowEnabled;
 export const isIrcEnabled = () => ircEnabled;

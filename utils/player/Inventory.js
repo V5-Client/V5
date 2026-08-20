@@ -30,11 +30,11 @@ export function findItemInHotbar(name) {
 export function clickSlot(slot, shift = false, button = 'LEFT') {
     const container = Player.getContainer();
     if (!container || slot < 0) {
-        chat('ClickSlot failed due to no container');
+        chat('messages.runtime.clickslotFailedDueToNoContainer');
         return false;
     }
     if (slot == null || slot >= (container.getItems()?.length ?? 0)) {
-        chat('ClickSlot failed due to invalid slot');
+        chat('messages.runtime.clickslotFailedDueToInvalidSlot');
         return false;
     }
     container.click(slot, shift, button);

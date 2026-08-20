@@ -6,17 +6,17 @@ import { area } from '../../utils/Utils';
 class RPC extends ModuleBase {
     constructor() {
         super({
-            name: 'Discord RPC',
+            name: 'modules.discord_rpc.name',
             subcategory: 'Other',
-            description: "Show you're playing V5!",
-            tooltip: "Shows you're playing V5 in Discord RPC.",
+            description: 'modules.discord_rpc.description',
+            tooltip: 'modules.discord_rpc.tooltip',
             hideInModules: true,
         });
 
         this.lastState = 'IDLE';
         this.lastUpdate = 0;
 
-        Categories.addSettingsToggle('Discord RPC', (v) => this.toggle(!!v), "Shows you're playing V5 in Discord RPC.", true, 'Discord RPC', 'Discord');
+        Categories.addSettingsToggle('labels.discord_rpc', (v) => this.toggle(!!v), 'descriptions.discord_rpc_setting', true, 'Discord RPC', 'Discord');
         this.toggle(true);
 
         this.on('step', () => {

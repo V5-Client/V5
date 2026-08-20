@@ -4,9 +4,9 @@ import { findItemInHotbar, setItemSlot, stripItemFormatting } from '../../utils/
 class FarmingSettings extends ModuleBase {
     constructor() {
         super({
-            name: 'Farming Settings',
+            name: 'modules.farming_settings.name',
             subcategory: 'Farming',
-            description: 'Shared settings for all farming macros.',
+            description: 'modules.farming_settings.description',
             showEnabledToggle: false,
         });
 
@@ -15,13 +15,13 @@ class FarmingSettings extends ModuleBase {
         this.killNearbyPests = false;
         this.originalSlot = -1;
 
-        this.addToggle('Use Mousemat', (value) => (this.useMousemat = !!value), 'Use Squeaky Mousemat instead of V5 rotations to face the farming angle.');
+        this.addToggle('labels.use_mousemat', (value) => (this.useMousemat = !!value), 'descriptions.use_mousemat');
         this.addToggle(
-            'Sprayonator While Farming',
+            'labels.sprayonator_while_farming',
             (value) => (this.useSprayonator = !!value),
             'Uses a Sprayonator while farming. \nMust have material already selected and in inventory/sacks'
         );
-        this.addToggle('Kill nearby pests while farming', (value) => (this.killNearbyPests = !!value), 'Pauses farming to kill nearby pests.');
+        this.addToggle('labels.kill_nearby_pests_while_farming', (value) => (this.killNearbyPests = !!value), 'descriptions.kill_nearby_pests_while_farming');
     }
 
     restoreSlot() {
@@ -32,13 +32,13 @@ class FarmingSettings extends ModuleBase {
     selectVacuum() {
         const slot = findItemInHotbar('Vacuum');
         if (slot < 0) {
-            if (!this.hasReportedMissingVacuum) this.message('&cNo Vacuum found in hotbar.');
+            if (!this.hasReportedMissingVacuum) this.message('messages.farming.vacuumMissing');
             this.hasReportedMissingVacuum = true;
             return false;
         }
         this.hasReportedMissingVacuum = false;
         if (!stripItemFormatting(Player.getInventory()?.getStackInSlot(slot)?.getName?.() || '').includes('Hooverius')) {
-            this.message('&cOnly the maxed InfiniVacuum Hooverius is supported; you will not have enough reach to kill pests.');
+            this.message('messages.farming.unsupportedVacuum');
         }
         if (Player.getHeldItemIndex() === slot) return true;
         setItemSlot(slot);

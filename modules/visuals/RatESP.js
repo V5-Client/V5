@@ -34,10 +34,10 @@ export function getRawHubRats() {
 class RatESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Rat ESP',
+            name: 'modules.rat_esp.name',
             subcategory: 'Visuals',
-            description: 'Highlights Hub rats.',
-            tooltip: 'Highlights Hub rats.',
+            description: 'modules.rat_esp.description',
+            tooltip: 'modules.rat_esp.tooltip',
         });
 
         this.rats = [];

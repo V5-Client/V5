@@ -4,10 +4,10 @@ import { File, globalAssetsDir } from '../Constants';
 class PathFindingConfig extends ModuleBase {
     constructor() {
         super({
-            name: 'Pathfinding',
+            name: 'modules.pathfinding.name',
             subcategory: 'Core',
-            description: 'Pathfinding Utilities',
-            tooltip: 'Pathfinding Utilities',
+            description: 'modules.pathfinding.description',
+            tooltip: 'modules.pathfinding.tooltip',
             hideInModules: true,
         });
 
@@ -21,54 +21,54 @@ class PathFindingConfig extends ModuleBase {
         this.PATHFINDER_MAX_COMPUTE = 500_000;
 
         this.addDirectToggle(
-            'Pathfinding Debug',
+            'labels.pathfinding_debug',
             (value) => {
                 this.PATHFINDING_DEBUG = value;
             },
-            'Enables pathfinding debug mode',
+            'descriptions.pathfinding_debug',
             false,
             'Pathfinding'
         );
 
         this.addDirectToggle(
-            'Render Key Nodes',
+            'labels.render_key_nodes',
             (value) => {
                 this.RENDER_KEY_NODES = value;
             },
-            'Renders the key nodes of the path',
+            'descriptions.render_key_nodes',
             false,
             'Pathfinding'
         );
 
         this.addDirectToggle(
-            'Render Floating Spline',
+            'labels.render_floating_spline',
             (value) => {
                 this.RENDER_FLOATING_SPLINE = value;
             },
-            'Renders the floating spline of the path',
+            'descriptions.render_floating_spline',
             false,
             'Pathfinding'
         );
 
         this.addDirectToggle(
-            'Render Look Points',
+            'labels.render_look_points',
             (value) => {
                 this.RENDER_LOOK_POINTS = value;
             },
-            'Renders the look points of the path',
+            'descriptions.render_look_points',
             false,
             'Pathfinding'
         );
 
         this.addDirectSlider(
-            'Pathfinder Max Compute',
+            'labels.pathfinder_max_compute',
             500,
             5_000,
             500,
             (value) => {
                 this.PATHFINDER_MAX_COMPUTE = Number(value) * 1_000;
             },
-            'Maximum native pathfinder iterations before giving up.',
+            'descriptions.pathfinder_max_compute',
             'Pathfinding'
         );
 
@@ -104,7 +104,7 @@ class PathFindingConfig extends ModuleBase {
         const defaultWarps = this.WARP_POINTS_DATA.filter((warpPoint) => warpPoint.defaultUnlock).map((warpPoint) => warpPoint.warp);
 
         this.addDirectMultiToggle(
-            'Warp Points',
+            'labels.warp_points',
             warpNames,
             false,
             (value) => {

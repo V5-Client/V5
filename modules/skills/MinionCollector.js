@@ -7,10 +7,10 @@ import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Invent
 class MinionCollector extends ModuleBase {
     constructor() {
         super({
-            name: 'Minion Collector',
+            name: 'modules.minion_collector.name',
             subcategory: 'Skills',
-            description: 'Auto Collects Minions using Aura - Caution!',
-            tooltip: 'Auto Collects Minions using Aura - Caution!',
+            description: 'modules.minion_collector.description',
+            tooltip: 'modules.minion_collector.tooltip',
         });
 
         this.collectedMinions = new Set();

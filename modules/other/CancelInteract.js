@@ -25,10 +25,10 @@ const INTERACTION_WHITELIST = new Set([
 class CancelInteract extends ModuleBase {
     constructor() {
         super({
-            name: 'Cancel Interact',
+            name: 'modules.cancel_interact.name',
             subcategory: 'Other',
-            description: 'Pearl only.',
-            tooltip: 'Pearl only.',
+            description: 'modules.cancel_interact.description',
+            tooltip: 'modules.cancel_interact.tooltip',
         });
 
         this.cancelTime = 0;

@@ -65,11 +65,11 @@ const SWAP_STAGES = {
 class RatMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Rat Macro',
+            name: 'modules.rat_macro.name',
             subcategory: 'Other',
             developerMode: true,
-            description: 'VIBECODED SLOP. Etherwarps to Hub rats and uses your held gun.',
-            tooltip: 'VIBECODED SLOP. Etherwarps to Hub rats and uses your held gun.',
+            description: 'modules.rat_macro.description',
+            tooltip: 'modules.rat_macro.tooltip',
             theme: '#d7b24a',
             isMacro: true,
         });
@@ -103,7 +103,7 @@ class RatMacro extends ModuleBase {
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.state,
                         Swap: () => this.swapMode,
@@ -122,18 +122,19 @@ class RatMacro extends ModuleBase {
         );
 
         this.addSlider(
-            'Weapon Slot',
+            'labels.weapon_slot',
             1,
             9,
             1,
             (value) => {
                 this.weaponSlot = Math.max(0, Math.min(8, Math.round(value) - 1));
             },
-            'Hotbar slot to swap to before shooting rats.'
+            'descriptions.weapon_slot_rat',
+            'weapon_slot_rat'
         );
 
         this.addMultiToggle(
-            'Swap Mode',
+            'labels.swap_mode',
             [SWAP_MODES.ISLAND, SWAP_MODES.VIP],
             true,
             (options) => {
@@ -1157,7 +1158,7 @@ class RatMacro extends ModuleBase {
         this.setState(STATES.WAITING);
         ungrab();
         this.debug(`enabled with swap mode &e${this.swapMode}&f and weapon slot &e${this.weaponSlot + 1}`);
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
@@ -1184,7 +1185,7 @@ class RatMacro extends ModuleBase {
         this.debug('disabled, cleared targeting/pathing state');
         this.setState(STATES.WAITING, 'module disabled');
         regrab();
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

@@ -4,9 +4,9 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 class AutoConversation extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Conversation',
+            name: 'modules.auto_conversation.name',
             subcategory: 'Other',
-            description: 'auto clicks on npc options in conversations',
+            description: 'modules.auto_conversation.description',
         });
 
         this.autoSelect = true;
@@ -54,12 +54,7 @@ class AutoConversation extends ModuleBase {
             }
         });
 
-        this.addToggle(
-            'Select First (if multiple)',
-            (v) => (this.autoSelect = v),
-            'Automatically select the first option if multiple are present',
-            this.autoSelect
-        );
+        this.addToggle('labels.select_first_if_multiple', (v) => (this.autoSelect = v), 'descriptions.select_first_if_multiple', this.autoSelect);
     }
 
     onDisable() {

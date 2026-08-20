@@ -92,10 +92,10 @@ const STATES = {
 class WynnProfessionMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Wynn Profession',
+            name: 'modules.wynn_profession.name',
             subcategory: 'Skills',
-            description: 'Loops a Wynncraft profession route and clicks each route node.',
-            tooltip: '/v5 wynn add [left|right]',
+            description: 'modules.wynn_profession.description',
+            tooltip: 'modules.wynn_profession.tooltip',
             theme: '#3fbf7f',
             isMacro: true,
             autoDisableOnWorldUnload: true,
@@ -112,14 +112,14 @@ class WynnProfessionMacro extends ModuleBase {
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         Route: () => this.getRouteProgressDisplay(),
                         State: () => this.getStateName(),
                     },
                 },
                 {
-                    title: 'Performance',
+                    title: 'overlay.performance',
                     data: {
                         Total: () => formatRoundedNumber(this.getTotal()),
                         '/hr': () => this.getPerHour(),
@@ -151,7 +151,7 @@ class WynnProfessionMacro extends ModuleBase {
     onEnable() {
         this.route = this.loadRoute();
         if (!this.route.length) {
-            this.message('&cRoute is empty. Add points with &f/v5 wynn add [left|right]');
+            this.message('messages.wynn.routeEmptyAddUsage');
             this.toggle(false);
             return;
         }
@@ -178,7 +178,7 @@ class WynnProfessionMacro extends ModuleBase {
 
         if (this.state === STATES.WAITING_BREAK_SOUND) {
             if (Date.now() - this.waitStartedAt >= 10_000) {
-                this.message('&eNo profession pickup sound heard after 10s, moving on.');
+                this.message('messages.wynn.pickupTimeout');
                 this.advancePoint();
             }
         }
@@ -209,14 +209,14 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     startFromCommand() {
-        if (this.enabled) return this.message('&eWynn profession macro is already running.');
+        if (this.enabled) return this.message('messages.wynn.alreadyRunning');
         this.requestToggleFromUser();
     }
 
     showUsage() {
-        this.message('&7/v5 wynn add [left|right] [index]');
-        this.message('&7/v5 wynn remove [index] &8| &7/v5 wynn list &8| &7/v5 wynn clear');
-        this.message('&7/v5 wynn start &8| &7/v5 wynn stop');
+        this.message('messages.wynn.helpAdd');
+        this.message('messages.wynn.helpManage');
+        this.message('messages.wynn.helpRun');
     }
 
     addPoint(args) {
@@ -257,7 +257,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     removePoint(indexArg) {
-        if (!this.route.length) return this.message('&cRoute is already empty.');
+        if (!this.route.length) return this.message('messages.wynn.routeAlreadyEmpty');
 
         const index = Number.parseInt(indexArg);
         const removeIndex = !Number.isNaN(index) && index >= 1 && index <= this.route.length ? index - 1 : this.route.length - 1;
@@ -268,7 +268,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     listRoute() {
-        if (!this.route.length) return this.message('&eRoute is empty.');
+        if (!this.route.length) return this.message('messages.wynn.routeEmpty');
 
         this.message(`&aWynn route has ${this.route.length} point(s):`);
         this.route.forEach((point, index) => {
@@ -281,7 +281,7 @@ class WynnProfessionMacro extends ModuleBase {
         this.currentIndex = 0;
         this.saveRoute();
         if (this.enabled) this.toggle(false);
-        this.message('&aCleared Wynn profession route.');
+        this.message('messages.wynn.routeCleared');
     }
 
     startCurrentPoint() {
@@ -345,7 +345,7 @@ class WynnProfessionMacro extends ModuleBase {
         this.lastRepairActionAt = 0;
         this.state = STATES.REPAIR_PATHING;
 
-        this.message('&eTool durability is empty, pathing to the nearest blacksmith.');
+        this.message('messages.wynn.toolBroken');
 
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         Client.unpressKeys();
@@ -354,7 +354,7 @@ class WynnProfessionMacro extends ModuleBase {
         Pathfinder.findPath(this.buildBlacksmithPathGoals(), (success) => {
             if (!this.enabled || this.state !== STATES.REPAIR_PATHING) return;
             if (!success) {
-                this.message('&cPathfinding to a blacksmith failed.');
+                this.message('messages.wynn.blacksmithPathFailed');
                 this.toggle(false);
                 return;
             }
@@ -535,7 +535,7 @@ class WynnProfessionMacro extends ModuleBase {
             const raw = FileLib.read(CONFIG_DIR, CONFIG_PATH);
             data = raw && raw.trim() ? JSON.parse(raw) : [];
         } catch (e) {
-            this.message('&cFailed to read Wynn route. Resetting to an empty route.');
+            this.message('messages.wynn.routeReadFailed');
             console.error(e);
             return [];
         }

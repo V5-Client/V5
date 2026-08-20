@@ -10,10 +10,10 @@ import { v5Command } from '../../utils/V5Commands';
 class NukerClass extends ModuleBase {
     constructor() {
         super({
-            name: 'Nuker',
+            name: 'modules.nuker.name',
             subcategory: 'Mining',
-            description: 'Automatically nukes nearby blocks.',
-            tooltip: 'Automatically nukes nearby blocks',
+            description: 'modules.nuker.description',
+            tooltip: 'modules.nuker.tooltip',
             theme: '#e23737',
             autoDisableOnWorldUnload: true,
             isMacro: true,
@@ -51,41 +51,41 @@ class NukerClass extends ModuleBase {
                 const newBlock = { name: block.type.getName(), registryName: block.type.getRegistryName() };
                 if (!this.customBlockList.some((b) => b.registryName === newBlock.registryName)) {
                     this.customBlockList.push(newBlock);
-                    this.message('Added ' + block.type.getName() + ' to Nuker list.');
+                    this.message({ key: 'messages.nuker.blockAdded', params: { block: block.type.getName() } });
                 } else {
-                    this.message('Block already in Nuker list.');
+                    this.message('messages.nuker.blockExists');
                 }
             } else {
-                this.message('Look at a block to add it');
+                this.message('messages.nuker.targetBlockRequired');
             }
         });
 
         v5Command(
             'nuker remove',
             (index) => {
-                if (index === undefined) return this.message('Usage: /v5 nuker remove <index>');
-                if (index < 1 || index > this.customBlockList.length) return this.message('Invalid index.');
+                if (index === undefined) return this.message('messages.nuker.removeUsage');
+                if (index < 1 || index > this.customBlockList.length) return this.message('messages.nuker.invalidIndex');
                 this.customBlockList.splice(index - 1, 1);
-                this.message('Removed block.');
+                this.message('messages.nuker.blockRemoved');
             },
             ['integer']
         );
 
         v5Command('nuker list', () => {
             if (this.customBlockList.length === 0) {
-                return this.message('List is currently empty.');
+                return this.message('messages.nuker.emptyList');
             }
 
-            this.message('&7--- Custom Nuker List ---');
+            this.message('messages.nuker.listHeader');
             this.customBlockList.forEach((block, index) => {
                 this.message(`&e${index + 1}. &f${block.name}`);
             });
-            this.message('&7----------------------');
+            this.message('messages.nuker.listDivider');
         });
 
         v5Command('nuker clear', () => {
             this.customBlockList = [];
-            this.message('Cleared Nuker list.');
+            this.message('messages.nuker.listCleared');
         });
 
         this.on('tick', () => {
@@ -97,11 +97,11 @@ class NukerClass extends ModuleBase {
             }
 
             if (this.customBlockList.length === 0) {
-                this.message('Try setting targets with /v5 commands:');
-                this.message('- /v5 nuker add - adds block at crosshair');
-                this.message('- /v5 nuker remove <index> - removes block by list index');
-                this.message('- /v5 nuker clear - clear all targets');
-                this.message('- /v5 nuker list - list all targets');
+                this.message('messages.nuker.helpIntro');
+                this.message('messages.nuker.helpAdd');
+                this.message('messages.nuker.helpRemove');
+                this.message('messages.nuker.helpClear');
+                this.message('messages.nuker.helpList');
                 return;
             }
 
@@ -187,23 +187,23 @@ class NukerClass extends ModuleBase {
             }
         );
 
-        this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
-        this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
-        this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
-        this.addToggle('Use Pickaxe Ability', (v) => (this.usePickaxeAbility = v), 'Uses pickaxe ability when available');
-        this.addSlider('Custom Reach', '4.5', 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'Adjust player reach');
-        this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
-        this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
-        this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {
+        this.addToggle('labels.auto_chest', (v) => (this.autoChest = v), 'descriptions.auto_chest');
+        this.addToggle('labels.don_t_nuke_below', (v) => (this.nukeBelow = v), 'descriptions.don_t_nuke_below');
+        this.addToggle('labels.on_ground_only', (v) => (this.onGroundOnly = v), 'descriptions.on_ground_only');
+        this.addToggle('labels.use_pickaxe_ability', (v) => (this.usePickaxeAbility = v), 'descriptions.use_pickaxe_ability');
+        this.addSlider('labels.custom_reach', '4.5', 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'descriptions.custom_reach');
+        this.addSlider('labels.on_ground_delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
+        this.addSlider('labels.off_ground_delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
+        this.addMultiToggle('labels.target_mode', ['options.random', 'options.closest', 'options.lowest', 'options.highest'], true, (v) => {
             this.targetMode = v.find((o) => o.enabled)?.name;
         });
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
-                    'Target Mode': () => this.targetMode,
-                    'Blocks Queued': () => nukeQueue.length,
+                    'overlay.target_mode': () => this.targetMode,
+                    'overlay.blocks_queued': () => nukeQueue.length,
                 },
             },
         ]);
@@ -341,12 +341,12 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.init();
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

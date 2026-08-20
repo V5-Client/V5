@@ -13,11 +13,11 @@ const PATH_ARRIVAL_RADIUS = 0.75;
 class TunnelsMiner extends ModuleBase {
     constructor() {
         super({
-            name: 'Tunnels Miner',
+            name: 'modules.tunnels_miner.name',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Pathfind to recorded tunnels veins and hand off to MiningBot',
-            tooltip: 'Select an ore type, find the closest vein edge, path, then mine.',
+            description: 'modules.tunnels_miner.description',
+            tooltip: 'modules.tunnels_miner.tooltip',
             isMacro: true,
         });
 
@@ -53,7 +53,7 @@ class TunnelsMiner extends ModuleBase {
         this.neighborOffsets.sort((a, b) => Math.hypot(a[0], a[2]) - Math.hypot(b[0], b[2]));
 
         this.addMultiToggle(
-            'Ore Type',
+            'labels.ore_type',
             this.oreTypes,
             false,
             (value) => this.setSelectedOres(value),
@@ -61,11 +61,11 @@ class TunnelsMiner extends ModuleBase {
             this.selectedOres[0]
         );
 
-        this.addSlider('Cold Warp Threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
+        this.addSlider('labels.cold_warp_threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => (this.botManaged ? 'Mining' : 'Pathing'),
                     Ore: () => (this.selectedOres.length ? this.selectedOres.join(', ') : 'None'),
@@ -183,7 +183,7 @@ class TunnelsMiner extends ModuleBase {
         this.pendingTargets = [];
         const scan = this.scanForVeins(this.selectedOres);
         if (!scan?.targets?.length) {
-            this.message('&cNo reachable veins found.');
+            this.message('messages.tunnels.noReachableVeins');
             return;
         }
 
@@ -201,7 +201,7 @@ class TunnelsMiner extends ModuleBase {
         });
         if (!ends.length) {
             this.pendingTargets = [];
-            this.message('&cNo new mining position found.');
+            this.message('messages.tunnels.noMiningPosition');
             return;
         }
 
@@ -238,7 +238,7 @@ class TunnelsMiner extends ModuleBase {
             (success) => {
                 if (!success) {
                     this.pendingTargets = [];
-                    this.message('&cPathfinding failed.');
+                    this.message('messages.tunnels.pathfindingFailed');
                     return;
                 }
 

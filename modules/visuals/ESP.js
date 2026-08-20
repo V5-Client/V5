@@ -4,10 +4,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class ESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Player ESP',
+            name: 'modules.player_esp.name',
             subcategory: 'Visuals',
-            description: 'Shows players through walls',
-            tooltip: 'Shows players through walls',
+            description: 'modules.player_esp.description',
+            tooltip: 'modules.player_esp.tooltip',
         });
 
         this.rgba = new RenderColor(255, 0, 0, 255);
@@ -16,32 +16,32 @@ class ESP extends ModuleBase {
         this.disableEspWithinDistance = 2;
 
         this.addToggle(
-            'Show Names',
+            'labels.show_names',
             (value) => {
                 this.showNames = value;
             },
-            'Shows player names',
+            'descriptions.show_names',
             true
         );
 
         this.addColorPicker(
-            'ESP Color',
+            'labels.esp_color',
             java.awt.Color.RED,
             (color) => {
                 this.rgba = new RenderColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
             },
-            'Color of the ESP box'
+            'descriptions.esp_color'
         );
 
         this.addSlider(
-            'Disable ESP Distance',
+            'labels.disable_esp_distance',
             0,
             10,
             this.disableEspWithinDistance,
             (value) => {
                 this.disableEspWithinDistance = value;
             },
-            'Disables ESP for players within this many blocks of you'
+            'descriptions.disable_esp_distance'
         );
 
         this.on('postRenderWorld', () => {

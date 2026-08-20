@@ -6,6 +6,7 @@ import { getActiveMacro, getModule, getStartTime, isMacroRunning, onModuleDisabl
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
+import { normalizeTranslationKey, resolveEnglishTranslation, t } from './I18n';
 
 export class ModuleBase {
     static conditions = [];
@@ -33,10 +34,14 @@ export class ModuleBase {
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
 
-        this.name = opts.name;
+        this.nameKey = opts.nameKey || normalizeTranslationKey('modules', opts.name || 'module', 'name');
+        this.id = opts.id || this.nameKey.match(/^modules\.([^.]+)\.name$/)?.[1] || 'module';
+        this.name = resolveEnglishTranslation(opts.name || this.nameKey, opts.name);
         this.subcategory = opts.subcategory;
-        this.description = opts.description || '';
-        this.tooltip = opts.tooltip || null;
+        this.descriptionKey = opts.descriptionKey || normalizeTranslationKey('modules', opts.description || '', `${this.id}.description`);
+        this.description = resolveEnglishTranslation(opts.description || this.descriptionKey, opts.description || '');
+        this.tooltipKey = opts.tooltipKey || (opts.tooltip ? normalizeTranslationKey('modules', opts.tooltip, `${this.id}.tooltip`) : null);
+        this.tooltip = resolveEnglishTranslation(opts.tooltip || this.tooltipKey, opts.tooltip || null);
         this.enabled = false;
         this.oid = null;
         this.hexCode = null;
@@ -56,7 +61,17 @@ export class ModuleBase {
         // add to gui
         if (!this.hideInModules) {
             const moduleType = opts.developerMode === true ? 'developer' : ModuleBase.loadingUserScript ? 'user' : null;
-            Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip, moduleType);
+            Categories.addCategoryItem(
+                this.subcategory,
+                this.name,
+                this.description,
+                this.tooltip,
+                moduleType,
+                this.id,
+                this.nameKey,
+                this.descriptionKey,
+                this.tooltipKey
+            );
         }
 
         if (opts.autoDisableOnWorldUnload) {
@@ -67,14 +82,14 @@ export class ModuleBase {
             registerSkyblockEvent('limbo', () => {
                 if (!this.enabled) return;
                 this.toggle(false);
-                chat('&cYou were spawned in limbo! Attempting to recover...');
+                chat('messages.runtime.youWereSpawnedInLimboAttemptingToRecover');
                 ChatLib.command('leave');
                 ScheduleTask(20, () => {
                     ChatLib.command('play skyblock');
                 });
                 ScheduleTask(60, () => {
                     this.toggle(true);
-                    chat('&aRecovered from limbo?');
+                    chat('messages.runtime.recoveredFromLimbo');
                 });
             });
         }
@@ -208,15 +223,21 @@ export class ModuleBase {
     }
 
     message(message) {
-        if (!this.name) return chat('&cModule message error!');
+        if (!this.name) return chat('messages.runtime.moduleMessageError');
         const theme = this.hexCode || `&${ModuleBase.getDefaultTheme(this.subcategory)}`;
+        const displayName = this.getDisplayName();
+        const displayMessage = typeof message === 'string' ? t(message, {}, message) : t(message.key, message.params, message.fallback);
         if (theme.startsWith('&#')) {
-            return chat(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
+            return chat(new TextComponent({ text: `${displayName}: `, color: `#${theme.slice(2)}` }, `&f${displayMessage}`));
         }
         if (theme.startsWith('#')) {
-            return chat(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
+            return chat(new TextComponent({ text: `${displayName}: `, color: theme }, `&f${displayMessage}`));
         }
-        chat(`${theme}${this.name}: &f${message}`);
+        chat(`${theme}${displayName}: &f${displayMessage}`);
+    }
+
+    getDisplayName() {
+        return this.nameKey ? t(this.nameKey, {}, this.name) : this.name;
     }
 
     /**
@@ -273,7 +294,12 @@ export class ModuleBase {
         }
 
         if (this.enabled && this.isParentManaged) {
-            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
+            notificationManager.add(
+                'messages.common.cannotToggleModule',
+                { key: 'messages.common.managedByParent', params: { module: this.getDisplayName() } },
+                'ERROR',
+                '5000'
+            );
             return false;
         }
 
@@ -284,7 +310,7 @@ export class ModuleBase {
 
     createOverlay(args, options = {}) {
         this.oid = this.name;
-        OverlayManager.createID(this.oid, args, options);
+        OverlayManager.createID(this.oid, args, { ...options, nameKey: this.nameKey });
     }
 
     createSchedulerOverlay(args) {

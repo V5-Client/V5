@@ -1,5 +1,6 @@
 import { Color } from '../../utils/Constants';
 import { setTooltip } from '../core/GuiTooltip';
+import { t } from '../../utils/I18n';
 import {
     clamp,
     createHighlight,
@@ -176,7 +177,7 @@ export class ColorPicker {
 
         this.drawHighlight(panelWidth, collapsedHeight);
 
-        drawText(this.title, this.x, this.y + collapsedHeight / 2, FontSizes.REGULAR, THEME.TEXT);
+        drawText(this.getDisplayTitle?.() || t(this.title, {}, this.title), this.x, this.y + collapsedHeight / 2, FontSizes.REGULAR, THEME.TEXT);
 
         const previewSize = 18;
         const previewX = this.x + panelWidth - previewSize;
@@ -227,7 +228,7 @@ export class ColorPicker {
             height: collapsedHeight,
         };
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            setTooltip(this.description);
+            setTooltip(this.getDisplayDescription?.() || t(this.description, {}, this.description));
         }
 
         if (this.animationProgress > 0) {

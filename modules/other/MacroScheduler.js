@@ -16,9 +16,9 @@ const STATE = {
 class MacroScheduler extends ModuleBase {
     constructor() {
         super({
-            name: 'Scheduler',
+            name: 'modules.scheduler.name',
             subcategory: 'Core',
-            description: 'Automates macro sessions, breaks, and relogging.',
+            description: 'modules.scheduler.description',
             theme: '#7c8cff',
             hideInModules: true,
         });
@@ -40,9 +40,9 @@ class MacroScheduler extends ModuleBase {
         this.worldUnloadTimer = new Timer();
 
         const sectionName = 'Scheduler';
-        this.addDirectToggle('Enable Scheduler', (v) => this.toggle(!!v), 'Toggles the scheduler.', true, sectionName);
+        this.addDirectToggle('labels.enable_scheduler', (v) => this.toggle(!!v), 'descriptions.enable_scheduler', true, sectionName);
         this.addDirectRangeSlider(
-            'Macro Duration (m)',
+            'labels.macro_duration_m',
             10,
             240,
             { low: this.macroTimeMin, high: this.macroTimeMax },
@@ -50,11 +50,11 @@ class MacroScheduler extends ModuleBase {
                 this.macroTimeMin = v.low;
                 this.macroTimeMax = v.high;
             },
-            'Minimum session duration.',
+            'descriptions.macro_duration_m',
             sectionName
         );
         this.addDirectRangeSlider(
-            'Break Duration (m)',
+            'labels.break_duration_m',
             10,
             180,
             { low: this.breakTimeMin, high: this.breakTimeMax },
@@ -62,16 +62,16 @@ class MacroScheduler extends ModuleBase {
                 this.breakTimeMin = v.low;
                 this.breakTimeMax = v.high;
             },
-            'Minimum break duration.',
+            'descriptions.break_duration_m',
             sectionName
         );
 
         this.createSchedulerOverlay([
             {
-                title: 'Scheduler',
+                title: 'overlay.scheduler',
                 data: {
                     Status: () => this.state,
-                    'Time Left': () => this.formatTimeLeft(),
+                    'overlay.time_left': () => this.formatTimeLeft(),
                     Active: () => this.getActiveMacroDisplay(),
                 },
             },
@@ -125,14 +125,14 @@ class MacroScheduler extends ModuleBase {
         } else {
             this.updateOverlay();
         }
-        this.message('&aStarted.');
+        this.message('messages.scheduler.started');
     }
 
     onDisable() {
         this.saveState();
         OverlayManager.resetTime(this.oid);
         this.overlayShown = false;
-        this.message('&cStopped.');
+        this.message('messages.scheduler.stopped');
     }
 
     tick() {
@@ -206,7 +206,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.worldUnloadTimer.hasReachedDelay()) {
             this.worldUnloadTimer.reset();
-            this.message('&eConnecting to Hypixel...');
+            this.message('messages.scheduler.connecting');
             Client.connect('mc.hypixel.net');
         }
     }
@@ -255,7 +255,7 @@ class MacroScheduler extends ModuleBase {
                 this.saveState();
                 return;
             }
-            this.message('&eConnecting to Hypixel...');
+            this.message('messages.scheduler.connecting');
             Client.connect('mc.hypixel.net');
             this.returnStep = 1;
             this.timerEnd = now + 12000;
@@ -266,7 +266,7 @@ class MacroScheduler extends ModuleBase {
         if (this.returnStep === 1) {
             if (!World.isLoaded()) {
                 if (now < this.timerEnd) return;
-                this.message('&eRetrying connection...');
+                this.message('messages.scheduler.retrying');
                 Client.connect('mc.hypixel.net');
                 this.timerEnd = now + 12000;
                 this.saveState();
@@ -280,7 +280,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.returnStep === 2) {
             if (now < this.timerEnd) return;
-            this.message('&eJoining Skyblock...');
+            this.message('messages.scheduler.joiningSkyblock');
             ChatLib.command('play skyblock');
             this.returnStep = 3;
             this.timerEnd = Date.now() + 3000;
@@ -290,7 +290,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.returnStep === 3) {
             if (now < this.timerEnd) return;
-            this.message('&aStarting macros.');
+            this.message('messages.scheduler.startingMacros');
             this.startTrackedMacros();
             this.sendSchedulerConnectEmbed();
             this.beginSession();

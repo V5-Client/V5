@@ -31,11 +31,11 @@ const TRAVEL_MODES = ['Walk', 'Fast Etherwarp'];
 class GlaciteCommissionMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Glacite Commission Macro',
+            name: 'modules.glacite_commission_macro.name',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Completes Glacite mining commissions with Tunnels Miner',
-            tooltip: 'Reads Glacite commissions from tab, mines required tunnel ores, and claims with pigeon or emissary.',
+            description: 'modules.glacite_commission_macro.description',
+            tooltip: 'modules.glacite_commission_macro.tooltip',
             theme: '#88d7ff',
             autoDisableOnWorldUnload: false,
             isMacro: true,
@@ -69,7 +69,7 @@ class GlaciteCommissionMacro extends ModuleBase {
                 this.setState(STATES.WAITING_GUI_CLOSE);
             },
             onPathFailed: () => {
-                this.message('&cFailed to reach Glacite emissary.');
+                this.message('messages.glacite.emissaryPathFailed');
                 this.setState(STATES.CHOOSING);
                 this.delay(20);
             },
@@ -77,7 +77,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         });
 
         this.addMultiToggle(
-            'Travel Mode',
+            'labels.travel_mode',
             TRAVEL_MODES,
             true,
             (selected) => {
@@ -85,15 +85,16 @@ class GlaciteCommissionMacro extends ModuleBase {
                 this.travelMode = enabled?.name || TRAVEL_MODES[0];
             },
             'How the macro travels to tunnel veins.',
-            TRAVEL_MODES[0]
+            TRAVEL_MODES[0],
+            'travel_mode_tunnel'
         );
 
-        this.addSlider('Cold Warp Threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
+        this.addSlider('labels.cold_warp_threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
 
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.currentState,
                         Commission: () => this.currentCommission?.name || 'None',
@@ -101,9 +102,9 @@ class GlaciteCommissionMacro extends ModuleBase {
                     },
                 },
                 {
-                    title: 'Profits',
+                    title: 'overlay.profits',
                     data: {
-                        'Completed Commissions': () => this.getCompletedCommissions(),
+                        'overlay.completed_commissions': () => this.getCompletedCommissions(),
                         'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
                     },
                 },
@@ -143,20 +144,20 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         ungrab();
         this.resetState();
         this.refreshDrillReference();
 
         if (!this.drill) {
-            this.message('&cNo drill or pickaxe found in hotbar!');
+            this.message('messages.commission.toolMissing');
             this.toggle(false);
             return;
         }
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.resetState();
         regrab();
     }
@@ -240,7 +241,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         const validSubareas = ['Glacite Tunnels', 'Fossil Research Center', 'Dwarven Base Camp'];
         if (areaName !== 'Dwarven Mines' || !validSubareas.includes(subarea)) {
             if (!this.areaCheckTime) {
-                this.message('&eNot in the Glacite area, warping to camp...');
+                this.message('messages.glacite.warpingToCamp');
                 ChatLib.command('warp camp');
                 this.areaCheckTime = now;
                 return;
@@ -503,7 +504,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (now - this.noSupportedMessageAt < 5000) return;
 
         this.noSupportedMessageAt = now;
-        this.message('&eNo supported Glacite mining commissions detected.');
+        this.message('messages.glacite.noneSupported');
     }
 
     getOreDisplay() {

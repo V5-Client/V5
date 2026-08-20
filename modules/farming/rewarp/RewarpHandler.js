@@ -102,7 +102,7 @@ class RewarpHandler {
             if (this.returnResult) {
                 this.macro.finishRewarp(Player.getPlayer());
             } else {
-                this.macro.message('&cFailed to return from Pest Killer.');
+                this.macro.message('messages.farming.pestReturnFailed');
                 this.macro.toggle(false);
             }
             return;
@@ -122,7 +122,7 @@ class RewarpHandler {
         }
         if (Date.now() < this.nextActionAt) return;
         if (this.rewarpAttempts >= MAX_REWARP_ATTEMPTS) {
-            this.macro.message('&cRewarp failed.');
+            this.macro.message('messages.farming.rewarpFailed');
             this.macro.toggle(false);
             return;
         }

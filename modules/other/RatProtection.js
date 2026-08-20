@@ -4,10 +4,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class RatProtection extends ModuleBase {
     constructor() {
         super({
-            name: 'Rat Protection',
+            name: 'modules.rat_protection.name',
             subcategory: 'Other',
-            description: 'Rate limits mojangs servers to stop people authenticating with your account.',
-            tooltip: 'Rate limits mojangs servers to stop people authenticating with your account.',
+            description: 'modules.rat_protection.description',
+            tooltip: 'modules.rat_protection.tooltip',
         });
 
         this.on('step', () => {

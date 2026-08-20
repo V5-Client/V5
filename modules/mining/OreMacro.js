@@ -80,10 +80,10 @@ const COLORS = {
 class OreMiner extends ModuleBase {
     constructor() {
         super({
-            name: 'Ore Macro',
+            name: 'modules.ore_macro.name',
             subcategory: 'Mining',
-            description: 'Builds and mines Tp/Walk ore routes.',
-            tooltip: 'Build or load a route with /v5 mining ore, then toggle the macro.',
+            description: 'modules.ore_macro.description',
+            tooltip: 'modules.ore_macro.tooltip',
             theme: '#815bf5',
             isMacro: true,
         });
@@ -141,104 +141,71 @@ class OreMiner extends ModuleBase {
         this.selectedWaypoint = -1;
         this.editing = false;
 
-        this.addSlider('Drill Slot', 1, 8, 1, (value) => (this.drillSlot = Math.round(value) - 1), 'Mining tool hotbar slot.');
+        this.addSlider('labels.drill_slot', 1, 8, 1, (value) => (this.drillSlot = Math.round(value) - 1), 'descriptions.drill_slot');
         this.addSlider(
-            'Mining Deployable Slot',
+            'labels.mining_deployable_slot',
             1,
             8,
             5,
             (value) => (this.deployableSlot = Math.round(value) - 1),
-            'Mining Deployable hotbar slot for deployable waypoints.'
+            'descriptions.mining_deployable_slot'
         );
         this.addToggle(
-            'Use Mining Deployable Waypoints',
+            'labels.use_mining_deployable_waypoints',
             (value) => (this.deployableWaypointsEnabled = value),
-            'Place the configured Mining Deployable at route waypoints marked as deployable. Disable this to skip placement.',
+            'descriptions.use_mining_deployable_waypoints',
             true
         );
 
-        this.addSeparator('Type Mine');
-        this.addToggle(
-            'Type Mine',
-            (value) => (this.typeMineEnabled = value),
-            'Ignore route mining blocks and mine the selected Mining Bot block type at each Walk/Tp waypoint.'
-        );
+        this.addSeparator('labels.type_mine');
+        this.addToggle('labels.type_mine', (value) => (this.typeMineEnabled = value), 'descriptions.type_mine');
         this.addMultiToggle(
-            'Type Mine Type',
-            ['Mithril', 'Gemstone', 'Ore', 'Tunnel'],
+            'labels.type_mine_type',
+            ['options.mithril', 'options.gemstone', 'options.ore', 'options.tunnel'],
             true,
             (value) => (this.typeMineName = MiningBot.getEnabledOptionName(value, this.typeMineName)),
             'Block type mined at each route waypoint while Type Mine is enabled.',
             'Mithril'
         );
-        this.addSlider(
-            'Minimum Visible Degrees',
-            0,
-            20,
-            0,
-            (value) => (this.typeMineMinVisibleDegrees = value),
-            'Minimum angular width of an exposed block surface required by Type Mine. Zero accepts any visible amount.'
-        );
-        this.addSlider(
-            'Type Mine FOV',
-            30,
-            360,
-            120,
-            (value) => (this.typeMineFov = value),
-            'Horizontal field of view used to select Type Mine targets. 360 allows blocks behind you.'
-        );
+        this.addSlider('labels.minimum_visible_degrees', 0, 20, 0, (value) => (this.typeMineMinVisibleDegrees = value), 'descriptions.minimum_visible_degrees');
+        this.addSlider('labels.type_mine_fov', 30, 360, 120, (value) => (this.typeMineFov = value), 'descriptions.type_mine_fov');
         this.addMultiToggle(
-            'Type Mine Priority',
-            ['Nearest', 'High', 'Low'],
+            'labels.type_mine_priority',
+            ['options.nearest', 'options.high', 'options.low'],
             true,
             (value) => (this.typeMinePriority = MiningBot.getEnabledOptionName(value, this.typeMinePriority)),
             'Mine nearest targets normally, or prefer higher/lower targets first.',
             'Nearest'
         );
-        this.addSeparator('Rotations');
-        this.addSlider('Ore Mining Rotation Speed', 1, 100, 48, (value) => (this.oreMineSpeed = value / 100), 'Rotation speed for mining targets.');
+        this.addSeparator('labels.rotations');
+        this.addSlider('labels.ore_mining_rotation_speed', 1, 100, 48, (value) => (this.oreMineSpeed = value / 100), 'descriptions.ore_mining_rotation_speed');
         this.addSlider(
-            'Ore Etherwarp Rotation Speed',
+            'labels.ore_etherwarp_rotation_speed',
             1,
             100,
             48,
             (value) => (this.oreTeleportSpeed = value / 100),
-            'Rotation speed for etherwarping targets.'
+            'descriptions.ore_etherwarp_rotation_speed'
         );
-        this.addSeparator('Recovery');
-        this.addSlider(
-            'Mining Retry Delay',
-            2,
-            100,
-            8,
-            (value) => (this.mineTimeoutTicks = Math.round(value)),
-            'Ticks before refreshing the aim point on an unbroken block.'
-        );
-        this.addToggle('Etherwarp Strafing', (value) => (this.teleportStrafing = value), 'Strafe when the Tp target has no visible face.');
-        this.addToggle('Mining Strafing', (value) => (this.miningStrafing = value), 'Strafe when a route block is just out of sight.');
+        this.addSeparator('labels.recovery');
+        this.addSlider('labels.mining_retry_delay', 2, 100, 8, (value) => (this.mineTimeoutTicks = Math.round(value)), 'descriptions.mining_retry_delay');
+        this.addToggle('labels.etherwarp_strafing', (value) => (this.teleportStrafing = value), 'descriptions.etherwarp_strafing');
+        this.addToggle('labels.mining_strafing', (value) => (this.miningStrafing = value), 'descriptions.mining_strafing');
         this.addToggle(
-            'Sneak While Mining',
+            'labels.sneak_while_mining',
             (value) => {
                 this.sneakWhileMining = value;
                 if (!value && this.state.startsWith('MINE') && this.state !== 'MINE_STRAFE') Client.setKey('shift', false);
             },
-            'Allow Ore Macro to sneak while mining.',
+            'descriptions.sneak_while_mining',
             true
         );
-        this.addToggle('Route Overlay', (value) => (this.showOverlay = value), 'Draw waypoints and current/next mining targets.', true);
+        this.addToggle('labels.route_overlay', (value) => (this.showOverlay = value), 'descriptions.route_overlay', true);
 
-        this.addSeparator('Mining Ability');
-        this.addToggle(
-            'Mining Ability',
-            (value) => (this.miningAbilityEnabled = value),
-            'Activates the mining ability when it becomes available. (Automatically does rod swap for autopet rules.)'
-        );
-        this.addToggle(
-            'Ability Drill Swap',
-            (value) => (this.abilityDrillSwapEnabled = value),
-            'Also swaps to the secondary drill, activates its ability, then returns to the main drill.'
-        );
-        this.addSlider('Ability Drill Slot', 1, 8, 2, (value) => (this.abilityDrillSlot = Math.round(value) - 1), 'Secondary drill hotbar slot.');
+        this.addSeparator('labels.mining_ability');
+        this.addToggle('labels.mining_ability', (value) => (this.miningAbilityEnabled = value), 'descriptions.mining_ability');
+        this.addToggle('labels.ability_drill_swap', (value) => (this.abilityDrillSwapEnabled = value), 'descriptions.ability_drill_swap');
+        this.addSlider('labels.ability_drill_slot', 1, 8, 2, (value) => (this.abilityDrillSlot = Math.round(value) - 1), 'descriptions.ability_drill_slot');
 
         this.bindToggleKey('Toggle Ore Miner');
         this.on('tick', () => this.tick());
@@ -289,7 +256,7 @@ class OreMiner extends ModuleBase {
     }
 
     onDrillEmpty() {
-        this.message('&eDrill empty! Refueling...');
+        this.message('messages.common.drillEmptyRefueling');
         this.releaseControls();
         OreRotations.stop();
         this.enterState('REFUEL');
@@ -297,37 +264,37 @@ class OreMiner extends ModuleBase {
         refuel((success) => {
             if (!this.enabled || !this.routeActive || this.state !== 'REFUEL') return;
             if (!success) {
-                this.message('&cRefueling failed! Disabling Ore Macro.');
+                this.message('messages.ore.refuelFailed');
                 this.toggle(false);
                 return;
             }
             if (!getDrills()?.drill) {
-                this.message('&cNo drill found after refueling! Disabling Ore Macro.');
+                this.message('messages.ore.drillMissingAfterRefuel');
                 this.toggle(false);
                 return;
             }
 
             setItemSlot(this.drillSlot);
-            this.message('&aRefueling successful!');
+            this.message('messages.common.refuelSucceeded');
             this.startRoute();
         });
     }
 
     printHelp() {
-        this.message('&b/v5 mining ore &7- Ore Miner');
-        this.message('  &fload <name> &7- load a route');
-        this.message('  &fsave <name> &7- save the current route');
-        this.message('  &flist | start | stop | status');
-        this.message('  &fedit add <tp|walk> [index] &7- append, or insert and shift later waypoints');
-        this.message('  &fedit add <mine|onetap|ronetap> [waypoint] &7- add the block under your crosshair');
-        this.message('  &fedit deployable <waypoint> &7- toggle deployable placement');
-        this.message('  &fedit remove <waypoint> &7- remove a waypoint');
-        this.message('  &fedit removemine <waypoint> <mine> &7- remove a mining block');
-        this.message('  &fedit undo | clear | list | done');
+        this.message('messages.ore.helpHeader');
+        this.message('messages.ore.helpLoad');
+        this.message('messages.ore.helpSave');
+        this.message('messages.ore.helpCommands');
+        this.message('messages.ore.helpEditTravel');
+        this.message('messages.ore.helpEditMine');
+        this.message('messages.ore.helpEditDeployable');
+        this.message('messages.ore.helpEditRemove');
+        this.message('messages.ore.helpEditRemoveMine');
+        this.message('messages.ore.helpEditCommands');
     }
 
     editRoute(parts) {
-        if (this.routeActive) return this.message('&cStop Ore Miner before editing its route.');
+        if (this.routeActive) return this.message('messages.ore.stopBeforeEdit');
         const args = parts.length === 1 && String(parts[0]).includes(' ') ? String(parts[0]).trim().split(/\s+/) : parts.map(String);
         const action = String(args.shift() || '').toLowerCase();
         this.editing = action !== 'done';
@@ -336,11 +303,11 @@ class OreMiner extends ModuleBase {
             const type = String(args.shift() || '').toLowerCase();
             if (type === 'tp' || type === 'walk') return this.addWaypoint(type, args[0]);
             if (['mine', 'onetap', 'ronetap'].includes(type)) return this.addMineBlock(type, args[0]);
-            return this.message('&cUsage: /v5 mining ore edit add <tp|walk|mine|onetap|ronetap> [waypoint]');
+            return this.message('messages.ore.editAddUsage');
         } else if (action === 'deployable') {
             return this.toggleDeployable(args[0]);
         } else if (action === 'removemine') {
-            if (args[1] === undefined) return this.message('&cUsage: /v5 mining ore edit removemine <waypoint> <mine>');
+            if (args[1] === undefined) return this.message('messages.ore.editRemoveMineUsage');
             return this.removeRoutePoint(args[0], args[1]);
         } else if (action === 'remove') {
             return this.removeRoutePoint(args[0], args[1]);
@@ -350,14 +317,14 @@ class OreMiner extends ModuleBase {
             this.recordUndo();
             this.loadedWaypoints = [];
             this.selectedWaypoint = -1;
-            return this.message('&eRoute cleared.');
+            return this.message('messages.ore.routeCleared');
         } else if (action === 'list') {
             return this.printRoute();
         } else if (action === 'done') {
-            return this.message('&7Route editing finished.');
+            return this.message('messages.ore.editFinished');
         }
 
-        this.message('&cUsage: /v5 mining ore edit <add|deployable|remove|removemine|undo|clear|list|done>');
+        this.message('messages.ore.editUsage');
     }
 
     addWaypoint(type, indexArg) {
@@ -386,12 +353,12 @@ class OreMiner extends ModuleBase {
         const index = indexArg === undefined ? defaultIndex : Number.parseInt(indexArg, 10);
 
         if (!route?.length || !Number.isInteger(index) || index < 0 || index >= route.length) {
-            return this.message('&cAdd a waypoint first, or provide a valid waypoint index.');
+            return this.message('messages.ore.waypointRequired');
         }
 
         const hit = getLookingAt(10);
         const pos = hit?.getPos?.();
-        if (!pos) return this.message('&cLook at a block within 10 blocks.');
+        if (!pos) return this.message('messages.ore.targetBlockRequired');
 
         this.recordUndo();
 
@@ -411,7 +378,7 @@ class OreMiner extends ModuleBase {
 
     toggleDeployable(indexArg) {
         const index = Number.parseInt(indexArg, 10);
-        if (!this.loadedWaypoints?.[index]) return this.message('&cProvide a valid waypoint index.');
+        if (!this.loadedWaypoints?.[index]) return this.message('messages.ore.invalidWaypoint');
 
         this.recordUndo();
         this.loadedWaypoints[index].isDeployable = !this.loadedWaypoints[index].isDeployable;
@@ -421,7 +388,7 @@ class OreMiner extends ModuleBase {
 
     removeRoutePoint(waypointArg, mineArg) {
         const waypoint = Number.parseInt(waypointArg, 10);
-        if (!this.loadedWaypoints?.[waypoint]) return this.message('&cProvide a valid waypoint index.');
+        if (!this.loadedWaypoints?.[waypoint]) return this.message('messages.ore.invalidWaypoint');
 
         this.recordUndo();
         if (mineArg === undefined) {
@@ -433,7 +400,7 @@ class OreMiner extends ModuleBase {
         const mine = Number.parseInt(mineArg, 10);
         if (!Number.isInteger(mine) || !this.loadedWaypoints[waypoint].minableBlocks[mine]) {
             this.undoStack.pop();
-            return this.message('&cProvide a valid mine block index.');
+            return this.message('messages.ore.invalidMineBlock');
         }
         this.loadedWaypoints[waypoint].minableBlocks.splice(mine, 1);
         this.selectedWaypoint = waypoint;
@@ -445,15 +412,15 @@ class OreMiner extends ModuleBase {
     }
 
     undoRouteEdit() {
-        if (!this.undoStack.length) return this.message('&cNothing to undo.');
+        if (!this.undoStack.length) return this.message('messages.ore.nothingToUndo');
         this.loadedWaypoints = JSON.parse(this.undoStack.pop());
         this.selectedWaypoint = Math.min(this.selectedWaypoint, this.loadedWaypoints.length - 1);
-        this.message('&eUndid the last route edit.');
+        this.message('messages.ore.editUndone');
     }
 
     saveRoute(name) {
         const cleanName = sanitizeRouteName(name);
-        if (!cleanName || !this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('&cUsage: /v5 mining ore save <name>');
+        if (!cleanName || !this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('messages.ore.saveUsage');
         writeConfigFile(`${ROUTE_DIR_RELATIVE}/${cleanName}.json`, this.loadedWaypoints);
         this.loadedPath = String(new File(ORE_ROUTES_DIR, `${cleanName}.json`).getAbsolutePath());
         this.undoStack = [];
@@ -461,7 +428,7 @@ class OreMiner extends ModuleBase {
     }
 
     printRoute() {
-        if (!this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('&7No route loaded.');
+        if (!this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('messages.ore.noRoute');
         this.message(`&bOre route &7(${this.loadedWaypoints.length} waypoints):`);
         this.loadedWaypoints.forEach((waypoint, index) => {
             const deployable = waypoint.isDeployable ? ' &d[DEPLOYABLE]' : '';
@@ -505,13 +472,13 @@ class OreMiner extends ModuleBase {
 
         const rawWaypoints = Array.isArray(data) ? data : data.waypoints;
         if (!Array.isArray(rawWaypoints)) {
-            this.message('&cRoute JSON must be an array or contain a waypoints array.');
+            this.message('messages.ore.invalidRouteJson');
             return false;
         }
 
         const waypoints = rawWaypoints.map((waypoint) => this.normalizeWaypoint(waypoint)).filter(Boolean);
         if (!waypoints.length) {
-            this.message('&cThe route has no valid Tp or Walk waypoints.');
+            this.message('messages.ore.noTravelWaypoints');
             return false;
         }
 
@@ -569,7 +536,7 @@ class OreMiner extends ModuleBase {
             return this.enabled;
         }
         if (!this.loadedWaypoints || !this.loadedWaypoints.length) {
-            this.message('&cNo route loaded. Use &f/v5 mining ore load <name>&c first.');
+            this.message('messages.ore.loadRouteFirst');
             this.toggle(false);
             return false;
         }
@@ -613,7 +580,7 @@ class OreMiner extends ModuleBase {
     }
 
     printStatus() {
-        if (!this.loadedWaypoints) return this.message('&7Ore Miner: no route loaded.');
+        if (!this.loadedWaypoints) return this.message('messages.ore.statusNoRoute');
         this.message(`&7Ore Miner: ${this.routeActive ? '&aRUNNING' : '&eREADY'} &7| ` + `&f${this.loadedWaypoints.length} &7waypoints | &f${this.loadedPath}`);
     }
 
@@ -644,7 +611,7 @@ class OreMiner extends ModuleBase {
                 } else {
                     this.aotvSlot = FastEtherwarp.getEtherwarpSlot();
                     if (this.aotvSlot < 0) {
-                        this.message('&cNo Aspect of the Void/End found in your hotbar.');
+                        this.message('messages.ore.etherwarpItemMissing');
                         return this.toggle(false);
                     }
                     setItemSlot(this.aotvSlot);
@@ -689,7 +656,7 @@ class OreMiner extends ModuleBase {
                     this.enterState('MINE_INIT');
                 } else if (++this.waitTicks >= 30) {
                     if (++this.teleportRetries >= 5) {
-                        this.message('&cEtherwarp failed five times.');
+                        this.message('messages.ore.etherwarpFailed');
                         this.toggle(false);
                     } else {
                         this.retryDelay = 20 + Math.floor(Math.random() * 21);
@@ -846,7 +813,7 @@ class OreMiner extends ModuleBase {
 
     failTeleportAim() {
         if (++this.teleportRetries >= 5) {
-            this.message('&cCould not place the crosshair on the etherwarp waypoint after five attempts.');
+            this.message('messages.ore.aimFailed');
             this.toggle(false);
             return;
         }
@@ -938,7 +905,7 @@ class OreMiner extends ModuleBase {
         this.waitTicks++;
         this.updateWalkWaypointLookAhead();
         if (this.waitTicks >= 300) {
-            this.message('&cWalk waypoint timed out.');
+            this.message('messages.ore.walkTimeout');
             this.toggle(false);
         }
     }

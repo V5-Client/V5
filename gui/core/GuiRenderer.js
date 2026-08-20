@@ -23,8 +23,6 @@ export const drawGUI = (mouseX, mouseY) => {
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
-    Render2D.blurBackground();
-
     try {
         Render2D.save();
 

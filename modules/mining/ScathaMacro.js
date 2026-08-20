@@ -17,11 +17,11 @@ import { Rotations } from '../../utils/player/Rotations';
 class ScathaMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Scatha Macro',
+            name: 'modules.scatha_macro.name',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Automatically mines and kills Scappas for you',
-            tooltip: 'Automatically mines and kills Scappas for you',
+            description: 'modules.scatha_macro.description',
+            tooltip: 'modules.scatha_macro.tooltip',
             theme: '#5a7cbb',
             isMacro: true,
         });
@@ -32,47 +32,47 @@ class ScathaMacro extends ModuleBase {
         this.CLICK_DELAY = 0;
 
         this.addSlider(
-            'Magic Find set slot',
+            'labels.magic_find_set_slot',
             1,
             9,
             1,
             (value) => {
                 this.MAGICFIND_SET = value;
             },
-            'The slot in your wardrobe that has your magic find set'
+            'descriptions.magic_find_set_slot'
         );
 
         this.addSlider(
-            'Mining set slot',
+            'labels.mining_set_slot',
             1,
             9,
             1,
             (value) => {
                 this.MINING_SET = value;
             },
-            'The slot in your wardrobe that has your mining set'
+            'descriptions.mining_set_slot'
         );
 
         this.addSlider(
-            'Mineral set slot',
+            'labels.mineral_set_slot',
             1,
             9,
             1,
             (value) => {
                 this.SPREAD_SET = value;
             },
-            'The slot in your wardrobe that has your mineral set'
+            'descriptions.mineral_set_slot'
         );
 
         this.addSlider(
-            'Click delay',
+            'labels.click_delay',
             0,
             1000,
             500,
             (value) => {
                 this.CLICK_DELAY = value;
             },
-            'The delay between clicks'
+            'descriptions.click_delay'
         );
 
         this.isWarping = false;
@@ -110,7 +110,7 @@ class ScathaMacro extends ModuleBase {
         registerSkyblockEvent('fasttravellocked', () => {
             if (!this.enabled) return;
             if (this.goingToCH) {
-                this.message("&cCan't start macro outside CH because you dont have the warp!");
+                this.message('messages.scatha.warpUnavailable');
                 this.toggle(false);
             }
         });
@@ -155,7 +155,7 @@ class ScathaMacro extends ModuleBase {
                 if (success) return (this.state = this.STATES.DIGGING);
 
                 // go hub and rewarp and shit
-                this.message('&cPath not found!');
+                this.message('messages.scatha.pathNotFound');
                 this.toggle(false);
             });
 
@@ -329,7 +329,7 @@ class ScathaMacro extends ModuleBase {
         const missingItems = Object.keys(items).filter((itemName) => items[itemName].slot === -1);
 
         if (missingItems.length > 0) {
-            this.message('Missing required items: ' + missingItems.join(', '));
+            this.message({ key: 'messages.scatha.missingItems', params: { items: missingItems.join(', ') } });
             this.toggle(false);
             return null;
         }
@@ -339,7 +339,7 @@ class ScathaMacro extends ModuleBase {
 
     hasMaxGE() {
         if (getConfigFile('miningstats.json')?.maxge !== true) {
-            this.message("&cYou don't have max GE!");
+            this.message('messages.scatha.maxGreatExplorerRequired');
             this.toggle(false);
             return false;
         }
@@ -352,14 +352,14 @@ class ScathaMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         if (!this.handleAllRequirements()) return;
         this.state = this.STATES.WARPING;
         this.triedPath = false;
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.state = this.STATES.WAITING;
 
         this.isWarping = false;

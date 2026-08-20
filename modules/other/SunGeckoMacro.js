@@ -92,10 +92,10 @@ const SUN_GECKO_COMBAT_ORIGIN = {
 class SunGecko extends ModuleBase {
     constructor() {
         super({
-            name: 'SunGecko',
+            name: 'modules.sungecko.name',
             subcategory: 'Other',
-            description: 'Automatically does the rift sun gecko',
-            tooltip: 'Automatically does the rift sun gecko',
+            description: 'modules.sungecko.description',
+            tooltip: 'modules.sungecko.tooltip',
             isMacro: true,
         });
         this.bindToggleKey();
@@ -107,20 +107,20 @@ class SunGecko extends ModuleBase {
         this.terracottaClickCooldownUntil = 0;
         this.minimumRiftTime = 300;
 
-        this.addSlider('Minimum Rift Time (s)', 240, 600, 300, (seconds) => {
+        this.addSlider('labels.minimum_rift_time_s', 240, 600, 300, (seconds) => {
             this.minimumRiftTime = seconds;
         });
 
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.getStateName(),
                         Kills: () => formatRoundedNumber(OverlayManager.getTrackedValue(this.oid, 'kills', 0)),
-                        'Kills/hr': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'kills', 0)),
+                        'overlay.kills_per_hour': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'kills', 0)),
                         Essence: () => formatRoundedNumber(OverlayManager.getTrackedValue(this.oid, 'essence', 0)),
-                        'Essence/hr': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'essence', 0)),
+                        'overlay.essence_per_hour': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'essence', 0)),
                     },
                 },
             ],
@@ -439,7 +439,7 @@ class SunGecko extends ModuleBase {
         this.terracottaClickCooldownUntil = 0;
         this.setState(States.DETERMIN);
         ungrab();
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
@@ -452,7 +452,7 @@ class SunGecko extends ModuleBase {
         if (CombatBot.enabled) CombatBot.toggle(false, true);
         this.state = States.WAITING;
         regrab();
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

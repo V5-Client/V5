@@ -35,8 +35,8 @@ const State = {
 class PowderMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Powder Macro',
-            description: 'Powder Macro',
+            name: 'modules.powder_macro.name',
+            description: 'modules.powder_macro.description',
             subcategory: 'Mining',
             developerMode: true,
             isMacro: true,
@@ -50,10 +50,10 @@ class PowderMacro extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => this.state,
-                    'Target Chest': () => (this.targetChest ? 'Found' : 'Searching'),
+                    'overlay.target_chest': () => (this.targetChest ? 'Found' : 'Searching'),
                 },
             },
         ]);
@@ -66,11 +66,11 @@ class PowderMacro extends ModuleBase {
         this.compression = 0.4;
         this.maxPitch = 75;
 
-        this.addSlider('Height (Pitch)', 1, 30, 8, (v) => (this.height = v), 'Vertical size of the loop');
-        this.addSlider('Width (Yaw)', 1, 30, 12, (v) => (this.width = v), 'Horizontal size of the loop');
-        this.addSlider('Speed', 1, 20, 4, (v) => (this.speed = v), 'Speed of the loop');
-        this.addSlider('Top Compression', 0.1, 1.0, 0.4, (v) => (this.compression = v), 'How much to compress the top half of the circle');
-        this.addSlider('Max Pitch', 45, 90, 75, (v) => (this.maxPitch = v), 'Maximum pitch (look down angle) to prevent breaking floor');
+        this.addSlider('labels.height_pitch', 1, 30, 8, (v) => (this.height = v), 'descriptions.height_pitch');
+        this.addSlider('labels.width_yaw', 1, 30, 12, (v) => (this.width = v), 'descriptions.width_yaw');
+        this.addSlider('labels.speed', 1, 20, 4, (v) => (this.speed = v), 'descriptions.speed');
+        this.addSlider('labels.top_compression', 0.1, 1.0, 0.4, (v) => (this.compression = v), 'descriptions.top_compression');
+        this.addSlider('labels.max_pitch', 45, 90, 75, (v) => (this.maxPitch = v), 'descriptions.max_pitch');
     }
 
     resetState() {
@@ -132,7 +132,7 @@ class PowderMacro extends ModuleBase {
         };
         this.startTime = Date.now();
 
-        this.message('&aPowder Macro Enabled!');
+        this.message('messages.powder.enabled');
 
         this.setState(State.MINING);
         this.rotateLoop(++this.loopToken);
@@ -145,7 +145,7 @@ class PowderMacro extends ModuleBase {
         Rotations.stop();
         this.resetState();
 
-        this.message('&cPowder Macro Disabled!');
+        this.message('messages.powder.disabled');
     }
 
     rotateLoop(token) {

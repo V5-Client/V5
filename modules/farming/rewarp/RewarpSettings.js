@@ -5,9 +5,9 @@ import { findTabListIndex, getTabListNames, readVisitors } from '../../../utils/
 class RewarpSettings extends ModuleBase {
     constructor() {
         super({
-            name: 'Rewarp Settings',
+            name: 'modules.rewarp_settings.name',
             subcategory: 'Farming',
-            description: 'Shared rewarp settings for all farming macros.',
+            description: 'modules.rewarp_settings.description',
             showEnabledToggle: false,
         });
 
@@ -23,8 +23,8 @@ class RewarpSettings extends ModuleBase {
         this.pestThreshold = 5;
 
         this.addMultiToggle(
-            'Rewarp Style',
-            ['Start/End', 'Looping'],
+            'labels.rewarp_style',
+            ['options.start_end', 'options.looping'],
             true,
             (options) => {
                 this.looping = options[1].enabled;
@@ -33,60 +33,56 @@ class RewarpSettings extends ModuleBase {
             'Start/End warps at the saved endpoint. Looping sets home before running barn tasks.',
             'Start/End'
         );
-        const triggerRadius = this.addSlider('Rewarp Trigger Radius', 0.5, 5, this.triggerRadius, (value) => (this.triggerRadius = value));
+        const triggerRadius = this.addSlider('labels.rewarp_trigger_radius', 0.5, 5, this.triggerRadius, (value) => (this.triggerRadius = value));
         this.addRewarpButtons(triggerRadius);
         this.addToggle(
-            'Run Visitor Macro',
+            'labels.run_visitor_macro',
             (value) => {
                 this.runVisitorMacro = !!value;
                 [minimumVisitors, maxVisitorPrice, declinePurchaseFailures].forEach((setting) => (setting.visible = !!value));
             },
-            'Runs at the barn before rewarping when enough visitors are waiting.'
+            'descriptions.run_visitor_macro'
         );
         const minimumVisitors = this.addSlider(
-            'Minimum Visitors',
+            'labels.minimum_visitors',
             1,
             5,
             this.minimumVisitors,
             (value) => (this.minimumVisitors = Math.round(value)),
-            'Runs Visitor Macro when at least this many visitors are waiting.'
+            'descriptions.minimum_visitors'
         );
         minimumVisitors.visible = false;
         const maxVisitorPrice = this.addSlider(
-            'Max Visitor Price (k)',
+            'labels.max_visitor_price_k',
             0,
             5_000,
             this.maxVisitorPrice / 1_000,
             (value) => (this.maxVisitorPrice = Number(value) * 1_000),
-            'Cancels a Bazaar purchase when its total price is above this amount in thousands.'
+            'descriptions.max_visitor_price_k'
         );
         maxVisitorPrice.visible = false;
         const declinePurchaseFailures = this.addToggle(
-            'Decline Failed Purchases',
+            'labels.decline_failed_purchases',
             (value) => (this.declinePurchaseFailures = !!value),
-            'Declines visitors when a Bazaar purchase fails.'
+            'descriptions.decline_failed_purchases'
         );
         declinePurchaseFailures.visible = false;
+        this.addToggle('labels.auto_philip_bonus', (value) => (this.autoPhilipBonus = !!value), 'descriptions.auto_philip_bonus');
         this.addToggle(
-            'Auto Philip Bonus',
-            (value) => (this.autoPhilipBonus = !!value),
-            'Empties a vacuum bag with Philip when Buzzing Bonus is inactive and it holds 40 or more pests.'
-        );
-        this.addToggle(
-            'Pest Killer',
+            'labels.pest_killer',
             (value) => {
                 this.pestKiller = !!value;
                 pestThreshold.visible = !!value;
             },
-            'Pauses farming to clear pests when the configured threshold is reached.'
+            'descriptions.pest_killer'
         );
         const pestThreshold = this.addSlider(
-            'Pest Threshold',
+            'labels.pest_threshold',
             1,
             8,
             this.pestThreshold,
             (value) => (this.pestThreshold = Math.round(value)),
-            'Starts Pest Killer at this many alive pests.'
+            'descriptions.pest_threshold'
         );
         pestThreshold.visible = false;
     }

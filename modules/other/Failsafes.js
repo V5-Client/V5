@@ -11,10 +11,10 @@ const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 class Failsafes extends ModuleBase {
     constructor() {
         super({
-            name: 'Failsafes',
+            name: 'modules.failsafes.name',
             subcategory: 'Core',
-            description: 'Failsafe settings.',
-            tooltip: 'Failsafe config.',
+            description: 'modules.failsafes.description',
+            tooltip: 'modules.failsafes.tooltip',
             hideInModules: true,
         });
 
@@ -42,8 +42,8 @@ class Failsafes extends ModuleBase {
         const sectionName = 'Failsafes';
 
         this.addDirectMultiToggle(
-            'Enabled Failsafes',
-            ['TP', 'Rotation', 'Velocity', 'Slot Change', 'Chat Mention', 'Player Grief'],
+            'labels.enabled_failsafes',
+            ['options.tp', 'options.rotation', 'options.velocity', 'options.slot_change', 'options.chat_mention', 'options.player_grief'],
             false,
             (value) => {
                 const enabled = Array.isArray(value) ? value : [];
@@ -59,39 +59,39 @@ class Failsafes extends ModuleBase {
             sectionName
         );
         this.addDirectRangeSlider(
-            'Failsafe Detection Delay (ms)',
+            'labels.failsafe_detection_delay_ms',
             500,
             5000,
             this.actionDelay,
             (value) => {
                 this.actionDelay = value;
             },
-            'Delay in milliseconds between detection of failsafe',
+            'descriptions.failsafe_detection_delay_ms',
             sectionName
         );
         this.addDirectSlider(
-            'Player Proximity Distance',
+            'labels.player_proximity_distance',
             1,
             10,
             this.playerProximityDistance,
             (value) => {
                 this.playerProximityDistance = value;
             },
-            'Distance in blocks for player nearby detection',
+            'descriptions.player_proximity_distance',
             sectionName
         );
         this.addDirectToggle(
-            'Clip on ban',
+            'labels.clip_on_ban',
             (value) => {
                 this.clipOnBan = value;
             },
-            'Toggle clip on ban',
+            'descriptions.clip_on_ban',
             this.clipOnBan,
             sectionName
         );
         this.addDirectMultiToggle(
-            'Discord ping on Check',
-            ['None', 'Embed Only', 'Ping', 'Screenshot Only', 'Ping & Screenshot'],
+            'labels.discord_ping_on_check',
+            ['options.none', 'options.embed_only', 'options.ping', 'options.screenshot_only', 'options.ping_screenshot'],
             true,
             (value) => {
                 this.pingOnCheck = value;
@@ -101,16 +101,16 @@ class Failsafes extends ModuleBase {
             sectionName
         );
         this.addDirectToggle(
-            'Play sound on check',
+            'labels.play_sound_on_check',
             (value) => {
                 this.playSoundOnCheck = value;
             },
-            'Toggle play sound on check',
+            'descriptions.play_sound_on_check',
             this.playSoundOnCheck,
             sectionName
         );
         this.addDirectMultiToggle(
-            'Failsafe sound',
+            'labels.failsafe_sound',
             this.getFilesInDir(),
             true,
             () => {
@@ -198,7 +198,7 @@ class Failsafes extends ModuleBase {
         const targetPath = new File(globalAssetsDir, 'failsafes/sounds');
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {
-            this.message('&cError: Directory not found.');
+            this.message('messages.failsafes.directoryMissing');
             return [];
         }
 

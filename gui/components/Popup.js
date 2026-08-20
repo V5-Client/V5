@@ -15,12 +15,13 @@ import {
 import { Button } from './Button';
 import { getComponentLayoutHeight } from './layout';
 import { GuiState } from '../core/GuiState';
+import { t } from '../../utils/I18n';
 
 const CLOSE_TEXT = '×';
 const ANIMATION_DURATION = 350;
 
 export class Popup {
-    constructor(title, x, y, openText = 'Open', closeText = 'Close', callback = null) {
+    constructor(title, x, y, openText = 'button.open', closeText = 'button.close', callback = null) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -201,7 +202,7 @@ export class Popup {
 
         const titleX = windowRect.x + this.windowPadding + 4;
         const titleY = windowRect.y + this.headerHeight / 2 + 3;
-        drawText(this.title, titleX, titleY, FontSizes.HEADER, THEME.TEXT);
+        drawText(this.getDisplayTitle?.() || t(this.title, {}, this.title), titleX, titleY, FontSizes.HEADER, THEME.TEXT);
 
         const closeX = windowRect.x + windowRect.width - this.windowPadding - this.closeSize;
         const closeY = windowRect.y + (this.headerHeight - this.closeSize) / 2;

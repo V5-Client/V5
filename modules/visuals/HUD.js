@@ -13,10 +13,10 @@ import { GuiState } from '../../gui/core/GuiState';
 class HUD extends ModuleBase {
     constructor() {
         super({
-            name: 'HUD',
+            name: 'modules.hud.name',
             subcategory: 'Visuals',
-            description: 'Different GUI components',
-            tooltip: 'GUI overlays like FPS counter or Inventory HUD',
+            description: 'modules.hud.description',
+            tooltip: 'modules.hud.tooltip',
             showEnabledToggle: false,
         });
 
@@ -24,8 +24,8 @@ class HUD extends ModuleBase {
         this.INVENTORY_HUD = true;
         this.worldLoaded = World.isLoaded();
 
-        this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
-        this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
+        this.addToggle('labels.stats_hud', (v) => (this.STATS_HUD = !!v), 'descriptions.stats_hud', true);
+        this.addToggle('labels.inventory_hud', (v) => (this.INVENTORY_HUD = !!v), 'descriptions.inventory_hud', true);
 
         this.positionConfig = getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });

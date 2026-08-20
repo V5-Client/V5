@@ -38,7 +38,7 @@ register('packetReceived', (packet) => {
     if (isMax || blocksBroken <= 100 * multiplier) return;
     if (multiplier === 6) {
         isMax = true;
-        chat('Reached max Flowstate!');
+        chat('messages.runtime.reachedMaxFlowstate');
         return;
     }
     multiplier++;

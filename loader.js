@@ -9,6 +9,7 @@ import './gui/GUI';
 
 /* CORE */
 import './utils/Config';
+import './utils/I18n';
 import './utils/backend/WebSocket';
 import { ServerboundCommandSuggestionPacket } from './utils/Packets';
 

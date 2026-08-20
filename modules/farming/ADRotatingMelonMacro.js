@@ -10,8 +10,8 @@ class ADRotatingMelonMacro extends FarmingMacro {
     constructor() {
         super(
             {
-                name: 'AD Rotating Melon Macro',
-                description: 'Useful for default preset. Not recommended to use.',
+                name: 'modules.ad_rotating_melon_macro.name',
+                description: 'modules.ad_rotating_melon_macro.description',
             },
             'farming melon'
         );
@@ -20,13 +20,13 @@ class ADRotatingMelonMacro extends FarmingMacro {
         this.startState = STATES.LEFT;
 
         this.addMultiToggle(
-            'Direction',
-            ['A', 'D'],
+            'labels.direction',
+            ['options.a', 'options.d'],
             true,
             (value) => {
                 this.startState = value.find((option) => option.enabled)?.name === 'D' ? STATES.RIGHT : STATES.LEFT;
             },
-            'Starting key. The macro swaps to the other key at every lane change.',
+            'descriptions.direction_ad_rotating_melon',
             'A'
         );
         this.addLaneSwitchDelaySettings();

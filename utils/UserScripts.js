@@ -11,9 +11,9 @@ import { Rotations } from '../../V5/utils/player/Rotations';
 class ExampleScript extends ModuleBase {
     constructor() {
         super({
-            name: 'Example Script',
+            name: 'modules.example_script.name',
             subcategory: 'Other',
-            description: 'A starter user script.',
+            description: 'modules.example_script.description',
         });
 
         // this.on runs when the module has been enabled in the gui/keybind

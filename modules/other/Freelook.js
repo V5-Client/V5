@@ -9,10 +9,10 @@ const Perspective = net.minecraft.client.CameraType;
 class Freelook extends ModuleBase {
     constructor() {
         super({
-            name: 'Freelook',
+            name: 'modules.freelook.name',
             subcategory: 'Visuals',
-            description: 'Look around independently while the camera stays with your player.',
-            tooltip: 'Client-side third-person freelook.',
+            description: 'modules.freelook.description',
+            tooltip: 'modules.freelook.tooltip',
             theme: '#5fb0ff',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
@@ -29,7 +29,7 @@ class Freelook extends ModuleBase {
 
         getModule('Freecam')?.toggle(false);
 
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.savedPerspective = mc.options.getCameraType();
         forceGrab();
         Client.setCameraRotation(wrapTo180(player.getYRot()), player.getXRot());
@@ -39,7 +39,7 @@ class Freelook extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Client.setFreelook(false);
         Client.clearCameraRotation();
 

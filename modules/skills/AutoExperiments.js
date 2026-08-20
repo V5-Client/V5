@@ -32,10 +32,10 @@ const STATES = {
 class AutoExperiments extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Experiments',
+            name: 'modules.auto_experiments.name',
             subcategory: 'Skills',
-            description: 'Automatically do Chronomatron, Ultrasequencer, and Superpairs (soon) experiments.',
-            tooltip: 'Automatically does the experiments',
+            description: 'modules.auto_experiments.description',
+            tooltip: 'modules.auto_experiments.tooltip',
         });
 
         this.actionDelay = 500;
@@ -58,15 +58,16 @@ class AutoExperiments extends ModuleBase {
         this.on('tick', () => this.onTick());
 
         this.addSlider(
-            'Action Delay (ms)',
+            'labels.action_delay_ms',
             75,
             1000,
             500,
             (v) => (this.actionDelay = v),
-            'Delay in milliseconds between experiment clicks and table reopen steps.'
+            'descriptions.action_delay_experiments',
+            'action_delay_experiments'
         );
-        this.addSlider('Serum Count', 0, 3, 0, (v) => (this.serumCountValue = Math.floor(v)), 'Consumed Metaphysical Serum count.');
-        this.addToggle('Get Max XP', (v) => (this.getMaxXpEnabled = v), 'Solve Chronomatron to 15 and Ultrasequencer to 20 for max XP.');
+        this.addSlider('labels.serum_count', 0, 3, 0, (v) => (this.serumCountValue = Math.floor(v)), 'descriptions.serum_count');
+        this.addToggle('labels.get_max_xp', (v) => (this.getMaxXpEnabled = v), 'descriptions.get_max_xp');
     }
 
     onTick() {
@@ -86,7 +87,7 @@ class AutoExperiments extends ModuleBase {
 
         switch (this.state) {
             case STATES.EXPERIMENT_OVER:
-                this.message('&aExperiment completed! Claiming...');
+                this.message('messages.experiments.completedClaiming');
                 this.startReopenSequence();
                 break;
             case STATES.DECIDING:
@@ -157,7 +158,7 @@ class AutoExperiments extends ModuleBase {
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
             closeInventory();
             this.reset();
-            return this.message('Experiments complete');
+            return this.message('messages.experiments.complete');
         }
 
         if (this.isStakeSelection('Chronomatron', containerName)) return this.selectHighestStake(items, [24, 23, 22, 21, 20]);
@@ -168,7 +169,7 @@ class AutoExperiments extends ModuleBase {
         if (!this.isCompleted(items[23])) return this._clickSlot(SLOTS.ULTRASEQUENCER);
 
         this._clickSlot(SLOTS.SUPERPAIRS);
-        this.message('Superpairs ready');
+        this.message('messages.experiments.superpairsReady');
     }
 
     /**
@@ -258,7 +259,7 @@ class AutoExperiments extends ModuleBase {
 
         const lore = rewardItem.getLore();
         if (this.canClick() && lore && lore.join(' ').includes('Click to claim rewards')) {
-            this.message('&a[Superpairs] Claiming rewards...');
+            this.message('messages.experiments.claimingRewards');
             this._clickSlot(13, 'LEFT');
             this.superpairsRewardsClaimed = true;
         }
@@ -278,7 +279,7 @@ class AutoExperiments extends ModuleBase {
                 return this.startReopenSequence();
             }
             closeInventory();
-            return this.message('Not enough bits!');
+            return this.message('messages.experiments.bitsMissing');
         }
 
         const slot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
@@ -299,7 +300,7 @@ class AutoExperiments extends ModuleBase {
             this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
-            this.message('&aReopening Experimentation Table...');
+            this.message('messages.experiments.reopeningTable');
             Client.rightClick();
             this.ultrasequencerOrder.clear();
             this.chronomatronOrder = [];
@@ -374,7 +375,7 @@ class AutoExperiments extends ModuleBase {
                 const requiredXp = this.extractStakeCost(item);
                 if (requiredXp > 0) {
                     this.buyXpTargetLevel = requiredXp;
-                    this.message('&eNeed more XP for Superpairs. Reopening to buy bottles...');
+                    this.message('messages.experiments.needXp');
                     this.startReopenSequence();
                     return true;
                 }

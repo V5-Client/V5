@@ -5,7 +5,7 @@ import { v5Command } from './V5Commands';
 v5Command('debug info', () => {
     let target = Player.lookingAt();
     if (!target) {
-        chat('You are not looking at anything');
+        chat('messages.runtime.youAreNotLookingAtAnything');
         return;
     }
     if (target instanceof Block) {
@@ -13,29 +13,29 @@ v5Command('debug info', () => {
         const blockInfo = getBlockInfo(registryName);
         const displayRegistry = registryName || 'unknown';
 
-        chat('blockid: ' + (target.type?.getID?.() ?? 'unknown'));
-        chat('registry: ' + displayRegistry);
-        chat('x: ' + target.x + ' y: ' + target.y + ' z:' + target.z);
+        chat('messages.debug.blockId', { id: target.type?.getID?.() ?? 'unknown' });
+        chat('messages.debug.registry', { registry: displayRegistry });
+        chat('messages.debug.blockPosition', { x: target.x, y: target.y, z: target.z });
         if (blockInfo) {
-            chat('block name: ' + blockInfo.name);
-            chat('block hardness: ' + blockInfo.hardness);
+            chat('messages.debug.blockName', { name: blockInfo.name });
+            chat('messages.debug.blockHardness', { hardness: blockInfo.hardness });
         }
     } else if (target instanceof Entity) {
-        chat('name: ' + target?.getName());
-        chat('entity type: ' + target?.toMC()?.getType());
-        chat('x: ' + target?.getX().toFixed(4) + ' y: ' + target?.getY().toFixed(4) + ' z:' + target?.getZ().toFixed(4));
-        chat('health: ' + target?.toMC()?.getHealth());
-        chat('max health: ' + target?.toMC()?.getMaxHealth());
-        chat('UUID: ' + target?.getUUID());
+        chat('messages.debug.entityName', { name: target?.getName() });
+        chat('messages.debug.entityType', { type: target?.toMC()?.getType() });
+        chat('messages.debug.entityPosition', { x: target?.getX().toFixed(4), y: target?.getY().toFixed(4), z: target?.getZ().toFixed(4) });
+        chat('messages.debug.health', { health: target?.toMC()?.getHealth() });
+        chat('messages.debug.maxHealth', { health: target?.toMC()?.getMaxHealth() });
+        chat('messages.debug.uuid', { uuid: target?.getUUID() });
     } else {
-        chat('You are not looking at a block or item');
+        chat('messages.runtime.youAreNotLookingAtABlockOrItem');
     }
 });
 
 v5Command('debug istranslucent', () => {
     const block = Player.lookingAt();
     if (!block) {
-        chat('You are not looking at a block');
+        chat('messages.runtime.youAreNotLookingAtABlock');
         return;
     }
     chat(block?.type?.isTranslucent());

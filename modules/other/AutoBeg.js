@@ -3,10 +3,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class AutoBeg extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Beg',
+            name: 'modules.auto_beg.name',
             subcategory: 'Other',
-            description: 'Automatically begs for hypixel ranks periodically.',
-            tooltip: 'Automatically begs for hypixel ranks periodically.',
+            description: 'modules.auto_beg.description',
+            tooltip: 'modules.auto_beg.tooltip',
             isMacro: true,
         });
         this.bindToggleKey();
@@ -15,13 +15,18 @@ class AutoBeg extends ModuleBase {
         this.intervalSeconds = 30;
         this.lastMessageTime = 0;
 
-        this.addSlider('Message Interval (s)', 5, 300, 30, (seconds) => {
+        this.addSlider('labels.message_interval_s', 5, 300, 30, (seconds) => {
             this.intervalSeconds = seconds;
         });
 
-        this.addMultiToggle('Rank Selector', ['vip', 'vip+', 'mvp', 'mvp+', 'mvp++'], true, (options) => {
-            this.rank = options.find((option) => option.enabled)?.name || 'vip';
-        });
+        this.addMultiToggle(
+            'labels.rank_selector',
+            ['options.vip_plain', 'options.vip', 'options.mvp_plain', 'options.mvp_plus', 'options.mvp'],
+            true,
+            (options) => {
+                this.rank = options.find((option) => option.enabled)?.name || 'vip';
+            }
+        );
 
         this.begging_messages = [
             `anyone got a spare rank pls??`,
@@ -211,10 +216,10 @@ class AutoBeg extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     Rank: () => this.rank,
-                    'Next Message': () => {
+                    'overlay.next_message': () => {
                         const timeLeft = Math.max(0, this.intervalSeconds * 1000 - (Date.now() - this.lastMessageTime));
                         return `${Math.ceil(timeLeft / 1000)}s`;
                     },

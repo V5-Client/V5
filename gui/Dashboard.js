@@ -3,6 +3,7 @@ import { modules as registeredModules } from '../utils/MacroState';
 import { formatUptime } from '../utils/TimeUtils';
 import { area, subArea } from '../utils/Utils';
 import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
+import { t, translationKey } from '../utils/I18n';
 
 const clientStartedAt = Date.now();
 
@@ -18,7 +19,7 @@ const CARD_BOTTOM_PADDING = 4;
 let lastModuleLayouts = [];
 
 const normalizeLocation = (value) => {
-    if (!value || String(value).trim().length === 0) return 'Unknown';
+    if (!value || String(value).trim().length === 0) return t('dashboard.unknown');
     return String(value);
 };
 
@@ -29,6 +30,7 @@ const getActiveModules = () => {
         if (!module?.enabled) return;
         activeModules.push({
             name,
+            nameKey: module.nameKey,
             subcategory: module.subcategory || 'Other',
             isMacro: module.isMacro === true,
         });
@@ -47,12 +49,12 @@ const getDebugRows = () => {
     const tps = getTPS();
 
     return [
-        { label: 'FPS', value: String(fps), color: getFpsColor(fps) },
-        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
-        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
-        { label: 'Client Uptime', value: formatUptime(clientStartedAt) },
-        { label: 'Area', value: normalizeLocation(area()) },
-        { label: 'Subarea', value: normalizeLocation(subArea()) },
+        { label: t('dashboard.fps'), value: String(fps), color: getFpsColor(fps) },
+        { label: t('dashboard.ping'), value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
+        { label: t('dashboard.tps'), value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
+        { label: t('dashboard.clientUptime'), value: formatUptime(clientStartedAt) },
+        { label: t('dashboard.area'), value: normalizeLocation(area()) },
+        { label: t('dashboard.subarea'), value: normalizeLocation(subArea()) },
     ];
 };
 
@@ -84,7 +86,7 @@ const drawCard = (title, x, y, width, height) => {
 const drawDebugCard = (x, y, width) => {
     const rows = getDebugRows();
     const height = getCardHeight(rows.length);
-    drawCard('Debug Information', x, y, width, height);
+    drawCard(t('dashboard.debugInformation'), x, y, width, height);
 
     const labelX = x + CARD_PADDING;
     const valueRightX = x + width - CARD_PADDING;
@@ -105,12 +107,12 @@ const drawModulesCard = (panel, x, y, width, mouseX, mouseY) => {
     const rowCount = modules.length > 0 ? modules.length : 1;
     const height = getCardHeight(rowCount, modules.length > 0 ? MODULE_ROW_HEIGHT : EMPTY_STATE_HEIGHT);
     lastModuleLayouts = [];
-    drawCard('Active Modules', x, y, width, height);
+    drawCard(t('dashboard.activeModules'), x, y, width, height);
 
     let rowY = y + CARD_PADDING + HEADER_TO_FIRST_ROW;
 
     if (modules.length === 0) {
-        drawText('No active modules', x + CARD_PADDING, rowY, FontSizes.REGULAR, THEME.TEXT_MUTED);
+        drawText(t('dashboard.noActiveModules'), x + CARD_PADDING, rowY, FontSizes.REGULAR, THEME.TEXT_MUTED);
         return height;
     }
 
@@ -127,13 +129,15 @@ const drawModulesCard = (panel, x, y, width, mouseX, mouseY) => {
         rowY += MODULE_ROW_HEIGHT;
         if (rowRect.y + rowRect.height < panel.y || rowRect.y > panel.y + panel.height) return;
 
-        const meta = module.isMacro ? `${module.subcategory} macro` : module.subcategory;
+        const meta = module.isMacro
+            ? `${t(translationKey('categories.subcategory', module.subcategory), {}, module.subcategory)} ${t('dashboard.macroSuffix')}`
+            : t(translationKey('categories.subcategory', module.subcategory), {}, module.subcategory);
         const isHovered = isInside(mouseX, mouseY, rowRect);
         if (isHovered) {
             drawRoundedRectangle({ ...rowRect, radius: 6, color: colorWithAlpha(THEME.BG_INSET, 0.7) });
         }
 
-        drawText(module.name, x + CARD_PADDING, textY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
+        drawText(t(module.nameKey || module.name, {}, module.name), x + CARD_PADDING, textY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
         drawText(meta, x + width - CARD_PADDING, textY, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
     });
 

@@ -4,17 +4,17 @@ import { getConfigFile } from '../../utils/Utils';
 class ProfileHider extends ModuleBase {
     constructor() {
         super({
-            name: 'Profile Hider',
+            name: 'modules.profile_hider.name',
             subcategory: 'Visuals',
-            description: 'Hides your profile',
+            description: 'modules.profile_hider.description',
         });
 
         this.defaultName = null;
         this.HIDE_USERNAME = true;
         this.USERNAME = null;
 
-        this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
-        this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
+        this.addToggle('labels.custom_username', (v) => (this.HIDE_USERNAME = v), 'descriptions.custom_username', true);
+        this.addTextInput('labels.username', ' ', (v) => (this.USERNAME = v), 'descriptions.username');
 
         Client.setNameProcessor((text) => this.getModifiedText(text));
     }

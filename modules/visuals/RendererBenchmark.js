@@ -1,5 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { v5Command } from '../../utils/V5Commands';
+import { t } from '../../utils/I18n';
 
 const AABB = net.minecraft.world.phys.AABB;
 const COUNT = 5000;
@@ -41,12 +42,12 @@ const currentPhase = () => phases[phaseIndex];
 
 const stop = () => {
     phases = [];
-    ChatLib.chat('&cRenderer benchmark stopped.');
+    ChatLib.chat(t('messages.runtime.rendererBenchmarkStopped'));
 };
 
 const setPositions = () => {
     if (!World.isLoaded() || !Player.getPlayer()) {
-        ChatLib.chat('&cJoin a world before starting the 3D renderer benchmark.');
+        ChatLib.chat(t('messages.runtime.joinAWorldBeforeStartingThe3dRendererBenchmark'));
         return false;
     }
 
@@ -105,7 +106,7 @@ const finishFrame = (phase) => {
     phaseIndex++;
     frames = 0;
     phaseStartedAt = Date.now();
-    if (!currentPhase()) ChatLib.chat('&aRenderer benchmark complete.');
+    if (!currentPhase()) ChatLib.chat(t('messages.runtime.rendererBenchmarkComplete'));
 };
 
 Render2D.registerV5Render(() => {

@@ -7,10 +7,10 @@ const EXTENDED_BOOK_LEVELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 
 class AutoCombine extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Combine',
+            name: 'modules.auto_combine.name',
             subcategory: 'Other',
-            description: 'Automatically combine items in your inventory with /anvil.',
-            tooltip: 'Automatically combine items in your inventory with /anvil.',
+            description: 'modules.auto_combine.description',
+            tooltip: 'modules.auto_combine.tooltip',
             theme: '#f1a64b',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
@@ -34,12 +34,7 @@ class AutoCombine extends ModuleBase {
         this.enableLevelTenBooks = false;
         this.tickCounter = 0;
 
-        this.addToggle(
-            'Support Level 10 Books',
-            (value) => (this.enableLevelTenBooks = !!value),
-            'Combines books up to level 10. Do not enable if your using normal level 5 capped books.',
-            false
-        );
+        this.addToggle('labels.support_level_10_books', (value) => (this.enableLevelTenBooks = !!value), 'descriptions.support_level_10_books', false);
 
         this.on('tick', (tick) => this.onTick(tick));
     }
@@ -90,7 +85,7 @@ class AutoCombine extends ModuleBase {
 
         const pair = this.findNextCombinePair();
         if (!pair) {
-            this.message('No combineable pair found');
+            this.message('messages.autoCombine.noPair');
             closeInventory();
             this.toggle(false);
             return;
@@ -198,10 +193,10 @@ class AutoCombine extends ModuleBase {
     }
 
     timeout() {
-        this.message('Returned without doing anything? stuck? waiting?');
+        this.message('messages.autoCombine.stalled');
         this.timeoutFlags++;
         if (this.timeoutFlags > 4) {
-            this.message('&cStuck detected. Force resetting.');
+            this.message('messages.autoCombine.forceReset');
             this.reset(true);
         }
     }
@@ -219,12 +214,12 @@ class AutoCombine extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.reset();
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.reset();
     }
 }

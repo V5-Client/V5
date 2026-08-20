@@ -12,9 +12,9 @@ import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
 import { getCategoryContentY, getCategoryRect, getDiscordPfpRect, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './CategoryRenderer';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
+import { t } from '../../utils/I18n';
 
 const ANIMATION_DURATION = 300;
-const BACK_TEXT_WIDTH = getTextWidth('Back', FontSizes.SMALL);
 const getEditButtonRect = () => {
     const leftPanel = GuiRectangles.LeftPanel;
     const pfpRect = getDiscordPfpRect();
@@ -130,8 +130,8 @@ export const handleCategoryClick = (
         const optionY = panel.y + PADDING;
         const sY = Categories.optionsScrollY;
 
-        const backButtonText = 'Back';
-        const backButtonWidth = BACK_TEXT_WIDTH;
+        const backButtonText = t('categories.back');
+        const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
         const drawnBackY = optionY + 12 - sY;
         const backButtonRect = {
             x: optionX,

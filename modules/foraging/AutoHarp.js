@@ -4,10 +4,10 @@ import { clickSlot, getGuiName } from '../../utils/player/Inventory';
 class AutoHarp extends ModuleBase {
     constructor() {
         super({
-            name: 'Auto Harp',
+            name: 'modules.auto_harp.name',
             subcategory: 'Foraging',
-            description: 'Auto Harp',
-            tooltip: 'Auto Harp',
+            description: 'modules.auto_harp.description',
+            tooltip: 'modules.auto_harp.tooltip',
         });
 
         this.DELAY = 3;
@@ -44,7 +44,7 @@ class AutoHarp extends ModuleBase {
             });
         });
 
-        this.addSlider('Delay (ms)', 0, 500, 150, (v) => (this.DELAY = Math.round(v / 50)));
+        this.addSlider('labels.delay_ms', 0, 500, 150, (v) => (this.DELAY = Math.round(v / 50)));
     }
 
     onDisable() {

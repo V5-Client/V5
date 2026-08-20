@@ -6,11 +6,11 @@ import { calculateDistance } from '../../utils/Math';
 class SeaLumie extends ModuleBase {
     constructor() {
         super({
-            name: 'Sea Lumie',
+            name: 'modules.sea_lumie.name',
             subcategory: 'Foraging',
             developerMode: true,
-            description: 'Automatically farms sea lumies',
-            tooltip: 'Automatically farms sea lumies',
+            description: 'modules.sea_lumie.description',
+            tooltip: 'modules.sea_lumie.tooltip',
             isMacro: true,
         });
         this.STATES = {
@@ -26,10 +26,10 @@ class SeaLumie extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    'Closest Pickle': () => (this.closestPickle ? `Found` : 'None'),
+                    'overlay.closest_pickle': () => (this.closestPickle ? `Found` : 'None'),
                 },
             },
         ]);
@@ -133,7 +133,7 @@ class SeaLumie extends ModuleBase {
                             }
 
                             this.closestPickle = null;
-                            this.message('Failed to find a pickle!');
+                            this.message('messages.seaLumie.pickleMissing');
                             this.startedScan = false;
                             this.state = this.STATES.SCANNING;
                         });
@@ -144,7 +144,7 @@ class SeaLumie extends ModuleBase {
                 case this.STATES.GOINGTO:
                     if (Player.getAirLevel() <= 0) {
                         this.state = this.STATES.RESURFACING;
-                        this.message('Ran out of air, resurfacing');
+                        this.message('messages.seaLumie.resurfacing');
                     }
                     break;
                 case this.STATES.RESURFACING:
@@ -184,7 +184,7 @@ class SeaLumie extends ModuleBase {
               let looking = Player.lookingAt();
 
               if (looking?.type?.getRegistryName()?.includes("pickle")) {
-                this.message("STILL");
+                this.message('messages.seaLumie.still');
                 Client.setKey("leftclick", true); // this instead of leftclick so you  dont do 50cps
               } else {
                 Client.setKey("leftclick", false);

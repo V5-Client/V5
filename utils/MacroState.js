@@ -93,7 +93,7 @@ export const getModuleActiveHours = (moduleName) => getModuleElapsedMs(moduleNam
 function toggleLastUsedMacroFromUser() {
     const macroName = getLastActiveMacro();
     if (!macroName) {
-        chat('&eNo recently used macro to toggle.');
+        chat('messages.runtime.noRecentlyUsedMacroToToggle');
         return false;
     }
 

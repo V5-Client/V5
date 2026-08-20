@@ -43,7 +43,7 @@ export const returnDiscord = (authToken) => {
                 });
 
                 if (!responseText || responseText.trim() === '') {
-                    chat('Failed to get a valid response for Discord PFP.');
+                    chat('messages.runtime.failedToGetAValidResponseForDiscordPfp');
                     return;
                 }
 
@@ -51,14 +51,14 @@ export const returnDiscord = (authToken) => {
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    chat('Failed to parse Discord PFP data. Check console for error.');
+                    chat('messages.runtime.failedToParseDiscordPfpDataCheckConsoleForError');
                     console.log('Invalid JSON received: ' + responseText);
                     console.error('V5 Caught error' + e + e.stack);
                     return;
                 }
 
                 if (!data || !data.discord || !data.discord.avatar) {
-                    chat('Failed to download your Discord pfp: Invalid data format.');
+                    chat('messages.runtime.failedToDownloadYourDiscordPfpInvalidDataFormat');
                     return;
                 }
 
@@ -67,7 +67,7 @@ export const returnDiscord = (authToken) => {
                         discordPfpPath = profilePath.getAbsolutePath();
                     },
                     onError: (e) => {
-                        chat('Download failed: ' + e);
+                        chat('messages.network.downloadFailed', { error: e });
                         console.error('V5 Caught error' + e + e.stack);
                     },
                 });
@@ -78,7 +78,7 @@ export const returnDiscord = (authToken) => {
             discordPfpPath = profilePath.getAbsolutePath();
         }
     } catch (e) {
-        chat('An unexpected error occurred while fetching Discord PFP: ' + e);
+        chat('messages.network.discordPfpUnexpected', { error: e });
         console.error('V5 Caught error' + e + e.stack);
     }
 };

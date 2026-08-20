@@ -70,7 +70,7 @@ export const v5Command = (name, handler, argumentTypes = []) => {
 };
 
 v5Command('help', () => {
-    chat('&bV5 Commands:');
+    chat('messages.runtime.v5Commands');
     for (const name of Array.from(commandRegistry.keys()).sort()) chat(`&7/v5 ${name}`);
 });
 
@@ -97,7 +97,7 @@ v5Command('pip', () => {
 v5Command(
     'mining gemstone',
     (...args) => {
-        if (!args.length) return chat('&cUsage: &7/v5 mining gemstone <args>');
+        if (!args.length) return chat('messages.runtime.usageV5MiningGemstoneArgs');
         ChatLib.command(`gemstone ${args.join(' ')}`);
     },
     ['greedyString']
@@ -107,7 +107,7 @@ v5Command('visuals gif list', () => ChatLib.command('gif list'));
 v5Command(
     'visuals gif pick',
     (index) => {
-        if (index === undefined) return chat('&cUsage: &7/v5 visuals gif pick <index>');
+        if (index === undefined) return chat('messages.runtime.usageV5VisualsGifPickIndex');
         ChatLib.command(`gif pick ${index}`);
     },
     ['integer']
@@ -117,26 +117,26 @@ v5Command('visuals gif toggle', () => ChatLib.command('gif toggle'));
 const setDeveloperMode = (enabled) => {
     if (!enabled) {
         developerModeEnableConfirmationPending = false;
-        if (!isDeveloperModeEnabled()) return chat('&cDeveloper Mode is already disabled.');
+        if (!isDeveloperModeEnabled()) return chat('messages.runtime.developerModeIsAlreadyDisabled');
 
         setDeveloperModeEnabled(false);
-        chat('&aDeveloper Mode disabled.');
+        chat('messages.runtime.developerModeDisabled');
         ChatLib.command('ct load', true);
         return;
     }
 
-    if (isDeveloperModeEnabled()) return chat("&cDeveloper Mode enabled. Run '/V5 developerMode false' to disable.");
+    if (isDeveloperModeEnabled()) return chat('messages.runtime.developerModeEnabledRunV5DevelopermodeFalseToDisable');
 
     if (!developerModeEnableConfirmationPending) {
         developerModeEnableConfirmationPending = true;
-        chat('&cDeveloper Mode should only be enabled if you know what your doing. It will disable auto updates, unlock WIP modules, and potentially ban you.');
-        chat("&cRun '/V5 developerMode true' again to confirm.");
+        chat('messages.runtime.developerModeShouldOnlyBeEnabledIfYouKnowWhatYourDoingItWillDisableAutoUpdatesUnlockWipModulesAndPotentiallyBanYou');
+        chat('messages.runtime.runV5DevelopermodeTrueAgainToConfirm');
         return;
     }
 
     developerModeEnableConfirmationPending = false;
     setDeveloperModeEnabled(true);
-    chat('&cDeveloper Mode enabled. Auto updates are disabled and WIP modules are unlocked.');
+    chat('messages.runtime.developerModeEnabledAutoUpdatesAreDisabledAndWipModulesAreUnlocked');
     ChatLib.command('ct load', true);
 };
 

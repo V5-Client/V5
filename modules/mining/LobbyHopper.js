@@ -5,10 +5,10 @@ import { area, getDay } from '../../utils/Utils';
 class LobbyHopper extends ModuleBase {
     constructor() {
         super({
-            name: 'Lobby Hopper',
+            name: 'modules.lobby_hopper.name',
             subcategory: 'Mining',
-            description: 'Switches between CH lobbies',
-            tooltip: 'Switches between CH lobbies',
+            description: 'modules.lobby_hopper.description',
+            tooltip: 'modules.lobby_hopper.tooltip',
             theme: '#e0dd04',
         });
 
@@ -17,7 +17,7 @@ class LobbyHopper extends ModuleBase {
         this.cooldown = new Timer();
         this.bindToggleKey();
 
-        this.addSlider('Max Lobby Day', 0, 18, 5, (v) => {
+        this.addSlider('labels.max_lobby_day', 0, 18, 5, (v) => {
             this.maxDay = v;
         });
 
@@ -28,18 +28,18 @@ class LobbyHopper extends ModuleBase {
             if (this.said && !this.cooldown.hasPassed(3000)) return;
 
             if (!isInCh) {
-                this.message('Not in Crystal Hollows, Warping.');
+                this.message('messages.lobbyHopper.warpingToCrystalHollows');
                 ChatLib.command('warp ch');
 
                 this.reset();
             } else {
                 if (getDay() > this.maxDay) {
-                    this.message('Crystal Hollows day is too high! Warping to new lobby.');
+                    this.message('messages.lobbyHopper.dayTooHigh');
                     ChatLib.command('is');
 
                     this.reset();
                 } else {
-                    this.message('&aFound a lobby!');
+                    this.message('messages.lobbyHopper.lobbyFound');
                     this.toggle(false);
                 }
             }
@@ -52,11 +52,11 @@ class LobbyHopper extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 }
 

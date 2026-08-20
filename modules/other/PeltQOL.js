@@ -40,10 +40,10 @@ const ABIPHONE = {
 class PeltQOL extends ModuleBase {
     constructor() {
         super({
-            name: 'Pelt QOL',
+            name: 'modules.pelt_qol.name',
             subcategory: 'Other',
-            description: 'Highlights Trevor hunt animals.',
-            tooltip: 'Highlights Trevor hunt animals.',
+            description: 'modules.pelt_qol.description',
+            tooltip: 'modules.pelt_qol.tooltip',
             theme: '#d99a3e',
         });
 
@@ -60,10 +60,10 @@ class PeltQOL extends ModuleBase {
         this.trevorSlot = -1;
         this.actionToken = 0;
 
-        this.addToggle('Auto Accept Quest', (value) => (this.autoAcceptQuest = !!value), "Automatically clicks Trevor's YES prompt to start a hunt.", true);
+        this.addToggle('labels.auto_accept_quest', (value) => (this.autoAcceptQuest = !!value), 'descriptions.auto_accept_quest', true);
         this.addMultiToggle(
-            'Call Mode',
-            ['Disabled', '/call', 'Abiphone'],
+            'labels.call_mode',
+            ['options.disabled', 'options.call', 'options.abiphone'],
             true,
             (options) => {
                 this.callMode = options.find((o) => o.enabled)?.name || '/call';
@@ -71,12 +71,8 @@ class PeltQOL extends ModuleBase {
             'How to call Trevor when a hunt completes.',
             '/call'
         );
-        this.addToggle(
-            'Rezar Abicase Accessory',
-            (value) => (this.rezarAbicaseAccessory = !!value),
-            'Use the shorter Trevor recall delay when the Rezar Abicase Accessory is equipped.'
-        );
-        this.addToggle('ESP', (value) => (this.renderESP = !!value), 'ESP to Trevor animals.', true);
+        this.addToggle('labels.rezar_abicase_accessory', (value) => (this.rezarAbicaseAccessory = !!value), 'descriptions.rezar_abicase_accessory');
+        this.addToggle('labels.esp', (value) => (this.renderESP = !!value), 'descriptions.esp', true);
 
         this.on('chat', ({ message }) => this.handleChat(message));
         this.on('tick', () => {
@@ -175,7 +171,7 @@ class PeltQOL extends ModuleBase {
                     this.abiphoneState = ABIPHONE.RIGHT_CLICK;
                     return;
                 }
-                this.message('Abiphone not found in hotbar!');
+                this.message('messages.pelt.abiphoneMissing');
                 this.abiphoneState = ABIPHONE.IDLE;
                 break;
             }

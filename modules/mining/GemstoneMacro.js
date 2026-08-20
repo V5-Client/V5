@@ -16,11 +16,11 @@ import { MiningBot } from './MiningBot';
 class GemstoneMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Gemstone Macro',
+            name: 'modules.gemstone_macro.name',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Macro for gemstones',
-            tooltip: 'Macro for gemstones',
+            description: 'modules.gemstone_macro.description',
+            tooltip: 'modules.gemstone_macro.tooltip',
             theme: '#fb42f5',
             isMacro: true,
             autoDisableOnWorldUnload: true,
@@ -85,14 +85,14 @@ class GemstoneMacro extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => {
                         const key = Object.keys(this.STATES).find((k) => this.STATES[k] === this.state) || 'Unknown';
                         return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
                     },
-                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length + 1}` : 'No Route'),
-                    'Targets Found': () => MiningBot.foundLocations.length,
+                    'overlay.route_progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length + 1}` : 'No Route'),
+                    'overlay.targets_found': () => MiningBot.foundLocations.length,
                     TPS: () => getTPS().toFixed(1),
                 },
             },
@@ -140,7 +140,7 @@ class GemstoneMacro extends ModuleBase {
                 // put into etherwarping but gemini wanted to dislike me and do this
                 case this.STATES.DECIDING:
                     if (!this.route || this.route.length <= 1) {
-                        this.message('&cRoute needs at least 2 points!');
+                        this.message('messages.gemstone.routeTooShort');
                         this.toggle(false);
                         return;
                     }
@@ -158,7 +158,7 @@ class GemstoneMacro extends ModuleBase {
                     let aotv = findItemInHotbar('Aspect of the Void');
 
                     if (aotv === -1) {
-                        this.message('&cAspect of the Void not found in hotbar!');
+                        this.message('messages.gemstone.etherwarpItemMissing');
                         this.toggle(false);
                         return;
                     }
@@ -181,7 +181,7 @@ class GemstoneMacro extends ModuleBase {
 
                         let target = this.getPointOnBlock(currentPoint);
                         if (!target) {
-                            this.message('&cNext point is not visible!');
+                            this.message('messages.gemstone.nextPointHidden');
                             this.toggle(false);
                             return;
                         }
@@ -275,7 +275,7 @@ class GemstoneMacro extends ModuleBase {
         });
 
         this.addMultiToggle(
-            'Routes',
+            'labels.routes',
             this.routesDir,
             true,
             (selected) => {
@@ -286,8 +286,8 @@ class GemstoneMacro extends ModuleBase {
         );
 
         this.addMultiToggle(
-            'Gemstone Types',
-            ['Ruby', 'Sapphire', 'Amethyst', 'Topaz', 'Jade', 'Jasper', 'Amber'],
+            'labels.gemstone_types',
+            ['options.ruby', 'options.sapphire', 'options.amethyst', 'options.topaz', 'options.jade', 'options.jasper', 'options.amber'],
             false,
             (selected) => {
                 const setHas = (name) => selected.some((item) => item.name === name && item.enabled === true);
@@ -302,7 +302,7 @@ class GemstoneMacro extends ModuleBase {
             'The types of gemstones to mine'
         );
 
-        this.addToggle('Fast AOTV', (value) => {
+        this.addToggle('labels.fast_aotv', (value) => {
             this.FASTAOTV = value;
         });
     }
@@ -349,7 +349,7 @@ class GemstoneMacro extends ModuleBase {
         }
         if (intensity >= 3) {
             this.toggle(false);
-            this.message('&cEtherwarp failed after 3 attempts!');
+            this.message('messages.gemstone.etherwarpFailed');
         }
     }
 
@@ -435,7 +435,7 @@ class GemstoneMacro extends ModuleBase {
         this.state = this.STATES.DECIDING;
         this.resetRuntimeState();
 
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
     }
 
     onDisable() {
@@ -448,7 +448,7 @@ class GemstoneMacro extends ModuleBase {
         this.state = this.STATES.WAITING;
         this.resetRuntimeState();
 
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 
     resetRuntimeState() {

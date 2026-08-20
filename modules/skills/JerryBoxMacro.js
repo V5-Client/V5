@@ -4,10 +4,10 @@ import { regrab, ungrab } from '../../utils/Ungrab';
 class JerryBoxMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Jerry Box Macro',
+            name: 'modules.jerry_box_macro.name',
             subcategory: 'Skills',
-            description: 'Automatically opens Jerry Boxes',
-            tooltip: 'Right click -> click open -> close GUI -> repeat',
+            description: 'modules.jerry_box_macro.description',
+            tooltip: 'modules.jerry_box_macro.tooltip',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
         });
@@ -26,7 +26,7 @@ class JerryBoxMacro extends ModuleBase {
         this.guiWaitMax = 10; // anyone above 500ms should quit skyblock
         this.waitLeft = 0;
 
-        this.addSlider('Delay', 0, 10, 3, (v) => (this.delay = v), 'Ticks between actions');
+        this.addSlider('labels.delay', 0, 10, 3, (v) => (this.delay = v), 'descriptions.delay');
 
         this.on('tick', () => {
             if (this.cooldown > 0) {
@@ -48,7 +48,7 @@ class JerryBoxMacro extends ModuleBase {
                         if (!isHoldingJerry) {
                             const slot = findItemInHotbar('Jerry Box');
                             if (slot === -1) {
-                                this.message('&cOut of Jerry Boxes. Disabling.');
+                                this.message('messages.jerryBoxes.empty');
                                 this.toggle(false);
                                 return;
                             }
@@ -102,14 +102,14 @@ class JerryBoxMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
         ungrab();
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
         regrab();

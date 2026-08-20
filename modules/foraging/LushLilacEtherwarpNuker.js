@@ -15,9 +15,9 @@ const GALATEA_HUB_DELAY_MS = 5000;
 class LushLilacEtherwarpNuker extends ModuleBase {
     constructor() {
         super({
-            name: 'Lushlilac Etherwarp Nuker',
+            name: 'modules.lushlilac_etherwarp_nuker.name',
             subcategory: 'Foraging',
-            description: 'Etherwarps between flowering azaleas and nukes nearby ones.',
+            description: 'modules.lushlilac_etherwarp_nuker.description',
             isMacro: true,
         });
         this.bindToggleKey();
@@ -37,12 +37,12 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         State: () => this.status,
                         Targets: () => this.targets.length,
-                        'Forest Whispers': () => OverlayManager.getTrackedValue(this.oid, 'blocksNuked', 0) * 100,
-                        'Forest Whispers/hr': () => this.getHourlyForestWhispers(),
+                        'overlay.forest_whispers': () => OverlayManager.getTrackedValue(this.oid, 'blocksNuked', 0) * 100,
+                        'overlay.forest_whispers_per_hour': () => this.getHourlyForestWhispers(),
                     },
                 },
             ],

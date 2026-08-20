@@ -7,10 +7,10 @@ const ShulkerEntity = net.minecraft.world.entity.monster.Shulker;
 class HideonLeafESP extends ModuleBase {
     constructor() {
         super({
-            name: 'HideonLeaf ESP',
+            name: 'modules.hideonleaf_esp.name',
             subcategory: 'Foraging',
-            description: 'Highlights HideonLeaf entities and draws tracers to them.',
-            tooltip: 'Highlights HideonLeaf entities and draws tracers to them.',
+            description: 'modules.hideonleaf_esp.description',
+            tooltip: 'modules.hideonleaf_esp.tooltip',
         });
 
         this.targets = [];

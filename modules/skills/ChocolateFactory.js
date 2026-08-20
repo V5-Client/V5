@@ -74,10 +74,10 @@ const EGG_TYPES = [
 class ChocolateFactory extends ModuleBase {
     constructor() {
         super({
-            name: 'Chocolate Factory',
+            name: 'modules.chocolate_factory.name',
             subcategory: 'Skills',
-            description: 'Automates cookie clicking, stray claims, and egg tracking in Chocolate Factory.',
-            tooltip: 'Chocolate Factory automation + egg ESP.',
+            description: 'modules.chocolate_factory.description',
+            tooltip: 'modules.chocolate_factory.tooltip',
             theme: '#8f5a2b',
         });
 
@@ -90,18 +90,19 @@ class ChocolateFactory extends ModuleBase {
         this.lastActionAt = 0;
         this.detectedEggs = new Map();
 
-        this.addToggle('Auto Click', (value) => (this.clickFactory = !!value), 'Right clicks the chocolate cookie while the factory menu is open.', false);
-        this.addToggle('Auto Claim Strays', (value) => (this.claimStrays = !!value), 'Claims stray rabbits in the Chocolate Factory menu.', false);
+        this.addToggle('labels.auto_click', (value) => (this.clickFactory = !!value), 'descriptions.auto_click', false);
+        this.addToggle('labels.auto_claim_strays', (value) => (this.claimStrays = !!value), 'descriptions.auto_claim_strays', false);
         this.addSlider(
-            'Action Delay (ms)',
+            'labels.action_delay_ms',
             50,
             1500,
             this.actionDelayMs,
             (value) => (this.actionDelayMs = Number(value)),
-            'Delay between cookie clicks and stray claims.'
+            'descriptions.action_delay_chocolate_factory',
+            'action_delay_chocolate_factory'
         );
-        this.addToggle('Cancel Sound', (value) => (this.cancelSound = !!value), 'Cancels the click sound while the factory menu is open.', false);
-        this.addToggle('Egg ESP', (value) => (this.eggEsp = !!value), 'Tracks and renders chocolate eggs.', false);
+        this.addToggle('labels.cancel_sound', (value) => (this.cancelSound = !!value), 'descriptions.cancel_sound', false);
+        this.addToggle('labels.egg_esp', (value) => (this.eggEsp = !!value), 'descriptions.egg_esp', false);
 
         this.on('tick', () => this.onTick());
         this.on('step', () => this.scanEggs()).setDelay(5);

@@ -14,11 +14,11 @@ import { v5Command } from '../../utils/V5Commands';
 class RouteWalkerer extends ModuleBase {
     constructor() {
         super({
-            name: 'Route Walker',
+            name: 'modules.route_walker.name',
             subcategory: 'Skills',
             developerMode: true,
-            description: 'Follows multiple points in a route',
-            tooltip: 'Etherwarps and walks to multiple points in a route',
+            description: 'modules.route_walker.description',
+            tooltip: 'modules.route_walker.tooltip',
             theme: '#65a6f0',
             isMacro: true,
         });
@@ -88,7 +88,7 @@ class RouteWalkerer extends ModuleBase {
                 let indexNum = undefined;
 
                 const actionUpper = action?.toUpperCase();
-                if (actionUpper === 'ADD' && !arg1) return this.message('Movement type required! e.g /v5 routes add WALK/ETHERWARP');
+                if (actionUpper === 'ADD' && !arg1) return this.message('messages.routeWalker.movementTypeRequired');
                 if (actionUpper === 'CREATE') {
                     const createdRouteId = `${Date.now()}`;
                     const createdRouteName = `${createdRouteId}.json`;
@@ -208,7 +208,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (aotv === -1) {
                         this.toggle(false);
-                        this.message('&cYou dont have an etherwarping item!');
+                        this.message('messages.routeWalker.etherwarpItemMissing');
                         return;
                     }
 
@@ -234,7 +234,7 @@ class RouteWalkerer extends ModuleBase {
                             });
                             this.etherwarpReady = true;
                         } else {
-                            this.message("&cCan't see point!");
+                            this.message('messages.routeWalker.pointNotVisible');
                             this.toggle(false);
                             return;
                         }
@@ -253,7 +253,7 @@ class RouteWalkerer extends ModuleBase {
         });
 
         this.routesToggle = this.addMultiToggle(
-            'Routes',
+            'labels.routes',
             this.routesDir,
             true,
             (selected) => {
@@ -270,56 +270,57 @@ class RouteWalkerer extends ModuleBase {
         this.on('worldUnload', () => this.invalidateEtherwarpClick());
 
         this.addToggle(
-            'Render Points',
+            'labels.render_points',
             (value) => {
                 this.RENDERPOINTS = value;
             },
-            'Renders the points of the route'
+            'descriptions.render_points'
         );
 
         this.addToggle(
-            'Leftclick',
+            'labels.leftclick',
             (value) => {
                 this.LEFTCLICK = value;
             },
-            'LeftClick while macro is active'
+            'descriptions.leftclick'
         );
         this.addSlider(
-            'Leftclick Slot',
+            'labels.leftclick_slot',
             1,
             9,
             1,
             (value) => {
                 this.LEFTCLICKSLOT = value;
             },
-            'Item slot that will be used to leftclick'
+            'descriptions.leftclick_slot'
         );
 
         this.addToggle(
-            'Sneak',
+            'labels.sneak',
             (value) => {
                 this.SNEAK = value;
             },
-            'Sneak while macro is active'
+            'descriptions.sneak'
         );
 
         this.addToggle(
-            'Lock Pitch',
+            'labels.lock_pitch',
             (value) => {
                 this.LOCKPITCH = value;
             },
-            'Lock Pitch while macro is active'
+            'descriptions.lock_pitch'
         );
 
         this.addSlider(
-            'Pitch',
+            'labels.pitch',
             -90,
             90,
             45,
             (value) => {
                 this.PITCH = value;
             },
-            'Pitch set to amount'
+            'descriptions.route_pitch',
+            'route_pitch'
         );
     }
 
@@ -386,13 +387,13 @@ class RouteWalkerer extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         ungrab();
     }
 
     onDisable() {
         this.invalidateEtherwarpClick();
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         Client.unpressKeys();
         Client.setKey('leftclick', false);
         Rotations.stop();

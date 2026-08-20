@@ -36,10 +36,10 @@ const PRECISION_MINER_PARTICLE_LIFETIME_MS = 500;
 class Bot extends ModuleBase {
     constructor() {
         super({
-            name: 'Mining Bot',
+            name: 'modules.mining_bot.name',
             subcategory: 'Mining',
-            description: 'Universal settings for Mining & block miner',
-            tooltip: 'Automatically mines.',
+            description: 'modules.mining_bot.description',
+            tooltip: 'modules.mining_bot.tooltip',
             theme: '#5a7cbb',
             isMacro: true,
         });
@@ -121,7 +121,7 @@ class Bot extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
                     Target: () =>
@@ -297,7 +297,7 @@ class Bot extends ModuleBase {
     }
 
     onDrillEmpty() {
-        this.message('&eDrill empty! Refueling...');
+        this.message('messages.common.drillEmptyRefueling');
         this.stopMiningControls(true);
         this.setSneak(false, true);
         Rotations.stop();
@@ -314,14 +314,14 @@ class Bot extends ModuleBase {
         refuel((success) => {
             if (!this.enabled || this.state !== this.STATES.REFUEL) return;
             if (!success) {
-                this.message('&cRefueling failed! Disabling Mining Bot.');
+                this.message({ key: 'mining.refuelFailed', params: { item: this.drill?.item?.getName?.() || 'drill' } });
                 this.toggle(false);
                 return;
             }
 
             this.drill = getDrills()?.drill;
             if (!this.drill) {
-                this.message('&cNo drill found after refueling! Disabling Mining Bot.');
+                this.message('messages.miningBot.drillMissingAfterRefuel');
                 this.toggle(false);
                 return;
             }
@@ -329,7 +329,7 @@ class Bot extends ModuleBase {
             this.ensureDrillEquipped(this.drill);
             this.nukedBlock = false;
             this.state = this.STATES.ABILITY;
-            this.message('&aRefueling successful!');
+            this.message('messages.common.refuelSucceeded');
         });
     }
 
@@ -340,61 +340,61 @@ class Bot extends ModuleBase {
 
     initSettings() {
         this.addToggle(
-            'Movement',
+            'labels.movement',
             (value) => {
                 this.MOVEMENT = value;
                 if (!value) Client.stopMovement();
             },
-            'Moves around vein while mining.',
+            'descriptions.movement',
             true
         );
         let additionalLagCompensation;
         this.addToggle(
-            'Tick Gliding',
+            'labels.tick_gliding',
             (value) => {
                 this.TICKGLIDE = value;
                 additionalLagCompensation.visible = value;
             },
-            'Predicts when blocks are broken to begin mining the next block early.',
+            'descriptions.tick_gliding',
             true
         );
         additionalLagCompensation = this.addSlider(
-            'Additional lag compensation',
+            'labels.additional_lag_compensation',
             0,
             5,
             1,
             (value) => {
                 this.ADDITIONAL_LAG_COMP = value;
             },
-            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)'
+            'descriptions.additional_lag_compensation'
         );
         additionalLagCompensation.visible = this.TICKGLIDE;
         this.addToggle(
-            'Prioritze Titanium',
+            'labels.prioritze_titanium',
             (value) => {
                 this.setPrioritizeTitanium(value);
             },
-            'Whenever Titanium is in range it will be targeted the most'
+            'descriptions.prioritze_titanium'
         );
         this.addToggle(
-            'Prioritise Gray Mithril',
+            'labels.prioritise_gray_mithril',
             (value) => {
                 this.setPrioritizeGrayMithril(value);
             },
-            'Reverses mithril block targeting costs to prioritise gray mithril.'
+            'descriptions.prioritise_gray_mithril'
         );
         this.addToggle(
-            'Precision Miner',
+            'labels.precision_miner',
             (value) => {
                 this.PRECISION_MINER = value;
                 if (!value) this.precisionMinerAim = null;
             },
-            'Aims at the Precision Miner particle, speeds up mining mithril.',
+            'descriptions.precision_miner',
             true
         );
         this.addMultiToggle(
-            'Fakelook',
-            ['Off', 'Queued'],
+            'labels.fakelook',
+            ['options.off', 'options.queued'],
             true,
             (value) => {
                 this.FAKELOOK = value;
@@ -404,8 +404,8 @@ class Bot extends ModuleBase {
             'Off'
         );
         this.addMultiToggle(
-            'Types',
-            ['Mithril', 'Gemstone', 'Ore', 'Tunnel'],
+            'labels.types',
+            ['options.mithril', 'options.gemstone', 'options.ore', 'options.tunnel'],
             true,
             (value) => {
                 this.TYPE = value;
@@ -992,7 +992,7 @@ class Bot extends ModuleBase {
     }
 
     scanForBlock(targetCosts, excludedBlock = null) {
-        if (!targetCosts) return this.message('No target specified, is cost type set?');
+        if (!targetCosts) return this.message('messages.miningBot.targetMissing');
 
         this.scanning = true;
 
@@ -1530,7 +1530,7 @@ class Bot extends ModuleBase {
     onEnable() {
         this.drill = getDrills()?.drill;
         if (!this.drill) {
-            this.message('&cNo drill detected!');
+            this.message('messages.miningBot.drillMissing');
             this.toggle(false);
             return;
         }
@@ -1544,7 +1544,7 @@ class Bot extends ModuleBase {
         this.movementReevalCooldownUntil = 0;
         this.setCost();
         if (!this.isParentManaged) {
-            this.message('&aEnabled');
+            this.message('messages.common.enabled');
             ungrab();
             this.manualScan = false;
         }
@@ -1561,7 +1561,7 @@ class Bot extends ModuleBase {
 
     onDisable() {
         if (!this.isParentManaged) {
-            this.message('&cDisabled');
+            this.message('messages.common.disabled');
             regrab();
         }
 

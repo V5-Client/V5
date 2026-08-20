@@ -11,9 +11,9 @@ const InputConstants = com.mojang.blaze3d.platform.InputConstants;
 class Freecam extends ModuleBase {
     constructor() {
         super({
-            name: 'Freecam',
+            name: 'modules.freecam.name',
             subcategory: 'Visuals',
-            description: 'Fly around, right click an entity to spectate.',
+            description: 'modules.freecam.description',
             theme: '#5fb0ff',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
@@ -29,7 +29,7 @@ class Freecam extends ModuleBase {
         this.possessedUUID = null;
         this.rightClickWasDown = false;
 
-        this.addSlider('Move Speed', 5, 30, 10, (value) => (this.moveSpeed = Number(value) / 25), 'Freecam move speed.');
+        this.addSlider('labels.move_speed', 5, 30, 10, (value) => (this.moveSpeed = Number(value) / 25), 'descriptions.move_speed');
 
         this.on('tick', () => {
             const rightClickDown = this.isRightClickDown();
@@ -52,7 +52,7 @@ class Freecam extends ModuleBase {
             return;
         }
         getModule('Freelook')?.toggle(false);
-        this.message('&aEnabled &7(Right-click an entity to spectate)');
+        this.message('messages.freecam.enabledHint');
         this.cameraPos = this.getInitialCameraPos(player, wrapTo180(player.getYRot()), player.getXRot());
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = mc.options.getCameraType();
@@ -69,7 +69,7 @@ class Freecam extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
         this.resetCameraState();
         if (World.isLoaded()) Client.reloadWorldRenderer();
         releaseForcedGrab();
@@ -200,14 +200,14 @@ class Freecam extends ModuleBase {
         mc.setCameraEntity(Player.getPlayer());
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
         if (this.cameraPos) setCameraPosition(this.cameraPos);
-        if (!silent) this.message('&7Released spectating');
+        if (!silent) this.message('messages.freecam.released');
     }
 
     syncPossessedCamera() {
         const entity = this.getPossessedPlayer();
         if (!entity) {
             this.releasePossession(true);
-            this.message('&cThat entity is no longer loaded');
+            this.message('messages.freecam.entityMissing');
             return;
         }
 

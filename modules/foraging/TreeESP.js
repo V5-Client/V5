@@ -25,15 +25,15 @@ for (let dx = -1; dx <= 1; dx++) {
 class TreeESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Tree ESP',
+            name: 'modules.tree_esp.name',
             subcategory: 'Foraging',
-            description: 'Highlights trees in the selected grove.',
+            description: 'modules.tree_esp.description',
         });
 
         this.trees = [];
         this.treeType = TREE_TYPES.Fig;
         this.addMultiToggle(
-            'Tree Type',
+            'labels.tree_type',
             Object.keys(TREE_TYPES),
             true,
             (options) => {

@@ -3,18 +3,18 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class ChatQOL extends ModuleBase {
     constructor() {
         super({
-            name: 'ChatQOL',
+            name: 'modules.chatqol.name',
             subcategory: 'Other',
-            description: 'Chat QOL features like duplicate stacking and chat filter bypass.',
-            tooltip: 'Duplicate message stacking + chat bypass',
+            description: 'modules.chatqol.description',
+            tooltip: 'modules.chatqol.tooltip',
             showEnabledToggle: false,
         });
 
         this.CHAT_PATCH = false;
         this.CHAT_BYPASS = false;
 
-        this.addToggle('Chat Patch', (v) => (this.CHAT_PATCH = !!v), 'Stacks duplicate chat messages with a counter (x2, x3, ...)', false);
-        this.addToggle('Chat Bypass', (v) => (this.CHAT_BYPASS = !!v), 'Bypasses blocked chat messages by replacing some characters', false);
+        this.addToggle('labels.chat_patch', (v) => (this.CHAT_PATCH = !!v), 'descriptions.chat_patch', false);
+        this.addToggle('labels.chat_bypass', (v) => (this.CHAT_BYPASS = !!v), 'descriptions.chat_bypass', false);
 
         this.lastMessageContent = null;
         this.lastCounter = 1;

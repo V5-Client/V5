@@ -9,10 +9,10 @@ import { getEtherwarpPathHandler } from '../Etherwarp';
 class RotationConfig extends ModuleBase {
     constructor() {
         super({
-            name: 'Rotations',
+            name: 'modules.rotations.name',
             subcategory: 'Core',
-            description: 'Rotations settings for all modules - excludes Pathfinder',
-            tooltip: 'Rotations settings for all modules - excludes Pathfinder',
+            description: 'modules.rotations.description',
+            tooltip: 'modules.rotations.tooltip',
             hideInModules: true,
         });
 
@@ -21,8 +21,8 @@ class RotationConfig extends ModuleBase {
         this.DAMPING_DIST = 60;
 
         this.addDirectMultiToggle(
-            'Rotation Mode',
-            ['Linear', 'Non-linear (recommended)', 'Instant'],
+            'labels.rotation_mode',
+            ['options.linear', 'options.non_linear_recommended', 'options.instant'],
             true,
             (value) => {
                 this.rotationMode = value?.find((opt) => opt.enabled)?.name;
@@ -33,14 +33,14 @@ class RotationConfig extends ModuleBase {
         );
 
         this.addDirectSlider(
-            'Rotation Speed',
+            'labels.rotation_speed',
             30,
             60,
             40,
             (v) => {
                 this.ROTATION_SPEED = v * 10;
             },
-            'Degrees per second',
+            'descriptions.rotation_speed',
             'Rotations'
         );
     }

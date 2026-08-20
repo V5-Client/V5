@@ -7,6 +7,7 @@ import { Categories } from './categories/CategorySystem';
 import { drawSubcategoryButtons, getModuleBorderColor, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './categories/CategoryRenderer';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import { v5Command } from '../utils/V5Commands';
+import { t, translationKey } from '../utils/I18n';
 
 const ROW_HEIGHT = 28;
 const FAVORITES_FILE = 'macro-toggle.json';
@@ -44,7 +45,9 @@ const getMacros = () =>
                 module?.isMacro &&
                 (!macroCategoryState.selectedSubcategory || module.subcategory === macroCategoryState.selectedSubcategory) &&
                 (!favoritesOnly || favorites.has(module.name)) &&
-                module.name.toLowerCase().includes(query.toLowerCase())
+                t(module.nameKey || module.name, {}, module.name)
+                    .toLowerCase()
+                    .includes(query.toLowerCase())
         )
         .sort((a, b) => Number(favorites.has(b.name)) - Number(favorites.has(a.name)) || a.name.localeCompare(b.name));
 
@@ -66,7 +69,9 @@ const getRows = () => {
 
 const getKeyName = (keybind) => {
     const keyCode = keybind?.getKeyCode?.();
-    return keyCode === undefined || keyCode === null || keyCode <= 0 ? 'Unbound' : InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
+    return keyCode === undefined || keyCode === null || keyCode <= 0
+        ? t('macro.unbound')
+        : InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
 };
 
 const setMacroKeybind = (module, keyCode) => {
@@ -144,7 +149,7 @@ export const macroToggleGui = {
         });
         drawSubcategoryButtons(macroCategory, mouseX, mouseY, 0, true, macroCategoryState);
         drawImage(SETTINGS_ICON_PATH, layout.settings.x + 5, layout.settings.y + 5, 14, 14);
-        drawButton(layout.filter, favoritesOnly ? 'Favorites' : 'All', favoritesOnly);
+        drawButton(layout.filter, favoritesOnly ? t('macro.favorites') : t('categories.all'), favoritesOnly);
         drawRoundedRectangleWithBorder({
             ...layout.search,
             radius: 6,
@@ -152,7 +157,7 @@ export const macroToggleGui = {
             borderWidth: 1,
             borderColor: THEME.BORDER,
         });
-        drawText(query || 'Filter macros...', layout.search.x + 8, layout.search.y + 12, FontSizes.SMALL, query ? THEME.TEXT : THEME.TEXT_MUTED);
+        drawText(query || t('macro.filterPlaceholder'), layout.search.x + 8, layout.search.y + 12, FontSizes.SMALL, query ? THEME.TEXT : THEME.TEXT_MUTED);
 
         Render2D.save();
         Render2D.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
@@ -161,7 +166,13 @@ export const macroToggleGui = {
         rows.forEach((entry) => {
             if (entry.subcategory) {
                 if (rowY + 20 >= listY && rowY <= listBottom) {
-                    drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                    drawText(
+                        t(translationKey('categories.subcategory', entry.subcategory), {}, entry.subcategory),
+                        x + 8,
+                        rowY + 10,
+                        FontSizes.SMALL,
+                        THEME.TEXT_MUTED
+                    );
                 }
                 rowY += 20;
                 return;
@@ -179,7 +190,7 @@ export const macroToggleGui = {
             layout.rows.push(row);
             if (row.y + row.height < listY || row.y > listBottom) return;
 
-            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
+            const keyName = bindingModule === module ? t('macro.pressAKey') : getKeyName(module._wrappedKey);
             if (isInside(mouseX, mouseY, row) || module.enabled) {
                 drawRoundedRectangle({
                     ...row,
@@ -196,12 +207,18 @@ export const macroToggleGui = {
                 favorites.has(module.name) ? THEME.ACCENT : THEME.TEXT_MUTED
             );
             const moduleColor = getModuleBorderColor(Categories.findItem('Modules', module.name)?.moduleType);
-            drawText(module.name, row.x + 32, row.y + row.height / 2, FontSizes.REGULAR, moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED));
+            drawText(
+                t(module.nameKey || module.name, {}, module.name),
+                row.x + 32,
+                row.y + row.height / 2,
+                FontSizes.REGULAR,
+                moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED)
+            );
             drawText(keyName, row.x + row.width - 8, row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
         });
         Render2D.restore();
 
-        if (rows.length === 0) drawText('No macros found', x + 8, listY + 12, FontSizes.REGULAR, THEME.TEXT_MUTED);
+        if (rows.length === 0) drawText(t('macro.noMacrosFound'), x + 8, listY + 12, FontSizes.REGULAR, THEME.TEXT_MUTED);
     },
 
     handleClick(mouseX, mouseY) {

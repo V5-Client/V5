@@ -8,9 +8,9 @@ const MAX_REWARP_DELAY_MS = 2000;
 class FarmingDelays extends ModuleBase {
     constructor() {
         super({
-            name: 'Farming Delays',
+            name: 'modules.farming_delays.name',
             subcategory: 'Farming',
-            description: 'Randomized action delays for farming helpers.',
+            description: 'modules.farming_delays.description',
             showEnabledToggle: false,
         });
 

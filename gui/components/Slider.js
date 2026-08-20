@@ -14,6 +14,7 @@ import {
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 import { GuiState } from '../core/GuiState';
+import { t } from '../../utils/I18n';
 
 const allSliders = [];
 
@@ -123,7 +124,7 @@ export class Slider {
         const valueBoxesWidth = valueBoxWidths.reduce((total, width) => total + width, 0) + valueBoxGap * (valueKeys.length - 1);
         const valueStringX = this.x + panelWidth - valueBoxesWidth;
         const sliderX = valueStringX - sliderWidth - 14;
-        const titleLines = wrapTitle(this.title, sliderX - this.x - 12);
+        const titleLines = wrapTitle(this.getDisplayTitle?.() || t(this.title, {}, this.title), sliderX - this.x - 12);
         const componentHeight = Math.max(this.containerHeight, titleLines.length * 12 + 12);
         this.layoutHeight = componentHeight;
 
@@ -246,7 +247,7 @@ export class Slider {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            setTooltip(this.description);
+            setTooltip(this.getDisplayDescription?.() || t(this.description, {}, this.description));
         }
     }
 

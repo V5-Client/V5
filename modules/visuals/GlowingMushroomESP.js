@@ -8,10 +8,10 @@ const MUSHROOM_IDS = new Set(['minecraft:red_mushroom', 'minecraft:brown_mushroo
 class GlowingMushroomESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Glowing Mushroom ESP',
+            name: 'modules.glowing_mushroom_esp.name',
             subcategory: 'Visuals',
-            description: 'Highlights glowing mushrooms in the Glowing Mushroom Cave.',
-            tooltip: 'funni mushroom esp',
+            description: 'modules.glowing_mushroom_esp.description',
+            tooltip: 'modules.glowing_mushroom_esp.tooltip',
         });
 
         this.mushrooms = new Map();

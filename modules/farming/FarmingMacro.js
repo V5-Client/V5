@@ -33,12 +33,12 @@ export class FarmingMacro extends ModuleBase {
         this.points = getConfigFile(this.pointsPath) || {};
 
         this.bindToggleKey();
-        const rewarpStart = this.addButton('Set Rewarp Start', () => this.saveRewarpPoint('start'), 'Stand at the position reached by the rewarp command.');
-        const rewarpEnd = this.addButton('Set Rewarp End', () => this.saveRewarpPoint('end'), 'Stand at the farm endpoint that should trigger a rewarp.');
+        const rewarpStart = this.addButton('labels.set_rewarp_start', () => this.saveRewarpPoint('start'), 'descriptions.set_rewarp_start');
+        const rewarpEnd = this.addButton('labels.set_rewarp_end', () => this.saveRewarpPoint('end'), 'descriptions.set_rewarp_end');
         rewarpSettings.addRewarpButtons(rewarpStart, rewarpEnd);
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: { State: () => (this.mode === FARMING ? this.state : this.mode) },
             },
         ]);
@@ -51,18 +51,18 @@ export class FarmingMacro extends ModuleBase {
 
     onEnable() {
         if ((farmingSettings.killNearbyPests || rewarpSettings.pestKiller) && findItemInHotbar('Vacuum') < 0) {
-            this.message('&cNo Vacuum found in hotbar.');
+            this.message('messages.farming.vacuumMissing');
             this.toggle(false);
             return;
         }
         if (!rewarpSettings.looping) {
             if (!this.isPoint(this.points.start) || !this.isPoint(this.points.end)) {
-                this.message('Set both Rewarp points before enabling Rewarp mode.');
+                this.message('messages.farming.rewarpPointsRequired');
                 this.toggle(false);
                 return;
             }
             if (this.rewarpPointsOverlap()) {
-                this.message('Rewarp start/end overlap detected. Ensure the points are set correctly.');
+                this.message('messages.farming.rewarpOverlap');
                 this.toggle(false);
                 return;
             }
@@ -352,7 +352,7 @@ export class FarmingMacro extends ModuleBase {
         this.points[name] = { x: player.getX(), y: player.getY(), z: player.getZ() };
         writeConfigFile(this.pointsPath, this.points);
         this.message(`&aRewarp ${name} saved.`);
-        if (this.rewarpPointsOverlap()) this.message('Rewarp point currently overlap. The macro will not work.');
+        if (this.rewarpPointsOverlap()) this.message('messages.farming.rewarpOverlapWarning');
     }
 
     rewarpPointsOverlap() {
@@ -380,7 +380,7 @@ export class FarmingMacro extends ModuleBase {
     addLaneSwitchDelaySettings() {
         this.laneSwitchDelayMin = 100;
         this.laneSwitchDelayMax = 300;
-        this.addRangeSlider('Lane Switch Delay', 0, 600, { low: this.laneSwitchDelayMin, high: this.laneSwitchDelayMax }, (value) => {
+        this.addRangeSlider('labels.lane_switch_delay', 0, 600, { low: this.laneSwitchDelayMin, high: this.laneSwitchDelayMax }, (value) => {
             this.laneSwitchDelayMin = Math.round(value.low);
             this.laneSwitchDelayMax = Math.round(value.high);
         });

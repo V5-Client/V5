@@ -14,6 +14,7 @@ import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 import { getModule } from '../../utils/MacroState';
 import { drawDashboard, getDashboardContentHeight, getDashboardModuleAt } from '../Dashboard';
+import { t } from '../../utils/I18n';
 
 let targetRightPanelScrollY = 0;
 let currentRightPanelScrollY = 0;
@@ -42,7 +43,7 @@ const macroToggleButton = new Button(
     '',
     0,
     0,
-    'Enable',
+    'button.enable',
     () => {
         const selectedItem = Categories.selectedItem;
         if (!selectedItem) return;
@@ -173,6 +174,8 @@ const matchesSearch = (value, searchRegexes) => {
     const text = value.toLowerCase();
     return searchRegexes.every((regex) => regex.test(text));
 };
+const itemTitle = (item) => t(item.titleKey || item.title, {}, item.title);
+const itemDescription = (item) => t(item.descriptionKey || item.description, {}, item.description);
 
 const getFilteredItems = (cat, query) => {
     const searchRegexes = getSearchRegexes(query);
@@ -195,13 +198,15 @@ const getFilteredItems = (cat, query) => {
 
     const items = cat.items.reduce((acc, group) => {
         if (group.type === 'separator') {
-            const subcategoryMatches = matchesSearch(group.title, searchRegexes);
+            const subcategoryMatches = matchesSearch(itemTitle(group), searchRegexes);
 
             const matchingItems = group.items.filter((item) => {
-                const titleMatch = matchesSearch(item.title, searchRegexes);
-                const descMatch = matchesSearch(item.description, searchRegexes);
+                const titleMatch = matchesSearch(itemTitle(item), searchRegexes);
+                const descMatch = matchesSearch(itemDescription(item), searchRegexes);
 
-                const componentMatch = item.components && item.components.some((comp) => isComponentVisible(comp) && matchesSearch(comp.title, searchRegexes));
+                const componentMatch =
+                    item.components &&
+                    item.components.some((comp) => isComponentVisible(comp) && matchesSearch(comp.getDisplayTitle?.() || comp.title, searchRegexes));
                 return categoryMatches || subcategoryMatches || titleMatch || descMatch || (allowComponentMatch && componentMatch);
             });
 
@@ -211,8 +216,10 @@ const getFilteredItems = (cat, query) => {
                 acc.push(groupCopy);
             }
         } else {
-            const titleMatch = matchesSearch(group.title, searchRegexes);
-            const componentMatch = group.components && group.components.some((comp) => isComponentVisible(comp) && matchesSearch(comp.title, searchRegexes));
+            const titleMatch = matchesSearch(itemTitle(group), searchRegexes);
+            const componentMatch =
+                group.components &&
+                group.components.some((comp) => isComponentVisible(comp) && matchesSearch(comp.getDisplayTitle?.() || comp.title, searchRegexes));
 
             if (categoryMatches || titleMatch || (allowComponentMatch && componentMatch)) {
                 acc.push(group);
@@ -234,8 +241,8 @@ const getDirectComponentMatches = (categoryName, resultTitle, resultType, query)
 
     const matches = directCategory.directComponents.filter((component) => {
         if (!isComponentVisible(component)) return false;
-        const titleMatch = matchesSearch(component.title, searchRegexes);
-        const descMatch = matchesSearch(component.description, searchRegexes);
+        const titleMatch = matchesSearch(component.getDisplayTitle?.() || component.title, searchRegexes);
+        const descMatch = matchesSearch(component.getDisplayDescription?.() || component.description, searchRegexes);
         const sectionMatch = matchesSearch(component.sectionName, searchRegexes);
         return titleMatch || descMatch || sectionMatch;
     });
@@ -249,10 +256,10 @@ const getDirectComponentMatches = (categoryName, resultTitle, resultType, query)
     resultGroup.items = matches.map((component) => ({
         type: resultType,
         component,
-        title: component.title,
-        description: component.description,
+        title: component.getDisplayTitle?.() || component.title,
+        description: component.getDisplayDescription?.() || component.description,
         sectionName: component.sectionName || categoryName,
-        tooltip: component.description || null,
+        tooltip: component.getDisplayDescription?.() || component.description || null,
     }));
 
     const results = [resultGroup];
@@ -260,8 +267,8 @@ const getDirectComponentMatches = (categoryName, resultTitle, resultType, query)
     return results;
 };
 
-const getSettingsDirectMatches = (query) => getDirectComponentMatches('Settings', 'Settings Results', 'direct-component', query);
-const getThemeDirectMatches = (query) => getDirectComponentMatches('Theme', 'Theme Results', 'theme-component', query);
+const getSettingsDirectMatches = (query) => getDirectComponentMatches('Settings', t('categories.settingsResults'), 'direct-component', query);
+const getThemeDirectMatches = (query) => getDirectComponentMatches('Theme', t('categories.themeResults'), 'theme-component', query);
 
 const getModuleComponentMatches = (cat, query) => {
     const searchRegexes = getSearchRegexes(query);
@@ -274,18 +281,18 @@ const getModuleComponentMatches = (cat, query) => {
             type: 'module-component',
             component,
             parentItem: item,
-            title: component.title,
-            description: component.description,
-            moduleTitle: item.title,
-            tooltip: component.description || null,
+            title: component.getDisplayTitle?.() || component.title,
+            description: component.getDisplayDescription?.() || component.description,
+            moduleTitle: itemTitle(item),
+            tooltip: component.getDisplayDescription?.() || component.description || null,
             moduleType: item.moduleType,
         });
     };
 
     const checkComponent = (item, component) => {
         if (!component || !isComponentVisible(component) || component instanceof Separator) return;
-        const titleMatch = matchesSearch(component.title, searchRegexes);
-        const descMatch = matchesSearch(component.description, searchRegexes);
+        const titleMatch = matchesSearch(component.getDisplayTitle?.() || component.title, searchRegexes);
+        const descMatch = matchesSearch(component.getDisplayDescription?.() || component.description, searchRegexes);
         if (titleMatch || descMatch) pushMatch(item, component);
     };
 
@@ -304,7 +311,7 @@ const getModuleComponentMatches = (cat, query) => {
         return [];
     }
 
-    const resultGroup = new Separator('Module Settings', true);
+    const resultGroup = new Separator(t('categories.moduleSettingsResults'), true);
     resultGroup.items = matches;
     const results = [resultGroup];
     searchMatchesCache.set('module-components', results);
@@ -644,7 +651,7 @@ const draw = (mouseX, mouseY) => {
 
     const toggleModule = getSelectedToggleModule();
     if (toggleModule) {
-        macroToggleButton.setButtonText(toggleModule.enabled ? 'Disable' : 'Enable');
+        macroToggleButton.setButtonText(toggleModule.enabled ? 'button.disable' : 'button.enable');
     }
 
     if (shouldDrawOptions) drawOptionsPanel(panel, contentMouseX, contentMouseY, toggleModule ? macroToggleButton : null);

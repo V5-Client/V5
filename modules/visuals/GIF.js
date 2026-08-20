@@ -211,10 +211,10 @@ class GifInstance {
 class GIFOverlay extends ModuleBase {
     constructor() {
         super({
-            name: 'GIF Overlay',
+            name: 'modules.gif_overlay.name',
             subcategory: 'Visuals',
-            description: 'Display animated GIFs on your screen',
-            tooltip: 'Select GIFs to display. Open chat to move/resize.',
+            description: 'modules.gif_overlay.description',
+            tooltip: 'modules.gif_overlay.tooltip',
         });
 
         this.instances = [];
@@ -225,12 +225,17 @@ class GIFOverlay extends ModuleBase {
         const gifNames = gifFiles.map((f) => f.getName());
 
         if (gifNames.length > 0) {
-            this.addMultiToggle('Active GIFs', gifNames, false, (toggled) => this.updateInstances(toggled, gifFiles));
+            this.addMultiToggle('labels.active_gifs', gifNames, false, (toggled) => this.updateInstances(toggled, gifFiles));
         } else {
-            this.addMultiToggle('No GIFs Found', ['Put .gif files in', 'config/ChatTriggers', 'modules/V5Config/Gifs'], false, () => {});
+            this.addMultiToggle(
+                'labels.no_gifs_found',
+                ['options.put_gif_files_in', 'options.config_chattriggers', 'options.modules_v5config_gifs'],
+                false,
+                () => {}
+            );
         }
 
-        this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
+        this.addToggle('labels.render_over_everything', (value) => (this.renderOverEverything = !!value), 'descriptions.render_over_everything', true);
 
         Render2D.registerV5Render(() => {
             if (!this.renderOverEverything || !this.enabled) return;

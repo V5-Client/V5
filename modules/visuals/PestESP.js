@@ -33,9 +33,9 @@ export function getNearbyPest() {
 class PestESP extends ModuleBase {
     constructor() {
         super({
-            name: 'Pest ESP',
+            name: 'modules.pest_esp.name',
             subcategory: 'Visuals',
-            description: 'Scans and remembers pest locations even in distant chunks.',
+            description: 'modules.pest_esp.description',
         });
 
         this.persistentPests = new Map();

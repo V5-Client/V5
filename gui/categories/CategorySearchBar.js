@@ -15,6 +15,7 @@ import {
     THEME,
     TypingState,
 } from '../Utils';
+import { t } from '../../utils/I18n';
 
 const SEARCH_ICON = globalAssetsDir.getPath() + '/search.svg';
 
@@ -137,7 +138,7 @@ export const SearchBar = {
             Render2D.scissor(this.textX, y, visibleTextWidth, this.height);
 
             if (this.query === '') {
-                drawText('Search...', this.textX, textY, fontSize, THEME.TEXT_MUTED);
+                drawText(t('search.placeholder'), this.textX, textY, fontSize, THEME.TEXT_MUTED);
             } else {
                 drawText(this.query, this.textX, textY, fontSize, THEME.TEXT);
             }

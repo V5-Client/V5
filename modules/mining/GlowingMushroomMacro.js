@@ -34,11 +34,11 @@ const MUSHROOM_AIM_OFFSETS = [
 class GlowingMushroomMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Glowing Mushroom Macro',
+            name: 'modules.glowing_mushroom_macro.name',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Pathfinds to tracked glowing mushrooms and harvests nearby mushrooms.',
-            tooltip: 'Uses Glowing Mushroom ESP targets, pathfinds to them, then harvests nearby mushrooms in a loop.',
+            description: 'modules.glowing_mushroom_macro.description',
+            tooltip: 'modules.glowing_mushroom_macro.tooltip',
             theme: '#89d85e',
             isMacro: true,
         });
@@ -64,12 +64,12 @@ class GlowingMushroomMacro extends ModuleBase {
         registerSkyblockEvent('fasttravellocked', () => {
             if (!this.enabled || !this.warpStartedAt) return;
 
-            this.message("&cYou haven't unlocked the Glowing Mushroom Cave warp.");
+            this.message('messages.glowingMushroom.warpLocked');
             this.toggle(false);
         });
 
         this.addMultiToggle(
-            'Harvest Mode',
+            'labels.harvest_mode',
             HARVEST_MODES,
             true,
             (selected) => {
@@ -82,7 +82,7 @@ class GlowingMushroomMacro extends ModuleBase {
 
         this.createOverlay([
             {
-                title: 'Status',
+                title: 'overlay.status',
                 data: {
                     State: () => this.status,
                     Mode: () => this.harvestMode,
@@ -109,7 +109,7 @@ class GlowingMushroomMacro extends ModuleBase {
         this.trackedCount = 0;
         this.reachableCount = 0;
         this.blacklistedMushrooms.clear();
-        this.message('&aEnabled');
+        this.message('messages.common.enabled');
         this.ensureEspEnabled();
     }
 
@@ -121,7 +121,7 @@ class GlowingMushroomMacro extends ModuleBase {
         Rotations.stop();
         Client.stopMovement();
         this.restoreEspState();
-        this.message('&cDisabled');
+        this.message('messages.common.disabled');
     }
 
     ensureEspEnabled() {
@@ -222,7 +222,7 @@ class GlowingMushroomMacro extends ModuleBase {
             Rotations.stop();
             Client.stopMovement();
             this.status = 'Warping to Glowing Cave';
-            this.message('&eNot in The Farming Islands, warping...');
+            this.message('messages.glowingMushroom.warpingToFarmingIslands');
         }
 
         if (!this.warpStartedAt || Date.now() - this.warpStartedAt >= 10000) {
@@ -274,7 +274,7 @@ class GlowingMushroomMacro extends ModuleBase {
 
             if (!success) {
                 failedTargets.forEach((target) => this.blacklistMushroom(target.x, target.y, target.z, PATH_FAIL_BLACKLIST_MS));
-                this.message('AAAAAAA');
+                this.message('messages.glowingMushroom.alert');
                 this.status = failStatus;
                 return;
             }

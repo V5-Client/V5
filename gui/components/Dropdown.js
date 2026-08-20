@@ -14,6 +14,7 @@ import {
     playClickSound,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
+import { normalizeTranslationKey, resolveEnglishTranslation, t } from '../../utils/I18n';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null, defaultValue = false) {
@@ -21,7 +22,12 @@ export class MultiToggle {
         this.x = x;
         this.y = y;
         this.options = options.map((option) => ({
-            name: option,
+            name: resolveEnglishTranslation(typeof option === 'string' ? option : option.name),
+            displayName: resolveEnglishTranslation(typeof option === 'string' ? option : option.displayName || option.name),
+            displayKey:
+                typeof option === 'object' && option.displayKey
+                    ? option.displayKey
+                    : normalizeTranslationKey('options', typeof option === 'string' ? option : option.displayName || option.name),
             enabled: false,
             animationProgress: 0,
             animationStart: 0,
@@ -34,12 +40,12 @@ export class MultiToggle {
             const names = [];
             for (const entry of value) {
                 if (typeof entry === 'string') {
-                    names.push(entry);
+                    names.push(resolveEnglishTranslation(entry));
                     continue;
                 }
 
                 if (entry && typeof entry.name === 'string' && entry.enabled !== false) {
-                    names.push(entry.name);
+                    names.push(resolveEnglishTranslation(entry.name));
                 }
             }
 
@@ -57,7 +63,8 @@ export class MultiToggle {
                 }
             });
         } else if (defaultValue) {
-            const defaultIndex = options.indexOf(defaultValue);
+            const defaultName = resolveEnglishTranslation(defaultValue);
+            const defaultIndex = this.options.findIndex((option) => option.name === defaultName);
             if (defaultIndex !== -1) {
                 this.options[defaultIndex].enabled = true;
                 this.options[defaultIndex].animationProgress = 1;
@@ -169,10 +176,11 @@ export class MultiToggle {
 
         this.drawHighlight(panelWidth, this.containerHeight);
 
-        drawText(this.title, this.x, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
+        drawText(this.getDisplayTitle?.() || t(this.title, {}, this.title), this.x, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
 
         const selected = this.options.filter((option) => option.enabled);
-        const selectedText = selected.length === 1 ? selected[0].name : selected.length > 1 ? '...' : 'None';
+        const selectedText =
+            selected.length === 1 ? t(selected[0].displayKey, {}, selected[0].displayName) : selected.length > 1 ? '...' : t('categories.none');
         const arrowSize = 10;
         const rightMargin = 6;
         const selectWidth = Math.max(80, getTextWidth(selectedText, FontSizes.REGULAR) + 28);
@@ -219,7 +227,7 @@ export class MultiToggle {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            setTooltip(this.description);
+            setTooltip(this.getDisplayDescription?.() || t(this.description, {}, this.description));
         }
 
         if (this.animationProgress > 0) {
@@ -294,7 +302,7 @@ export class MultiToggle {
                     color: THEME.KNOB,
                 });
 
-                drawText(option.name, optionX, optionTop + this.optionHeight / 2, FontSizes.REGULAR, textColor);
+                drawText(t(option.displayKey, {}, option.displayName), optionX, optionTop + this.optionHeight / 2, FontSizes.REGULAR, textColor);
 
                 currentY += this.optionHeight;
                 if (i < this.options.length - 1) {

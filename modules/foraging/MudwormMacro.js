@@ -15,17 +15,17 @@ const GALATEA_HUB_DELAY_MS = 5000;
 class MudwormMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Mudworm Etherwarp Nuker',
+            name: 'modules.mudworm_etherwarp_nuker.name',
             subcategory: 'Foraging',
-            description: 'Etherwarps to Mudworm and clicks thems.',
+            description: 'modules.mudworm_etherwarp_nuker.description',
             isMacro: true,
         });
         this.bindToggleKey();
 
         this.autoRewarp = 'Warp Galatea';
         this.addMultiToggle(
-            'Auto Rewarp',
-            ['Disabled', 'Warp Galatea', 'Warp Torrhus'],
+            'labels.auto_rewarp',
+            ['options.disabled', 'options.warp_galatea', 'options.warp_torrhus'],
             true,
             (options) => (this.autoRewarp = options.find((option) => option.enabled)?.name || 'Disabled'),
             null,
@@ -47,7 +47,7 @@ class MudwormMacro extends ModuleBase {
         this.createOverlay(
             [
                 {
-                    title: 'Status',
+                    title: 'overlay.status',
                     data: {
                         Status: () =>
                             this.rewarping
@@ -60,9 +60,9 @@ class MudwormMacro extends ModuleBase {
                                       ? 'Working'
                                       : 'Scanning',
                         Grass: () => OverlayManager.getTrackedValue(this.oid, 'clicks', 0),
-                        'Grass/hr': () => this.getHourlyRate('clicks'),
+                        'overlay.grass_per_hour': () => this.getHourlyRate('clicks'),
                         Shards: () => OverlayManager.getTrackedValue(this.oid, 'shards', 0),
-                        'Shards/hr': () => this.getHourlyRate('shards'),
+                        'overlay.shards_per_hour': () => this.getHourlyRate('shards'),
                     },
                 },
             ],
@@ -84,7 +84,7 @@ class MudwormMacro extends ModuleBase {
         if (this.waitingForEntities) {
             if (!this.getTargets().size) return;
             this.waitingForEntities = false;
-            this.message('&aResumed.');
+            this.message('messages.common.resumed');
         }
         if (this.currentTarget && Date.now() - this.targetStartedAt >= TARGET_TIMEOUT_MS) return this.blacklistCurrentTarget();
         if (this.busy || EtherwarpPathfinder.isPathing()) return;
@@ -207,7 +207,7 @@ class MudwormMacro extends ModuleBase {
         ScheduleTask(ENTITY_LOAD_WAIT_TICKS, () => {
             if (!this.enabled || !this.waitingForEntities) return;
             this.waitingForEntities = false;
-            this.message('&aResumed.');
+            this.message('messages.common.resumed');
         });
     }
 
@@ -255,7 +255,7 @@ class MudwormMacro extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled.');
+        this.message('messages.runtime.enabled');
     }
 
     onDisable() {
@@ -267,7 +267,7 @@ class MudwormMacro extends ModuleBase {
         this.fallbackWaitUntil = 0;
         this.checkingFallback = false;
         this.stopCurrentAction();
-        this.message('&cDisabled.');
+        this.message('messages.runtime.disabled');
     }
 }
 

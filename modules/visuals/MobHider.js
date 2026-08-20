@@ -4,18 +4,18 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class MobHider extends ModuleBase {
     constructor() {
         super({
-            name: 'Mob Hider',
+            name: 'modules.mob_hider.name',
             subcategory: 'Visuals',
-            description: 'Hides mobs of certain types',
-            tooltip: 'Prevents seeing mobs or hitting them',
+            description: 'modules.mob_hider.description',
+            tooltip: 'modules.mob_hider.tooltip',
         });
 
         this.enabledMobNames = [];
         this.jerryRegex = /^(Green|Blue|Purple|Golden) Jerry$/;
 
         this.addMultiToggle(
-            'Mobs To Hide',
-            ['Kalhuikis', 'Sven Pups', 'Jerries', 'Thysts'],
+            'labels.mobs_to_hide',
+            ['options.kalhuikis', 'options.sven_pups', 'options.jerries', 'options.thysts'],
             false,
             (v) => this.handleMobToggleUpdate(v),
             'The Mobs you want to hide'

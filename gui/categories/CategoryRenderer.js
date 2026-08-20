@@ -31,6 +31,7 @@ import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 import { globalAssetsDir } from '../../utils/Constants';
 import { getDiscordPfpPath } from '../../utils/NetworkUtils';
+import { onLocaleChange, t, translationKey } from '../../utils/I18n';
 
 const ASSETS_PATH = globalAssetsDir.getPath() + '/';
 const MODULE_ICON_PATH = ASSETS_PATH + 'folder.svg';
@@ -41,8 +42,16 @@ const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
 const SCRIPT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
 const moduleNavLayouts = new WeakMap();
 const titleLayouts = new WeakMap();
-const BACK_TEXT = 'Back';
-const BACK_TEXT_WIDTH = getTextWidth(BACK_TEXT, FontSizes.SMALL);
+let BACK_TEXT = t('categories.back');
+let BACK_TEXT_WIDTH = getTextWidth(BACK_TEXT, FontSizes.SMALL);
+
+onLocaleChange(() => {
+    BACK_TEXT = t('categories.back');
+    BACK_TEXT_WIDTH = getTextWidth(BACK_TEXT, FontSizes.SMALL);
+    Categories.dataRevision++;
+});
+
+const categoryLabel = (name) => t(`categories.${String(name).toLowerCase()}`);
 
 export const getModuleBorderColor = (moduleType) =>
     moduleType === 'developer' ? colorWithAlpha(THEME.NOTIF_WARNING, 0.75) : moduleType === 'user' ? colorWithAlpha(THEME.NOTIF_ERROR, 0.75) : null;
@@ -97,7 +106,8 @@ export const getModuleNavButtonRect = (catObj, index, xOffset = 0) => {
             revision: Categories.dataRevision,
             subcategories: catObj.subcategories,
             buttons: ['All', ...catObj.subcategories].map((label) => {
-                const width = getTextWidth(label, FontSizes.MEDIUM) + 16;
+                const displayLabel = label === 'All' ? t('categories.all') : t(translationKey('categories.subcategory', label), {}, label);
+                const width = getTextWidth(displayLabel, FontSizes.MEDIUM) + 16;
                 const button = { x, width };
                 x += width + SUBCATEGORY_BUTTON_SPACING;
                 return button;
@@ -201,7 +211,14 @@ export const drawSubcategoryButtons = (catObj, mouseX, mouseY, xOffset = 0, draw
         }
 
         const textColor = isSelected ? THEME.TEXT : THEME.TEXT_MUTED;
-        drawText(subcat, buttonRect.x + buttonRect.width / 2, buttonRect.y + buttonRect.height / 2, FontSizes.MEDIUM, textColor, 18);
+        drawText(
+            subcat === 'All' ? t('categories.all') : t(translationKey('categories.subcategory', subcat), {}, subcat),
+            buttonRect.x + buttonRect.width / 2,
+            buttonRect.y + buttonRect.height / 2,
+            FontSizes.MEDIUM,
+            textColor,
+            18
+        );
     });
 };
 
@@ -233,10 +250,8 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
                 borderWidth: 1,
                 borderColor: THEME.BORDER,
             });
-            const title = `No ${categoryName.toLowerCase()} results`;
-            const subtitle = 'Try a different keyword.';
-            drawText(title, cardX + 12, cardY + 24, FontSizes.REGULAR, THEME.TEXT);
-            drawText(subtitle, cardX + 12, cardY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
+            drawText(t('categories.noResults'), cardX + 12, cardY + 24, FontSizes.REGULAR, THEME.TEXT);
+            drawText(t('categories.tryDifferentSearch'), cardX + 12, cardY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
             currentY += cardHeight + 10;
         }
     }
@@ -296,12 +311,18 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
 
     drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? THEME.TEXT : THEME.TEXT_LINK);
     const drawnTitleY = optionY + 36 - scrollY;
-    drawText(selectedItem.title, backButtonX, drawnTitleY + 7, FontSizes.HEADER, THEME.TEXT);
+    drawText(t(selectedItem.titleKey || selectedItem.title, {}, selectedItem.title), backButtonX, drawnTitleY + 7, FontSizes.HEADER, THEME.TEXT);
     const drawnDescY = optionY + 52 - scrollY;
-    drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, THEME.TEXT_MUTED);
+    drawText(
+        t(selectedItem.descriptionKey || selectedItem.description, {}, selectedItem.description),
+        backButtonX,
+        drawnDescY + 5,
+        FontSizes.SMALL,
+        THEME.TEXT_MUTED
+    );
 
     if (macroToggleButton) {
-        const buttonTextWidth = getTextWidth(macroToggleButton.buttonText || 'Enable', FontSizes.REGULAR);
+        const buttonTextWidth = getTextWidth(t(macroToggleButton.buttonText || 'button.enable', {}, macroToggleButton.buttonText), FontSizes.REGULAR);
         const buttonWidth = Math.max(64, buttonTextWidth + 20);
         const titleCenterY = drawnTitleY + 7;
 
@@ -491,7 +512,7 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         else if (cat.name === 'Modules') iconPath = MODULE_ICON_PATH;
         else if (cat.name === 'Theme') iconPath = THEME_ICON_PATH;
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
-        drawCenteredText(cat.name, rect.x, rect.width, FontSizes.TINY, THEME.TEXT_MUTED, rect.y + 23);
+        drawCenteredText(categoryLabel(cat.name), rect.x, rect.width, FontSizes.TINY, THEME.TEXT_MUTED, rect.y + 23);
     });
 
     const leftPanel = GuiRectangles.LeftPanel;
@@ -532,31 +553,32 @@ const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, 
     };
     const isHovered = isInside(mouseX, mouseY, itemRect);
     itemRect.color = isHovered ? THEME.HOVER : THEME.BG_COMPONENT;
-    if (isHovered && item.tooltip) setTooltip(item.tooltip);
+    if (isHovered && item.tooltip) setTooltip(t(item.tooltipKey || item.tooltip, {}, item.tooltip));
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
     if (isStacked) {
         const centerY = itemY + itemHeight / 2;
         const titleY = centerY - 6;
         const subtitleY = centerY + 6;
-        drawText(item.title, itemX + 12, titleY, FontSizes.REGULAR, moduleBorderColor || THEME.TEXT);
+        drawText(t(item.titleKey || item.title, {}, item.title), itemX + 12, titleY, FontSizes.REGULAR, moduleBorderColor || THEME.TEXT);
         if (isDirectComponent && item.sectionName) {
-            const sectionText = `Settings • ${item.sectionName}`;
+            const sectionText = `${t('categories.settingsSection')} • ${t(translationKey('sections', item.sectionName), {}, item.sectionName)}`;
             drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
         }
         if (isModuleComponent && item.moduleTitle) {
-            const moduleText = `Module • ${item.moduleTitle}`;
+            const moduleText = `${t('categories.moduleSection')} • ${item.moduleTitle}`;
             drawText(moduleText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
         }
         if (isThemeComponent && item.sectionName) {
-            const sectionText = `Theme • ${item.sectionName}`;
+            const sectionText = `${t('categories.themeSection')} • ${t(translationKey('sections', item.sectionName), {}, item.sectionName)}`;
             drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
         }
     } else {
         const maxWidth = itemWidth - 16;
         let layout = titleLayouts.get(item);
-        if (!layout || layout.title !== item.title || layout.maxWidth !== maxWidth) {
-            const lines = item.title.split(' ').reduce(
+        const displayTitle = t(item.titleKey || item.title, {}, item.title);
+        if (!layout || layout.title !== displayTitle || layout.maxWidth !== maxWidth) {
+            const lines = displayTitle.split(' ').reduce(
                 (lines, word) => {
                     const line = lines[lines.length - 1];
                     if (line && getTextWidth(`${line} ${word}`, FontSizes.REGULAR) > maxWidth) lines.push(word);
@@ -565,7 +587,7 @@ const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, 
                 },
                 ['']
             );
-            layout = { title: item.title, maxWidth, lines };
+            layout = { title: displayTitle, maxWidth, lines };
             titleLayouts.set(item, layout);
         }
         const lines = layout.lines;
@@ -599,8 +621,8 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             borderWidth: 1,
             borderColor: THEME.BORDER,
         });
-        drawCenteredText('No results found', emptyX, emptyWidth, FontSizes.REGULAR, THEME.TEXT, emptyY + 24);
-        drawCenteredText('Try a different search term?', emptyX, emptyWidth, FontSizes.SMALL, THEME.TEXT_MUTED, emptyY + 40);
+        drawCenteredText(t('categories.noResults'), emptyX, emptyWidth, FontSizes.REGULAR, THEME.TEXT, emptyY + 24);
+        drawCenteredText(t('categories.tryDifferentSearch'), emptyX, emptyWidth, FontSizes.SMALL, THEME.TEXT_MUTED, emptyY + 40);
         return;
     }
 

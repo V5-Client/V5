@@ -9,28 +9,22 @@ const renderLimiters = {
 class Controller extends ModuleBase {
     constructor() {
         super({
-            name: 'Controller',
+            name: 'modules.controller.name',
             subcategory: 'Core',
-            description: 'Various toggles to improve peformance while game is minimized.',
+            description: 'modules.controller.description',
             hideInModules: true,
         });
 
         let sectionName = 'Macro Controllers';
 
-        this.addDirectToggle(
-            'Auto-Perspective',
-            (value) => Client.setForcePerspective(value),
-            'Automatically switches to third person while macro is running.',
-            false,
-            sectionName
-        );
+        this.addDirectToggle('labels.auto_perspective', (value) => Client.setForcePerspective(value), 'descriptions.auto_perspective', false, sectionName);
 
-        this.addDirectToggle('Limit FPS', (value) => Client.setLimitFps(value), 'Limits FPS while macro is running.', false, sectionName);
-        this.addDirectToggle('Mute Game', (value) => Client.setMuteGame(value), 'Mutes game audio while macro is running.', false, sectionName);
+        this.addDirectToggle('labels.limit_fps', (value) => Client.setLimitFps(value), 'descriptions.limit_fps', false, sectionName);
+        this.addDirectToggle('labels.mute_game', (value) => Client.setMuteGame(value), 'descriptions.mute_game', false, sectionName);
 
         this.addDirectMultiToggle(
-            'Render Limiters',
-            ['Off', 'Limit Chunks', 'No Render'],
+            'labels.render_limiters',
+            ['options.off', 'options.limit_chunks', 'options.no_render'],
             true,
             (value) => Client.setRenderLimiter(renderLimiters[value?.find?.((option) => option.enabled)?.name || 'Off']),
             'Limits render distance or cancels rendering while macro is running.',

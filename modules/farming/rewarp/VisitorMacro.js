@@ -44,7 +44,7 @@ class VisitorMacro {
         this.running = true;
         this.visitors = TabListUtils.readVisitors();
         if (!this.visitors.length) {
-            chat('&eNo visitors found.');
+            chat('messages.runtime.noVisitorsFound');
             this.running = false;
             return false;
         }
@@ -97,7 +97,7 @@ class VisitorMacro {
         this.declineCurrentVisitor = false;
         this.visitorStartedAt = Date.now();
         if (this.visitorIndex >= this.visitors.length) {
-            chat('&aAll stored visitors completed.');
+            chat('messages.runtime.allStoredVisitorsCompleted');
             return this.stop();
         }
         this.transition(STATES.SEEKING);
@@ -223,7 +223,7 @@ class VisitorMacro {
         Rotations.stop();
         Client.stopMovement();
         closeInventory();
-        chat('&eVisitor timed out, skipping.');
+        chat('messages.runtime.visitorTimedOutSkipping');
         bazaarUtil.cancel();
         this.advanceVisitor();
     }
