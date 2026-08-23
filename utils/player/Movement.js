@@ -3,7 +3,10 @@ import { Utils } from '../Utils';
 let lastActionTime = Date.now();
 
 function setKeysBasedOnYaw(yaw, shouldJump) {
-    if (Client.isInGui() && !Client.isInChat()) return;
+    if (Client.isInGui() && !Client.isInChat()) {
+        Client.stopMovement();
+        return;
+    }
 
     Client.setKey('w', yaw > -50 && yaw < 50);
     Client.setKey('a', yaw > -135.5 && yaw < -7);
@@ -17,7 +20,10 @@ function setKeysBasedOnYaw(yaw, shouldJump) {
 }
 
 function setKeysForStraightLine(yaw, shouldJump, ignoreBottomSlab) {
-    if (Client.isInGui() && !Client.isInChat()) return;
+    if (Client.isInGui() && !Client.isInChat()) {
+        Client.stopMovement();
+        return;
+    }
 
     const quadrants = [
         { min: -22.5, max: 22.5, keys: ['w'] },
@@ -38,8 +44,6 @@ function setKeysForStraightLine(yaw, shouldJump, ignoreBottomSlab) {
 }
 
 function setKeysForStraightLineCoords(x, y, z, shouldJump, ignoreBottomSlab) {
-    if (Client.isInGui() && !Client.isInChat()) return;
-
     const dx = x - Player.getX();
     const dz = z - Player.getZ();
     let angle = -(Math.atan2(dx, dz) * (180 / Math.PI)) - Player.getYaw();
