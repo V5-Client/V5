@@ -14,6 +14,8 @@ export const ServerboundCommandSuggestionPacket = net.minecraft.network.protocol
 
 // Server to client
 export const ClientboundBlockUpdatePacket = net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+export const ClientboundBlockDestructionPacket = net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
+export const ClientboundSectionBlocksUpdatePacket = net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
 export const ClientboundPingPacket = net.minecraft.network.protocol.common.ClientboundPingPacket;
 export const ClientboundDisconnectPacket = net.minecraft.network.protocol.common.ClientboundDisconnectPacket;
 export const ClientboundSetEntityMotionPacket = net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
