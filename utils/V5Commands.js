@@ -20,8 +20,8 @@ const callCommand = function (name) {
     }
 };
 
-const addCommands = (commands) => {
-    const { argument, exec, literal } = Commands;
+const addCommands = (commands, parentParts = []) => {
+    const { argument, exec, greedyString, literal } = Commands;
     const children = new Map();
 
     const addArguments = (command, index = 0) => {
@@ -49,9 +49,18 @@ const addCommands = (commands) => {
                 if (command.argumentTypes?.length) addArguments(command);
             }
 
-            addCommands(childCommands.filter(({ parts }) => parts.length));
+            addCommands(
+                childCommands.filter(({ parts }) => parts.length),
+                [...parentParts, name]
+            );
         });
     });
+
+    if (!commands.some(({ parts, argumentTypes }) => !parts.length && argumentTypes?.[0] === 'greedyString')) {
+        argument('unknownCommand', greedyString(), () => {
+            exec(({ unknownCommand }) => chat(`&cUnknown V5 command: &f/v5 ${[...parentParts, unknownCommand].join(' ')}`));
+        });
+    }
 };
 
 export const registerV5Commands = () => {
