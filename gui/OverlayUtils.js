@@ -27,12 +27,17 @@ import {
     getStatsHudLines,
 } from './OverlayRenderers';
 
+const GRID_SIZE = 10;
+const ELEMENT_SNAP_DISTANCE = 4;
+const ELEMENT_NEAR_DISTANCE = 20;
+
 class OverlayUtils {
     constructor() {
         this.ids = [];
         this.dragging = false;
         this.dragTarget = null;
         this.dragOffset = { x: 0, y: 0 };
+        this.snapGuides = [];
 
         this.settings = {
             x: 10,
@@ -60,6 +65,8 @@ class OverlayUtils {
 
         this.editorOrder = ['default', 'scheduler', 'hudInventory', 'hudStats', 'music'];
         this.editorBoxes = {};
+        this.lastClickTarget = null;
+        this.lastClickAt = 0;
 
         this.startTimes = {};
         this.animations = {};
@@ -114,7 +121,11 @@ class OverlayUtils {
     }
 
     updateRenderActive() {
-        this.renderActive = Object.values(this.animations).some((animation) => animation.target > 0 || animation.progress > 0.01);
+        this.renderActive = this.ids.some((id) => {
+            const animation = this.animations[id.name];
+            const settings = id.isScheduler ? this.schedulerSettings : this.settings;
+            return settings.enabled !== false && animation && (animation.target > 0 || animation.progress > 0.01);
+        });
         this.updateRenderRegistration();
         return this.renderActive;
     }
@@ -183,8 +194,7 @@ class OverlayUtils {
         } else {
             this.animations[idName].target = 1;
         }
-        this.renderActive = true;
-        this.updateRenderRegistration();
+        this.updateRenderActive();
         this.startAnimationLoop();
     }
 
@@ -233,6 +243,7 @@ class OverlayUtils {
         this.sessionTrackedDefaults = {};
         this.sessionTrackedValues = {};
         this.dragging = false;
+        this.snapGuides = [];
         this.pendingSave = false;
         this.renderActive = false;
         this.updateRenderRegistration(false);
@@ -424,8 +435,23 @@ class OverlayUtils {
             const settings = this.getTargetSettings(target);
             if (!settings) continue;
 
+            const now = Date.now();
+            if (this.lastClickTarget === target && now - this.lastClickAt <= 300) {
+                settings.enabled = settings.enabled === false;
+                this.lastClickTarget = null;
+                this.dragging = false;
+                this.dragTarget = null;
+                this.saveSettings();
+                this.updateRenderActive();
+                return;
+            }
+
+            this.lastClickTarget = target;
+            this.lastClickAt = now;
+
             this.dragging = true;
             this.dragTarget = target;
+            this.snapGuides = [];
             this.dragOffset.x = mouseX - settings.x;
             this.dragOffset.y = mouseY - settings.y;
 
@@ -443,11 +469,55 @@ class OverlayUtils {
         if (!settings) return;
 
         const box = this.editorBoxes[this.dragTarget];
-        const boxWidth = box?.width || 50;
-        const boxHeight = box?.height || 20;
+        const border = box?.border || BORDER_WIDTH * settings.scale;
+        const boxWidth = box?.width || 50 + border * 2;
+        const boxHeight = box?.height || 20 + border * 2;
+        let x = mouseX - this.dragOffset.x - border;
+        let y = mouseY - this.dragOffset.y - border;
 
-        settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - boxWidth));
-        settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - boxHeight));
+        const snap = (value, candidates) => {
+            const nearest = candidates.reduce((best, candidate) => (Math.abs(candidate.value - value) < Math.abs(best.value - value) ? candidate : best), {
+                value: Infinity,
+            });
+            return Math.abs(nearest.value - value) <= ELEMENT_SNAP_DISTANCE ? nearest : null;
+        };
+        const otherBoxes = Object.entries(this.editorBoxes).filter(([target]) => target !== this.dragTarget);
+        const getSnapPositions = (axis, size, perpendicularStart, perpendicularSize) =>
+            otherBoxes.reduce((positions, [target, other]) => {
+                const perpendicularAxis = axis === 'x' ? 'y' : 'x';
+                const otherPerpendicularStart = other[perpendicularAxis];
+                const otherPerpendicularEnd = otherPerpendicularStart + other[perpendicularAxis === 'x' ? 'width' : 'height'];
+                if (
+                    perpendicularStart > otherPerpendicularEnd + ELEMENT_NEAR_DISTANCE ||
+                    perpendicularStart + perpendicularSize < otherPerpendicularStart - ELEMENT_NEAR_DISTANCE
+                )
+                    return positions;
+
+                const start = other[axis];
+                const end = start + other[axis === 'x' ? 'width' : 'height'];
+                return positions.concat([
+                    { value: start, guide: start, target },
+                    { value: end, guide: end, target },
+                    { value: start - size, guide: start, target },
+                    { value: end - size, guide: end, target },
+                    { value: (start + end - size) / 2, guide: (start + end) / 2, target },
+                ]);
+            }, []);
+        const elementX = snap(x, getSnapPositions('x', boxWidth, y, boxHeight));
+        const elementY = snap(y, getSnapPositions('y', boxHeight, x, boxWidth));
+        const skipGrid = Client.isAltDown();
+        x = elementX?.value ?? (skipGrid ? x : Math.round(x / GRID_SIZE) * GRID_SIZE);
+        y = elementY?.value ?? (skipGrid ? y : Math.round(y / GRID_SIZE) * GRID_SIZE);
+        const clampedX = Math.max(0, Math.min(x, sw - boxWidth));
+        const clampedY = Math.max(0, Math.min(y, sh - boxHeight));
+
+        this.snapGuides = [
+            ...(elementX && clampedX === x ? [{ axis: 'x', coordinate: elementX.guide, target: elementX.target }] : []),
+            ...(elementY && clampedY === y ? [{ axis: 'y', coordinate: elementY.guide, target: elementY.target }] : []),
+        ];
+
+        settings.x = clampedX + border;
+        settings.y = clampedY + border;
         this.pendingSave = true;
     }
 
@@ -455,6 +525,7 @@ class OverlayUtils {
         if (this.dragging) {
             this.dragging = false;
             this.dragTarget = null;
+            this.snapGuides = [];
             this.saveSettings();
             this.pendingSave = false;
         }
@@ -486,14 +557,14 @@ class OverlayUtils {
         return null;
     }
 
-    clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
+    clampToScreen(x, y, w, h, swOverride = null, shOverride = null, border = 0) {
         const sw = swOverride !== null ? swOverride : Render2D.screen.getWidth();
         const sh = shOverride !== null ? shOverride : Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return { x, y };
 
         return {
-            x: Math.max(0, Math.min(x, sw - w)),
-            y: Math.max(0, Math.min(y, sh - h)),
+            x: Math.max(border, Math.min(x, sw - w - border)),
+            y: Math.max(border, Math.min(y, sh - h - border)),
         };
     }
 
@@ -629,7 +700,7 @@ class OverlayUtils {
         const sw = screenSize ? screenSize.sw : null;
         const sh = screenSize ? screenSize.sh : null;
         if (sw && sh) {
-            const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh);
+            const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh, BORDER_WIDTH * scale);
             x = clamped.x;
             y = clamped.y;
             if (forceGUI) {
@@ -714,6 +785,9 @@ class OverlayUtils {
         const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
         Render2D.blurBackground();
+        const gridColor = colorWithAlpha(THEME.BORDER, 0.18);
+        for (let x = GRID_SIZE; x < sw; x += GRID_SIZE) Render2D.drawRect(x, 0, 1, sh, gridColor);
+        for (let y = GRID_SIZE; y < sh; y += GRID_SIZE) Render2D.drawRect(0, y, sw, 1, gridColor);
         this.editorBoxes = {};
         this.drawingGUI = true;
 
@@ -748,7 +822,63 @@ class OverlayUtils {
                 }
             });
 
-            const text = 'Drag overlays to reposition. Scroll over module/scheduler/HUD previews to resize.';
+            Object.entries(this.editorBoxes).forEach(([target, box]) => {
+                const border = BORDER_WIDTH * this.getTargetSettings(target).scale;
+                this.editorBoxes[target] = {
+                    x: box.x - border,
+                    y: box.y - border,
+                    width: box.width + border * 2,
+                    height: box.height + border * 2,
+                    border,
+                };
+            });
+
+            const draggedBox = this.editorBoxes[this.dragTarget];
+            this.snapGuides.forEach(({ axis, coordinate, target }) => {
+                const otherBox = this.editorBoxes[target];
+                if (!draggedBox || !otherBox) return;
+
+                if (axis === 'x') {
+                    Render2D.drawLine(
+                        coordinate,
+                        Math.min(draggedBox.y, otherBox.y),
+                        coordinate,
+                        Math.max(draggedBox.y + draggedBox.height, otherBox.y + otherBox.height),
+                        1,
+                        colorWithAlpha(THEME.NOTIF_DANGER, 0.9)
+                    );
+                } else {
+                    Render2D.drawLine(
+                        Math.min(draggedBox.x, otherBox.x),
+                        coordinate,
+                        Math.max(draggedBox.x + draggedBox.width, otherBox.x + otherBox.width),
+                        coordinate,
+                        1,
+                        colorWithAlpha(THEME.NOTIF_DANGER, 0.9)
+                    );
+                }
+            });
+
+            this.editorOrder.forEach((target) => {
+                const settings = this.getTargetSettings(target);
+                const box = this.editorBoxes[target];
+                if (!settings || !box) return;
+                if (settings.enabled === false) {
+                    const radiusScale = { default: 1, scheduler: 1, hudStats: 0.6, hudInventory: 0.55, music: 0.6 }[target];
+                    drawRoundedRectangle({
+                        ...box,
+                        radius: CORNER_RADIUS * radiusScale * settings.scale + box.border,
+                        color: colorWithAlpha(THEME.NOTIF_ERROR, 0.4),
+                    });
+                }
+                if (this.dragging && target === this.dragTarget) {
+                    const details = `X: ${Math.round(box.x)}  Y: ${Math.round(box.y)}  Scale: ${settings.scale.toFixed(1)}`;
+                    const detailsY = box.y + box.height + 14 < sh ? box.y + box.height + 14 : box.y - 6;
+                    drawText(details, box.x + box.width / 2, detailsY, FontSizes.MEDIUM, THEME.TEXT, 18);
+                }
+            });
+
+            const text = 'Drag to move. Scroll to resize. Double-click to toggle. Hold Alt to skip the grid.';
             drawText(text, sw / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 18);
         } catch (e) {
             console.error(e);
@@ -762,7 +892,8 @@ class OverlayUtils {
 
         const visibleIds = this.ids.filter((id) => {
             const anim = this.animations[id.name];
-            return anim && (anim.target > 0 || anim.progress > 0.01);
+            const settings = id.isScheduler ? this.schedulerSettings : this.settings;
+            return settings.enabled !== false && anim && (anim.target > 0 || anim.progress > 0.01);
         });
 
         if (visibleIds.length === 0) {
@@ -798,12 +929,14 @@ class OverlayUtils {
                     x: data.default.x,
                     y: data.default.y,
                     scale: data.default.scale || 1.2,
+                    enabled: data.default.enabled !== false,
                 };
             } else if (typeof data.x === 'number') {
                 this.settings = {
                     x: data.x,
                     y: data.y,
                     scale: data.scale || 1.2,
+                    enabled: data.enabled !== false,
                 };
             }
 
@@ -812,6 +945,7 @@ class OverlayUtils {
                     x: data.scheduler.x,
                     y: data.scheduler.y,
                     scale: data.scheduler.scale || 1.0,
+                    enabled: data.scheduler.enabled !== false,
                 };
             }
 
@@ -826,6 +960,7 @@ class OverlayUtils {
                     x: hudData.stats.x,
                     y: hudData.stats.y,
                     scale: typeof hudData.stats.scale === 'number' ? hudData.stats.scale : 1.0,
+                    enabled: hudData.stats.enabled !== false,
                 };
             }
 
@@ -834,6 +969,7 @@ class OverlayUtils {
                     x: hudData.inventory.x,
                     y: hudData.inventory.y,
                     scale: typeof hudData.inventory.scale === 'number' ? hudData.inventory.scale : 1.0,
+                    enabled: hudData.inventory.enabled !== false,
                 };
             }
         }
@@ -844,6 +980,7 @@ class OverlayUtils {
                 x: musicData.x,
                 y: musicData.y,
                 scale: typeof musicData.scale === 'number' ? musicData.scale : 1.0,
+                enabled: musicData.enabled !== false,
             };
         }
     }
@@ -854,7 +991,7 @@ class OverlayUtils {
             ...this.hudSettings.stats,
             ...getStatsHudBounds(this.hudSettings.stats.scale, lines),
         };
-        Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale));
         Object.assign(overlay, this.hudSettings.stats);
         drawStatsHud(overlay, lines);
         return overlay;
@@ -865,7 +1002,10 @@ class OverlayUtils {
             ...this.hudSettings.inventory,
             ...getInventoryHudBounds(this.hudSettings.inventory.scale),
         };
-        Object.assign(this.hudSettings.inventory, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(
+            this.hudSettings.inventory,
+            this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale)
+        );
         Object.assign(overlay, this.hudSettings.inventory);
         drawInventoryHudBackground(overlay);
         return overlay;
@@ -877,7 +1017,7 @@ class OverlayUtils {
             ...this.musicSettings,
             ...getMusicOverlayBounds(this.musicSettings.scale || 1, songName),
         };
-        Object.assign(this.musicSettings, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(this.musicSettings, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale));
         Object.assign(overlay, this.musicSettings);
         drawMusicOverlay({
             overlay,

@@ -1,14 +1,11 @@
-import {
-    drawInventoryHudBackground as renderInventoryHudBackground,
-    drawStatsHud as renderStatsHud,
-    getInventoryHudBounds,
-    getStatsHudBounds,
-    getStatsHudLines,
-} from '../../gui/OverlayRenderers';
+import { drawInventoryHudBackground, drawStatsHud, getInventoryHudBounds, getStatsHudBounds, getStatsHudLines } from '../../gui/OverlayRenderers';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { GuiState } from '../../gui/core/GuiState';
+
+const DrawContextHolder = com.chattriggers.ctjs.api.render.DrawContextHolder;
+const SkijaPIP = com.chattriggers.ctjs.api.render.skia.SkijaPIP;
 
 class HUD extends ModuleBase {
     constructor() {
@@ -40,6 +37,12 @@ class HUD extends ModuleBase {
             'renderOverlay',
             () => this.renderOverlay()
         );
+        this.when(
+            () => this.INVENTORY_HUD,
+            'postGuiRender',
+            () => this.renderOverlay()
+        );
+        this.inventoryBackgroundCallback = () => drawInventoryHudBackground(this.inventory);
         this.statsCallback = () => this.renderStatsOverlay();
         this.statsRegistration = null;
 
@@ -67,6 +70,7 @@ class HUD extends ModuleBase {
             x,
             y,
             scale,
+            enabled: saved.enabled !== false,
 
             width: 0,
             height: 0,
@@ -78,6 +82,7 @@ class HUD extends ModuleBase {
             x: overlay.x,
             y: overlay.y,
             scale: overlay.scale,
+            enabled: overlay.enabled !== false,
         };
     }
 
@@ -85,6 +90,7 @@ class HUD extends ModuleBase {
         if (typeof saved.x === 'number') overlay.x = saved.x;
         if (typeof saved.y === 'number') overlay.y = saved.y;
         if (typeof saved.scale === 'number') overlay.scale = this.clamp(saved.scale, 0.5, 3.0);
+        if (typeof saved.enabled === 'boolean') overlay.enabled = saved.enabled;
     }
 
     syncFromOverlayEditor() {
@@ -143,38 +149,21 @@ class HUD extends ModuleBase {
     prepareOverlay(enabled, recalc) {
         if (GuiState.myGui.isOpen() || OverlayManager.drawingGUI || !enabled || !this.worldLoaded) return false;
 
-        const sw = Render2D.screen.getWidth();
-        const sh = Render2D.screen.getHeight();
-        if (sw <= 0 || sh <= 0) return false;
+        if (Render2D.screen.getWidth() <= 0 || Render2D.screen.getHeight() <= 0) return false;
 
         recalc.call(this);
-        return { sw, sh };
+        return true;
     }
 
     updateRenderRegistrations() {
+        this.syncFromOverlayEditor();
         const visible = this.worldLoaded && !GuiState.myGui.isOpen() && !OverlayManager.drawingGUI;
-        if (visible && this.STATS_HUD && !this.statsRegistration) {
+        if (visible && this.STATS_HUD && this.stats.enabled !== false && !this.statsRegistration) {
             this.statsRegistration = Render2D.registerV5Render(this.statsCallback);
-        } else if ((!visible || !this.STATS_HUD) && this.statsRegistration) {
+        } else if ((!visible || !this.STATS_HUD || this.stats.enabled === false) && this.statsRegistration) {
             Render2D.unregisterV5Render(this.statsRegistration);
             this.statsRegistration = null;
         }
-    }
-
-    drawInFrame(sw, sh, draw) {
-        try {
-            draw.call(this);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    drawStatsHud() {
-        renderStatsHud(this.stats, getStatsHudLines());
-    }
-
-    drawInventoryHudBackground() {
-        renderInventoryHudBackground(this.inventory);
     }
 
     drawInventoryHudItems() {
@@ -220,18 +209,12 @@ class HUD extends ModuleBase {
         });
     }
 
-    renderInventoryBackgroundOverlay() {
-        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
-        if (!frame) return;
-        this.drawInFrame(frame.sw, frame.sh, this.drawInventoryHudBackground);
-    }
-
     renderOverlay() {
-        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
-        if (!frame) return;
+        if (!this.prepareOverlay(this.INVENTORY_HUD && this.inventory.enabled !== false, this.recalcInventoryBounds)) return;
 
         try {
-            this.drawInventoryHudBackground();
+            // ponytail: queue directly until Render2D exposes ordered callbacks.
+            SkijaPIP.draw(DrawContextHolder.currentContext, this.inventoryBackgroundCallback, false);
             this.drawInventoryHudItems();
         } catch (e) {
             console.error(e);
@@ -239,9 +222,12 @@ class HUD extends ModuleBase {
     }
 
     renderStatsOverlay() {
-        const frame = this.prepareOverlay(this.STATS_HUD, this.recalcStatsBounds);
-        if (!frame) return;
-        this.drawInFrame(frame.sw, frame.sh, this.drawStatsHud);
+        if (!this.prepareOverlay(this.STATS_HUD && this.stats.enabled !== false, this.recalcStatsBounds)) return;
+        try {
+            drawStatsHud(this.stats, getStatsHudLines());
+        } catch (e) {
+            console.error(e);
+        }
     }
 }
 

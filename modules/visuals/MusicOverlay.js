@@ -32,6 +32,7 @@ class Music extends ModuleBase {
         this.x = savedX;
         this.y = savedY;
         this.scale = clamp(savedScale, 0.5, 3.0);
+        this.overlayEnabled = this.positionConfig.enabled !== false;
         this.dynamicWidth = 200;
         this.baseHeight = 90;
 
@@ -126,12 +127,9 @@ class Music extends ModuleBase {
             x: this.x,
             y: this.y,
             scale: this.scale,
+            enabled: this.overlayEnabled,
         };
-        if (OverlayManager && OverlayManager.musicSettings) {
-            OverlayManager.musicSettings.x = this.x;
-            OverlayManager.musicSettings.y = this.y;
-            OverlayManager.musicSettings.scale = this.scale;
-        }
+        if (OverlayManager && OverlayManager.musicSettings) Object.assign(OverlayManager.musicSettings, this.positionConfig);
         Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
     }
 
@@ -142,6 +140,7 @@ class Music extends ModuleBase {
         if (typeof latest.x === 'number') this.x = latest.x;
         if (typeof latest.y === 'number') this.y = latest.y;
         if (typeof latest.scale === 'number') this.scale = clamp(latest.scale, 0.5, 3.0);
+        if (typeof latest.enabled === 'boolean') this.overlayEnabled = latest.enabled;
 
         this.positionConfig = latest;
     }
@@ -150,6 +149,7 @@ class Music extends ModuleBase {
         if (OverlayManager.drawingGUI) return;
 
         this.syncFromOverlayEditor();
+        if (!this.overlayEnabled) return;
 
         const sw = Render2D.screen.getWidth();
         const sh = Render2D.screen.getHeight();
