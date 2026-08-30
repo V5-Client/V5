@@ -224,7 +224,13 @@ class Finder {
                     }
 
                     const reason = Swift.getLastError();
-                    if (!this.silent) chatPathfinder('§cNo path found' + (reason ? ': ' + reason : ''));
+                    if (!this.silent) {
+                        chatPathfinder(
+                            reason === 'End goal is in an unloaded chunk'
+                                ? '§cNo path found: End goal is in an unloaded chunk. Load the chunks by going to the destination and try again.'
+                                : '§cNo path found' + (reason ? ': ' + reason : '')
+                        );
+                    }
 
                     this.callCallback(false);
                     this.resetPath();
