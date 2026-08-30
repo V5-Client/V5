@@ -29,6 +29,8 @@ const INCLUDE_CHECKS = {
     "You don't have enough ": 'sprayonatorunavailable',
 };
 
+const CALLBACKS = new Map();
+
 const getEventName = (event) => {
     const msg = event.message.getUnformattedText();
     const lower = msg.toLowerCase();
@@ -44,11 +46,17 @@ const getEventName = (event) => {
     return null;
 };
 
+register('chat', (event) => {
+    const callbacks = CALLBACKS.get(getEventName(event));
+    if (callbacks) callbacks.forEach((callback) => callback(event));
+});
+
 /**
  * @param {string} name
  * @param {function} callback
  */
-export const registerSkyblockEvent = (name, callback) =>
-    register('chat', (event) => {
-        if (getEventName(event) === name.toLowerCase()) callback(event);
-    });
+export const registerSkyblockEvent = (name, callback) => {
+    name = name.toLowerCase();
+    if (!CALLBACKS.has(name)) CALLBACKS.set(name, []);
+    CALLBACKS.get(name).push(callback);
+};
