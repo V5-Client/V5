@@ -21,7 +21,7 @@ const callCommand = function (name) {
 };
 
 const addCommands = (commands) => {
-    const { argument, exec, literal } = Commands;
+    const { argument, exec, greedyString, literal } = Commands;
     const children = new Map();
 
     const addArguments = (command, index = 0) => {
@@ -52,6 +52,8 @@ const addCommands = (commands) => {
             addCommands(childCommands.filter(({ parts }) => parts.length));
         });
     });
+
+    argument('invalid', greedyString(), () => exec(() => chat('&cInvalid command.')));
 };
 
 export const registerV5Commands = () => {
