@@ -7,6 +7,9 @@ import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
 
+const InputConstants = com.mojang.blaze3d.platform.InputConstants;
+const KeyMapping = net.minecraft.client.KeyMapping;
+
 export class ModuleBase {
     static conditions = [];
     static conditionChecker = null;
@@ -257,6 +260,23 @@ export class ModuleBase {
             this._saveKey(title, this._wrappedKey.getKeyCode());
         });
         return this;
+    }
+
+    getToggleKeyName() {
+        const keyCode = this._wrappedKey?.getKeyCode?.();
+        return keyCode === undefined || keyCode === null || keyCode <= 0
+            ? 'Unbound'
+            : InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
+    }
+
+    setToggleKey(keyCode) {
+        const mapping = Client.getMinecraft().options.keyMappings.find((entry) => entry.getName() === this._wrappedKeyTitle);
+        if (!mapping) return;
+
+        const unbound = keyCode === 256;
+        mapping.setKey(unbound ? InputConstants.getKey('key.keyboard.unknown') : InputConstants.Type.KEYSYM.getOrCreate(keyCode));
+        KeyMapping.resetMapping();
+        this._saveKey(this._wrappedKeyTitle, unbound ? Keyboard.KEY_NONE : keyCode);
     }
 
     /**

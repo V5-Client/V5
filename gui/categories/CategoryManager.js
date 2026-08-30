@@ -57,6 +57,22 @@ const macroToggleButton = new Button(
     },
     { showContainer: false }
 );
+let bindingModule = null;
+const keybindButton = new Button('', 0, 0, 'Unbound', () => (bindingModule = getSelectedModule()), { showContainer: false });
+const documentationButton = new Button(
+    '',
+    0,
+    0,
+    'Docs',
+    () =>
+        FileLib.open(
+            `https://rdbt.top/docs/modules/${getSelectedModule()
+                .name.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')}`
+        ),
+    { showContainer: false }
+);
 
 const SCROLL_SMOOTHING_FACTOR = 0.25;
 const AUTO_SCROLL_SMOOTHING_FACTOR = 0.06;
@@ -346,12 +362,18 @@ const getModuleComponentScrollY = (item, component) => {
     return 0;
 };
 
-const getSelectedToggleModule = () => {
+const getSelectedModule = () => {
     if (!Categories.selectedItem || Categories.selected !== 'Modules') return null;
-    const module = getModule(Categories.selectedItem.title);
-    if (!module) return null;
-    return module.showEnabledToggle ? module : null;
+    return getModule(Categories.selectedItem.title);
 };
+
+register('guiKey', (char, keyCode, gui, event) => {
+    if (!bindingModule || !GuiState.myGui.isOpen() || GuiState.macroToggleOpen) return;
+    bindingModule.setToggleKey(keyCode);
+    bindingModule = null;
+    cancel(event);
+});
+GuiState.myGui.registerClosed(() => (bindingModule = null));
 
 const calculateContentHeight = () => {
     if (Categories.selected === 'Dashboard') {
@@ -642,12 +664,25 @@ const draw = (mouseX, mouseY) => {
         }
     }
 
-    const toggleModule = getSelectedToggleModule();
+    const selectedModule = getSelectedModule();
+    const toggleModule = selectedModule?.showEnabledToggle ? selectedModule : null;
     if (toggleModule) {
         macroToggleButton.setButtonText(toggleModule.enabled ? 'Disable' : 'Enable');
     }
+    const keybindModule = selectedModule?._wrappedKey ? selectedModule : null;
+    if (bindingModule && bindingModule !== keybindModule) bindingModule = null;
+    if (keybindModule) keybindButton.setButtonText(bindingModule ? 'Press a key...' : `Key: ${keybindModule.getToggleKeyName()}`);
 
-    if (shouldDrawOptions) drawOptionsPanel(panel, contentMouseX, contentMouseY, toggleModule ? macroToggleButton : null);
+    if (shouldDrawOptions) {
+        drawOptionsPanel(
+            panel,
+            contentMouseX,
+            contentMouseY,
+            toggleModule ? macroToggleButton : null,
+            keybindModule ? keybindButton : null,
+            selectedModule ? documentationButton : null
+        );
+    }
     resetScissor();
 };
 
@@ -675,10 +710,14 @@ const handleClick = (mouseX, mouseY) => {
         return;
     }
 
-    const toggleModule = getSelectedToggleModule();
+    const selectedModule = getSelectedModule();
+    const toggleModule = selectedModule?.showEnabledToggle ? selectedModule : null;
     if (toggleModule && macroToggleButton.handleClick(mouseX, mouseY)) {
         return;
     }
+    const keybindModule = selectedModule?._wrappedKey ? selectedModule : null;
+    if (keybindModule && keybindButton.handleClick(mouseX, mouseY)) return;
+    if (selectedModule && documentationButton.handleClick(mouseX, mouseY)) return;
 
     if (
         Categories.selected === 'Dashboard' &&

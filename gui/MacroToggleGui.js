@@ -11,8 +11,6 @@ import { v5Command } from '../utils/V5Commands';
 const ROW_HEIGHT = 28;
 const FAVORITES_FILE = 'macro-toggle.json';
 const SETTINGS_ICON_PATH = `${globalAssetsDir.getPath()}/settings.svg`;
-const InputConstants = com.mojang.blaze3d.platform.InputConstants;
-const KeyMapping = net.minecraft.client.KeyMapping;
 
 let query = '';
 let queryFocused = false;
@@ -62,20 +60,6 @@ const getRows = () => {
         if (modules.length) rows.push({ subcategory }, ...modules.map((module) => ({ module })));
     });
     return rows;
-};
-
-const getKeyName = (keybind) => {
-    const keyCode = keybind?.getKeyCode?.();
-    return keyCode === undefined || keyCode === null || keyCode <= 0 ? 'Unbound' : InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
-};
-
-const setMacroKeybind = (module, keyCode) => {
-    const mapping = Client.getMinecraft().options.keyMappings.find((entry) => entry.getName() === module._wrappedKeyTitle);
-    if (!mapping) return;
-
-    mapping.setKey(keyCode === 256 ? InputConstants.getKey('key.keyboard.unknown') : InputConstants.Type.KEYSYM.getOrCreate(keyCode));
-    KeyMapping.resetMapping();
-    module._saveKey(module._wrappedKeyTitle, keyCode === 256 ? Keyboard.KEY_NONE : keyCode);
 };
 
 const drawButton = (rect, text, active = false) => {
@@ -179,7 +163,7 @@ export const macroToggleGui = {
             layout.rows.push(row);
             if (row.y + row.height < listY || row.y > listBottom) return;
 
-            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
+            const keyName = bindingModule === module ? 'Press a key...' : module.getToggleKeyName();
             if (isInside(mouseX, mouseY, row) || module.enabled) {
                 drawRoundedRectangle({
                     ...row,
@@ -264,7 +248,7 @@ export const macroToggleGui = {
 register('guiKey', (char, keyCode, gui, event) => {
     if (!GuiState.macroToggleOpen) return;
     if (bindingModule) {
-        setMacroKeybind(bindingModule, keyCode);
+        bindingModule.setToggleKey(keyCode);
         bindingModule = null;
     } else if (!queryFocused) return;
     else if (keyCode === 256 || keyCode === 257) queryFocused = false;
