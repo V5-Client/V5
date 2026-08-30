@@ -58,8 +58,13 @@ const handleMouseRelease = () => {
     GuiState.applyPendingGuiScale();
 };
 
+let renderRegistration = null;
+
 const handleGuiClosed = () => {
-    Render2D.unregisterV5Render(renderGui);
+    if (renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
     GuiState.dragging = false;
     categoryManager?.handleMouseRelease();
     TextInput.finalizeAllTyping({ playSound: false });
@@ -94,7 +99,9 @@ const renderGui = () => {
     const { x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(Client.getMouseX(), Client.getMouseY());
     drawGUI(mouseX, mouseY);
 };
-GuiState.myGui.registerOpened(() => Render2D.registerV5Render(renderGui));
+GuiState.myGui.registerOpened(() => {
+    if (!renderRegistration) renderRegistration = Render2D.registerV5Render(renderGui);
+});
 
 const handleKeybind = () => {
     const keyName = 'GUI';
