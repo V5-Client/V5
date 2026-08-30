@@ -248,6 +248,14 @@ class AutoExperiments extends ModuleBase {
     }
 
     handleSuperpairs(items) {
+        const proceedSlot = items.findIndex(
+            (item, slot) => slot >= 9 && slot <= 44 && this.getLoreLines(item).some((line) => line.includes('Click any to proceed!'))
+        );
+        if (proceedSlot !== -1) {
+            if (this.canClick()) this._clickSlot(proceedSlot, 'LEFT');
+            return;
+        }
+
         if (this.superpairsPendingSlot !== null) {
             const item = items[this.superpairsPendingSlot];
             if (!item || this.isSuperpairsHidden(item)) {
