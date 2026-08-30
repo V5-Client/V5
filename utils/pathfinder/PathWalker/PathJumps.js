@@ -12,9 +12,12 @@ class PathJumps {
         this.cacheFrame = 0;
         this.lastFluidMessage = 0;
         this.jumpSuppressTicks = 0;
+        this.lastNearestPath = null;
+        this.lastNearestIndex = -1;
 
         this.STEP_HEIGHT = 0.6;
         this.LOOKAHEAD_NODES = 3;
+        this.NEAREST_SEARCH_WINDOW = 16;
         this.PREEMPTIVE_JUMP_DISTANCE = 1.65;
 
         this.FLAG_FLUID_FEET = 1 << 0;
@@ -145,15 +148,22 @@ class PathJumps {
         let closestIndex = -1,
             minDSq = Infinity;
 
-        path.forEach((node, index) => {
+        const useLocalWindow = path === this.lastNearestPath && this.lastNearestIndex >= 0 && this.lastNearestIndex < path.length;
+        const start = useLocalWindow ? Math.max(0, this.lastNearestIndex - this.NEAREST_SEARCH_WINDOW) : 0;
+        const searchEnd = useLocalWindow ? Math.min(path.length, this.lastNearestIndex + this.NEAREST_SEARCH_WINDOW + 1) : path.length;
+
+        for (let index = start; index < searchEnd; index++) {
+            const node = path[index];
             const dSq = Math.pow(pX - (node.x + 0.5), 2) + Math.pow(pY - (node.y + 0.5), 2) + Math.pow(pZ - (node.z + 0.5), 2);
             if (dSq < minDSq) {
                 minDSq = dSq;
                 closestIndex = index;
             }
-        });
+        }
 
         if (closestIndex === -1) return { lookahead: [], closestIndex: -1 };
+        this.lastNearestPath = path;
+        this.lastNearestIndex = closestIndex;
 
         const lookahead = [];
         const end = Math.min(closestIndex + 1 + this.LOOKAHEAD_NODES, path.length);
@@ -372,9 +382,15 @@ class PathJumps {
         this.lastLookaheadPositions = [];
         this.currentLookaheadVecs = [];
         this.jumpSuppressTicks = 0;
+        this.invalidateNearestIndex();
         this.blockCache.clear();
         this.cacheFrame = 0;
         Client.setKey('space', false);
+    }
+
+    invalidateNearestIndex() {
+        this.lastNearestPath = null;
+        this.lastNearestIndex = -1;
     }
 
     suppressJump(ticks = 5) {

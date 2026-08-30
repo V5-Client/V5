@@ -100,6 +100,7 @@ class PathAote {
 
         Client.rightClick();
         Jump.suppressJump(5);
+        Jump.invalidateNearestIndex();
         rotations.onTeleportTriggered(candidate.targetPathPosition);
         this.cooldownTicks = 10;
         this.lastUsedPathPosition = rotations.currentPathPosition;

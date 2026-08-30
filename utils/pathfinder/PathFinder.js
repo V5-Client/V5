@@ -362,6 +362,7 @@ class Finder {
 
     handleRecovery(action) {
         if (!action) return;
+        Jump.invalidateNearestIndex();
 
         switch (action) {
             case 'JUMP':
