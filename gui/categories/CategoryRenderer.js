@@ -64,9 +64,21 @@ export const getDiscordPfpRect = () => {
     const pfpSize = 20;
     return {
         x: leftPanel.x + (leftPanel.width - pfpSize) / 2,
-        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2,
+        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2 - 2,
         width: pfpSize,
         height: pfpSize,
+    };
+};
+
+export const getVersionButtonRect = () => {
+    const leftPanel = GuiRectangles.LeftPanel;
+    const width = getTextWidth(`V${SCRIPT_VERSION}`, FontSizes.TINY) + 8;
+    return {
+        x: leftPanel.x + (leftPanel.width - width) / 2,
+        y: leftPanel.y + leftPanel.height - 15,
+        width,
+        height: 12,
+        radius: 4,
     };
 };
 
@@ -355,6 +367,15 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         Categories.transitionType === 'page' && Categories.transitionDirection === -1 && Categories.optionsReturnCategory
             ? Categories.optionsReturnCategory
             : Categories.selected;
+    const versionRect = getVersionButtonRect();
+    const isVersionHovered = isInside(mouseX, mouseY, versionRect);
+
+    drawRoundedRectangleWithBorder({
+        ...versionRect,
+        color: isVersionHovered ? colorWithAlpha(THEME.ACCENT, 0.12) : THEME.BG_INSET,
+        borderWidth: 1,
+        borderColor: colorWithAlpha(THEME.ACCENT, 0.45),
+    });
 
     if (Categories.catAnimationRect) {
         const elapsed = Date.now() - Categories.catTransitionStart;
@@ -448,8 +469,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         if (state.progress > 0 && (displaySelectedCategory !== name || Categories.catAnimationRect)) {
             const rect = item.rect;
             const easedProgress = easeOutCubic(state.progress);
-            const finalRect =
-                name === 'Edit' || name === 'Discord' ? { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 } : { ...item.rect, radius: 8 };
+            const finalRect = { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 };
 
             drawHoverHighlight(finalRect, colorWithAlpha(THEME.BG_INSET, easedProgress), name);
         }
@@ -478,6 +498,8 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             });
         } else if (displaySelectedCategory === 'Edit') {
             drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
+        } else if (displaySelectedCategory === 'Changelog') {
+            drawRoundedRectangle({ ...versionRect, color: THEME.ACCENT_DIM });
         }
     }
 };
@@ -509,7 +531,15 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     if (discordPfpPath) {
         drawCircularImage(discordPfpPath, pfpRect.x, pfpRect.y, pfpRect.width);
     }
-    drawCenteredText(`V${SCRIPT_VERSION}`, pfpRect.x, pfpRect.width, FontSizes.TINY, THEME.TEXT_MUTED, leftPanel.y + leftPanel.height - PADDING);
+    const versionRect = getVersionButtonRect();
+    drawCenteredText(
+        `V${SCRIPT_VERSION}`,
+        versionRect.x,
+        versionRect.width,
+        FontSizes.TINY,
+        isInside(mouseX, mouseY, versionRect) ? THEME.TEXT_LINK : THEME.TEXT,
+        versionRect.y + versionRect.height / 2
+    );
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {

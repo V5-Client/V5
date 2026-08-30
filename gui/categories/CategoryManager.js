@@ -9,11 +9,20 @@ import { Separator } from '../components/Separator';
 import { getComponentLayoutHeight, isComponentVisible, layoutDirectComponents } from '../components/layout';
 import { GuiRectangles, GuiState } from '../core/GuiState';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, getCategoryContentY, getCategoryRect, getDiscordPfpRect } from './CategoryRenderer';
+import {
+    drawCategoryItems,
+    drawDirectComponents,
+    drawOptionsPanel,
+    getCategoryContentY,
+    getCategoryRect,
+    getDiscordPfpRect,
+    getVersionButtonRect,
+} from './CategoryRenderer';
 import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 import { getModule } from '../../utils/MacroState';
 import { drawDashboard, getDashboardContentHeight, getDashboardModuleAt } from '../Dashboard';
+import { drawChangelog, getChangelogContentHeight } from '../Changelog';
 
 let targetRightPanelScrollY = 0;
 let currentRightPanelScrollY = 0;
@@ -81,6 +90,7 @@ const getCategorySelectionRect = (name) => {
         const pfpRect = getDiscordPfpRect();
         return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
     }
+    if (name === 'Changelog') return getVersionButtonRect();
     const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
     if (visibleIndex === -1) return null;
     const rect = getCategoryRect(visibleIndex);
@@ -381,6 +391,11 @@ const calculateContentHeight = () => {
         isContentHeightCacheValid = true;
         return;
     }
+    if (Categories.selected === 'Changelog') {
+        cachedContentHeight = getChangelogContentHeight(GuiRectangles.RightPanel.width);
+        isContentHeightCacheValid = true;
+        return;
+    }
 
     if (!isContentHeightCacheValid && Categories.selected) {
         let height = 0;
@@ -613,6 +628,10 @@ const draw = (mouseX, mouseY) => {
             let yOffset = contentY - currentRightPanelScrollY;
             if (cat.name === 'Dashboard') {
                 drawDashboard(contentPanel, currentPanelX, contentY, contentMouseX, contentMouseY, currentRightPanelScrollY);
+                return;
+            }
+            if (cat.name === 'Changelog') {
+                drawChangelog(currentPanelX, contentY, contentPanel.width, currentRightPanelScrollY);
                 return;
             }
             if (cat.directComponents && cat.directComponents.length > 0) {

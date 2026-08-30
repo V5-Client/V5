@@ -38,6 +38,12 @@ export const Categories = {
             directComponents: [],
             hiddenInSidebar: true,
         },
+        {
+            name: 'Changelog',
+            items: [],
+            subcategories: [],
+            hiddenInSidebar: true,
+        },
     ],
     selected: 'Dashboard',
     selectedItem: null,

@@ -10,7 +10,15 @@ import {
 import { GuiRectangles } from '../core/GuiState';
 import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
-import { getCategoryContentY, getCategoryRect, getDiscordPfpRect, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './CategoryRenderer';
+import {
+    getCategoryContentY,
+    getCategoryRect,
+    getDiscordPfpRect,
+    getModuleNavButtonRect,
+    getModuleNavRect,
+    getModuleNavScrollX,
+    getVersionButtonRect,
+} from './CategoryRenderer';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 
 const ANIMATION_DURATION = 300;
@@ -35,6 +43,7 @@ const getCategorySelectionRect = (name) => {
         return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
     }
     if (name === 'Edit') return { ...getEditButtonRect(), radius: 8 };
+    if (name === 'Changelog') return getVersionButtonRect();
     const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
     if (visibleIndex === -1) return getEditButtonRect();
     const rect = getCategoryRect(visibleIndex);
@@ -256,6 +265,9 @@ export const handleCategoryClick = (
             clickedCategoryName = clickedCategory?.name || null;
             if (!clickedCategoryName && isInside(mouseX, mouseY, pfpButtonRect)) {
                 clickedCategoryName = 'Discord';
+            }
+            if (!clickedCategoryName && isInside(mouseX, mouseY, getVersionButtonRect())) {
+                clickedCategoryName = 'Changelog';
             }
         }
 
