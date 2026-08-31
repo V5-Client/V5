@@ -4,30 +4,37 @@
 
 ### New features
 
-- Added an in-game changelog, opened by clicking the version button in the GUI.
-- Mining Bot and Ore Macro now automatically refuel empty drills and resume afterward.
-- Added Docs and keybind buttons to module settings, making it easier to learn about modules and change their controls.
+- Support for Vulkan Rendering, which can greatly improve FPS.
+- Added an in-game changelog, found in the bottom left of the GUI.
+- Added Documentation and keybind buttons to module settings.
+- Mining Bot and Ore Macro now automatically refuel empty drills.
 
-### Improvements
+### Auto Forge
 
-- Significantly improved GUI and overlay performance.
-- Improved configuration saving.
-- Invalid /v5 commands now show an error instead of sending to server.
-- Pathfinder now states if a destination is in an unloaded chunk.
+- Automatically forges items and claims completed ones.
+
+### Picture-in-Picture
+
+- Run `/v5 pip` to toggle.
+
+### Auto Superpairs
+
+- Automatically completes superpairs.
+- This means that the entire experimentation is now automated and fully AFK.
+- Can be selected to target or ignore XP pairs.
 
 ### Profile Hider
 
-- Improved Profile Hider so username replacements retain the surrounding text styling.
-- Custom usernames now support #RRGGBBName colors, legacy & or section-sign formatting codes, and chroma text when no color is specified.
+- Custom usernames now support #RRGGBBName colors, legacy, section-sign formatting, and chroma text (default).
+- Fix Profile Hider username replacements breaking surrounding text.
 
-### Fixes
+### Improvements
 
-- Fixed Mining Bot ability events interrupting automatic refueling.
-- Mining Bot and Ore Macro now stop safely with a clear message if refueling fails or the drill cannot be found afterward.
-- Fixed Commission Macro reacting to a completed refuel after the macro had already stopped.
-- Fixed failsafe webhook alerts failing to send in some cases.
-- Fixed crashes or incorrect behavior caused by method-name conflicts in Combat Bot, Auto Experiments, and Minion Collector.
-- Fixed the GUI occasionally rendering multiple times after being reopened.
-- Fixed the GUI failing to initialize correctly in some situations.
-- Fixed Picture-in-Picture using an outdated chat function.
-- Fixed several missed imports that could cause features to fail after reloading.
+- Significantly improved GUI, overlay, and rendering performance.
+- Invalid /v5 commands now show an error instead of sending to server.
+- Pathfinder warns if a destination is in an unloaded chunk.
+
+### User Safety
+
+- Auto updater now uses github as the download source instead of rdbt backend.
+- This can be independantly audited and reviewed to prove there is no RAT.
