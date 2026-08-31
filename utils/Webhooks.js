@@ -2,6 +2,15 @@ import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
 import { executeAsync } from './ThreadExecutor';
 import { area, getConfigFile, subArea, writeConfigFile } from './Utils';
 
+function closeQuietly(resource) {
+    if (!resource) return;
+    try {
+        resource.close();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
 class DiscordNotifier {
     constructor() {
         this.endpoint = null;
@@ -99,8 +108,14 @@ class DiscordNotifier {
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
         executeAsync(() => {
+            let connection = null;
+            let writer = null;
+            let response = null;
+
             try {
-                const connection = new URL(this.endpoint).openConnection();
+                connection = new URL(this.endpoint).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'application/json');
                 connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
@@ -116,13 +131,18 @@ class DiscordNotifier {
                     body.content = '<@' + this.mentionId + '>';
                 }
 
-                const writer = new java.io.OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
+                writer = new java.io.OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
                 writer.write(JSON.stringify(body));
                 writer.close();
+                writer = null;
 
-                connection.getInputStream().close();
+                response = connection.getInputStream();
             } catch (e) {
                 console.error(e);
+            } finally {
+                closeQuietly(response);
+                closeQuietly(writer);
+                if (connection) connection.disconnect();
             }
         });
     }
@@ -173,15 +193,23 @@ class DiscordNotifier {
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
         executeAsync(() => {
+            let connection = null;
+            let out = null;
+            let writer = null;
+            let fis = null;
+            let response = null;
+
             try {
                 const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
-                const connection = new URL(this.endpoint).openConnection();
+                connection = new URL(this.endpoint).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
                 connection.setDoOutput(true);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'multipart/form-data; boundary=' + boundary);
 
-                const out = connection.getOutputStream();
-                const writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(out, 'UTF-8'), true);
+                out = connection.getOutputStream();
+                writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(out, 'UTF-8'), true);
 
                 writer.append('--' + boundary).append('\r\n');
                 writer.append('Content-Disposition: form-data; name="payload_json"').append('\r\n');
@@ -213,23 +241,30 @@ class DiscordNotifier {
                 writer.append('Content-Type: image/png').append('\r\n\r\n');
                 writer.flush();
 
-                const fis = new java.io.FileInputStream(file);
+                fis = new java.io.FileInputStream(file);
                 const buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
                 let bytesRead;
                 while ((bytesRead = fis.read(buffer)) !== -1) {
                     out.write(buffer, 0, bytesRead);
                 }
                 out.flush();
-                fis.close();
 
                 writer
                     .append('\r\n')
                     .append('--' + boundary + '--')
                     .append('\r\n');
                 writer.close();
-                connection.getInputStream().close();
+                writer = null;
+                out = null;
+                response = connection.getInputStream();
             } catch (e) {
                 console.error('Webhook upload failed: ' + e);
+            } finally {
+                closeQuietly(response);
+                closeQuietly(fis);
+                closeQuietly(writer);
+                closeQuietly(out);
+                if (connection) connection.disconnect();
             }
         });
     }
