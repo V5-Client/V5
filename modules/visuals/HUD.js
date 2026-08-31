@@ -167,46 +167,30 @@ class HUD extends ModuleBase {
     }
 
     drawInventoryHudItems() {
-        const inv = Player.getInventory();
-        if (!inv) return;
+        const inventory = Player.getPlayer()?.getInventory();
+        const context = DrawContextHolder.currentContext;
+        if (!inventory || !context) return;
 
-        const items = inv.getItems();
-        if (!items) return;
+        const { x, y, scale } = this.inventory;
+        const pose = context.pose();
 
-        const o = this.inventory;
-        const s = o.scale;
+        pose.pushMatrix();
+        pose.translate(x + 7 * scale, y + 7 * scale);
+        pose.scale(scale, scale);
 
-        const cols = 9;
-        const mainRows = 3;
+        try {
+            for (let i = 0; i < 27; i++) {
+                const stack = inventory.getItem(i + 9);
+                if (!stack.isEmpty()) context.item(stack, (i % 9) * 18, Math.floor(i / 9) * 18);
+            }
 
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const iconPad = 1 * s;
-
-        const hotbar = items.slice(0, 9);
-        const main = items.slice(9, 36);
-
-        const mainStartX = o.x + pad;
-        const mainStartY = o.y + pad;
-        const hotbarStartY = mainStartY + mainRows * slot + gap;
-
-        main.forEach((item, i) => {
-            if (!item) return;
-            const row = Math.floor(i / cols);
-            if (row >= mainRows) return;
-            const col = i % cols;
-            const x = mainStartX + col * slot + iconPad;
-            const y = mainStartY + row * slot + iconPad;
-            item.draw(x, y, s);
-        });
-
-        hotbar.forEach((item, i) => {
-            if (!item) return;
-            const x = mainStartX + i * slot + iconPad;
-            const y = hotbarStartY + iconPad;
-            item.draw(x, y, s);
-        });
+            for (let i = 0; i < 9; i++) {
+                const stack = inventory.getItem(i);
+                if (!stack.isEmpty()) context.item(stack, i * 18, 58);
+            }
+        } finally {
+            pose.popMatrix();
+        }
     }
 
     renderOverlay() {
