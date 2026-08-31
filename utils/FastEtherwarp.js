@@ -2,7 +2,7 @@ import { chatPathfinder } from './Chat';
 import { MCHand, Vec3d } from './Constants';
 import { getEtherwarpBlockShape, isAtEtherwarpLanding, setEtherwarpPathHandler } from './Etherwarp';
 import { finiteNumber } from './Math';
-import { ClientboundPingPacket, ServerboundUseItemPacket } from './Packets';
+import { ServerboundUseItemPacket } from './Packets';
 import { findItemInHotbar, setItemSlot } from './player/Inventory';
 import { applyToPlayer } from './player/RotationGCD';
 import { getPing } from './player/ServerInfo';
@@ -63,10 +63,7 @@ class EtherwarpPathHandler {
 
         v5Command('etherwarp', (x, y, z) => this.test(x, y, z), ['greedyString']);
 
-        register('step', () => {
-            this.pollSearch();
-            this.pollExecutionWait();
-        }).setFps(100);
+        register('tick', () => this.evaluateHopArrival(this.executionToken));
         register('renderWorld', () => this.render());
         register('actionBar', (text) => {
             if (!this.executionActive || !ChatLib.removeFormatting(text).includes('NOT ENOUGH MANA')) return;
@@ -292,7 +289,8 @@ class EtherwarpPathHandler {
             SEARCH_OPTIONS.heuristicWeight,
             SEARCH_OPTIONS.rayLength,
             SEARCH_OPTIONS.rewireEpsilon,
-            this.getEyeHeight()
+            this.getEyeHeight(),
+            () => this.handleSearchComplete()
         );
 
         if (!started) {
@@ -348,9 +346,8 @@ class EtherwarpPathHandler {
         setItemSlot(slot);
     }
 
-    pollSearch() {
+    handleSearchComplete() {
         if (!this.searchActive) return;
-        if (PathManager.isSearching()) return;
 
         this.searchActive = false;
 
@@ -465,11 +462,6 @@ class EtherwarpPathHandler {
         this.hopHardDeadlineAt = Math.max(now + 1500, now + estimatedTickDelayMs + 1000);
 
         this.evaluateHopArrival(token);
-    }
-
-    pollExecutionWait() {
-        if (!this.hopAwaiting || !this.executionActive) return;
-        this.evaluateHopArrival(this.executionToken);
     }
 
     evaluateHopArrival(token) {
