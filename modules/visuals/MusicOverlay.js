@@ -183,6 +183,7 @@ class Music extends ModuleBase {
     }
 
     onDisable() {
+        Render2D.unloadImage(this.data?.art || '');
         this.savePosition();
         this.stopWindowsProgram();
     }
@@ -195,11 +196,13 @@ class Music extends ModuleBase {
             json: true,
         })
             .then((res) => {
+                if (this.data?.art !== res.art) Render2D.unloadImage(this.data?.art || '');
                 this.data = res;
                 this.lastDataReceivedAt = Date.now();
             })
             .catch((e) => {
                 // would only really happen if it wasn't running.
+                Render2D.unloadImage(this.data?.art || '');
                 this.data = null;
                 if (this.checkWindowsProgram()) return;
                 const now = Date.now();
