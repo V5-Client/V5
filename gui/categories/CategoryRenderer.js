@@ -24,7 +24,14 @@ import {
 } from '../Utils';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
-import { getComponentLayoutHeight, getDirectComponentPanelWidth, getDirectComponentX, isComponentVisible, layoutDirectComponents } from '../components/layout';
+import {
+    getComponentLayoutHeight,
+    getDirectComponentPanelWidth,
+    getDirectComponentX,
+    getVisibleRowRange,
+    isComponentVisible,
+    layoutDirectComponents,
+} from '../components/layout';
 import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
@@ -253,24 +260,25 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
         }
     }
 
-    layout.sections.forEach((section) => {
+    const viewportTop = panel.y + scrollY - layout.baseY;
+    const viewportBottom = panel.y + panel.height + scrollY - layout.baseY;
+    const [firstSection, lastSection] = getVisibleRowRange(layout.sections, viewportTop, viewportBottom);
+    for (let i = firstSection; i <= lastSection; i++) {
+        const section = layout.sections[i];
         const sectionY = layout.baseY + section.y - scrollY;
-        if (sectionY + section.height < panel.y || sectionY > panel.y + panel.height) return;
 
         const separator = section.separator || (section.separator = new Separator(section.name, true));
         separator.x = panelX + PADDING;
         separator.y = sectionY;
         separator.optionPanelWidth = panelWidth;
         separator.draw(mouseX, mouseY);
-    });
+    }
 
-    layout.rows.forEach(({ component, y, height }) => {
+    const [firstRow, lastRow] = getVisibleRowRange(layout.rows, viewportTop, viewportBottom);
+
+    for (let i = firstRow; i <= lastRow; i++) {
+        const { component, y } = layout.rows[i];
         const componentY = layout.baseY + y - scrollY;
-        if (componentY + height < panel.y || componentY > panel.y + panel.height) {
-            component.updateAnimation?.();
-            return;
-        }
-
         const isPopup = component instanceof Popup;
         if (typeof component.draw === 'function' || isPopup) {
             component.x = getDirectComponentX(panel, panelX);
@@ -283,7 +291,7 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
                 component.draw(mouseX, mouseY);
             }
         }
-    });
+    }
 
     return layout.rows.length > 0 ? yOffset + layout.height : currentY + scrollY;
 };
@@ -632,6 +640,26 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
         return;
     }
 
+    if (!items.some((item) => item.type === 'separator')) {
+        const firstRow = Math.max(0, Math.ceil((panel.y - itemHeight - yOffset) / rowHeight));
+        const lastRow = Math.min(Math.ceil(items.length / columns) - 1, Math.floor((panel.y + panel.height - yOffset) / rowHeight));
+        for (let i = firstRow * columns; i < Math.min(items.length, (lastRow + 1) * columns); i++) {
+            drawItemBox(
+                items[i],
+                panelX + PADDING + (i % columns) * (iw + ITEM_SPACING),
+                yOffset + Math.floor(i / columns) * rowHeight,
+                iw,
+                itemHeight,
+                mouseX,
+                mouseY,
+                layouts,
+                valid,
+                false
+            );
+        }
+        return;
+    }
+
     items.forEach((g, i) => {
         if (g.type === 'separator') {
             if (i > 0) yOffset += 12;
@@ -639,21 +667,18 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             g.x = panelX + PADDING;
             g.y = yOffset;
             g.optionPanelWidth = panel.width;
-            if (typeof g.draw === 'function') g.draw(mouseX, mouseY);
+            if (yOffset + 16 >= panel.y && yOffset <= panel.y + panel.height && typeof g.draw === 'function') g.draw(mouseX, mouseY);
 
             yOffset += 22;
-            let subIdx = 0;
-
-            g.items.forEach((item) => {
-                if (subIdx % columns === 0 && subIdx > 0) yOffset += rowHeight;
-                if (yOffset + itemHeight >= panel.y && yOffset <= panel.y + panel.height) {
-                    const itemX = panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING);
-                    drawItemBox(item, itemX, yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
-                }
-                subIdx++;
-            });
+            const firstRow = Math.max(0, Math.ceil((panel.y - itemHeight - yOffset) / rowHeight));
+            const lastRow = Math.min(Math.ceil(g.items.length / columns) - 1, Math.floor((panel.y + panel.height - yOffset) / rowHeight));
+            for (let subIdx = firstRow * columns; subIdx < Math.min(g.items.length, (lastRow + 1) * columns); subIdx++) {
+                const itemY = yOffset + Math.floor(subIdx / columns) * rowHeight;
+                const itemX = panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING);
+                drawItemBox(g.items[subIdx], itemX, itemY, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
+            }
             if (g.items.length > 0) {
-                yOffset += itemHeight;
+                yOffset += Math.floor((g.items.length - 1) / columns) * rowHeight + itemHeight;
             }
         } else {
             if (rowIdx % columns === 0 && rowIdx > 0) yOffset += rowHeight;

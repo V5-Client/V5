@@ -49,12 +49,14 @@ import './skills/MinionCollector';
 import './skills/RouteWalker';
 import './skills/WynnProfessionMacro';
 
+/* BAZAAR */
+import './bazaar/BazaarNpcMacro';
+
 /* OTHER */
 import './other/AutoBeg';
 import './other/AutoConversation';
 import './other/AutoForge';
 import './other/AuctionHelper';
-import './bazaar/BazaarNpcMacro';
 import './other/BeachBaller';
 import './other/CancelInteract';
 import './other/ChatQOL';

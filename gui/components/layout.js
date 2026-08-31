@@ -42,6 +42,24 @@ export const getDirectComponentX = (panel, panelX = panel.x) => panelX + PADDING
 
 export const getDirectComponentPanelWidth = (panel) => panel.width - DIRECT_SECTION_PADDING * 2;
 
+export const getVisibleRowRange = (rows, top, bottom) => {
+    let first = 0;
+    let last = rows.length - 1;
+    while (first <= last) {
+        const middle = (first + last) >> 1;
+        if (rows[middle].y + rows[middle].height < top) first = middle + 1;
+        else last = middle - 1;
+    }
+    last = rows.length - 1;
+    let low = first;
+    while (low <= last) {
+        const middle = (low + last) >> 1;
+        if (rows[middle].y <= bottom) low = middle + 1;
+        else last = middle - 1;
+    }
+    return [first, last];
+};
+
 export const layoutDirectComponents = (components, startY = 0, useExpandedHeightWhenStatic = false) => {
     let cache = components._directLayoutCache;
     if (!cache) {

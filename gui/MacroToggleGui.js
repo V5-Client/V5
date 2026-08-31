@@ -7,6 +7,7 @@ import { Categories } from './categories/CategorySystem';
 import { drawSubcategoryButtons, getModuleBorderColor, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './categories/CategoryRenderer';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import { v5Command } from '../utils/V5Commands';
+import { getVisibleRowRange } from './components/layout';
 
 const ROW_HEIGHT = 28;
 const FAVORITES_FILE = 'macro-toggle.json';
@@ -53,17 +54,26 @@ const syncCategories = () => {
 
 const invalidateRows = () => (cachedRows = null);
 
+const cacheRows = (rows) => {
+    rows.totalHeight = rows.reduce((y, row) => {
+        row.y = y;
+        row.height = row.subcategory ? 20 : ROW_HEIGHT;
+        return y + row.height;
+    }, 0);
+    return (cachedRows = rows);
+};
+
 const getRows = () => {
     if (cachedRows) return cachedRows;
     const macros = getMacros();
-    if (macroCategoryState.selectedSubcategory) return (cachedRows = macros.map((module) => ({ module })));
+    if (macroCategoryState.selectedSubcategory) return cacheRows(macros.map((module) => ({ module })));
 
     const rows = [];
     macroCategory.subcategories.forEach((subcategory) => {
         const modules = macros.filter((module) => module.subcategory === subcategory);
         if (modules.length) rows.push({ subcategory }, ...modules.map((module) => ({ module })));
     });
-    return (cachedRows = rows);
+    return cacheRows(rows);
 };
 
 const drawButton = (rect, text, active = false) => {
@@ -102,7 +112,7 @@ export const macroToggleGui = {
         const nav = getModuleNavRect();
         const listY = nav.y + nav.height + 42;
         const listHeight = panel.height - (listY - panel.y) - PADDING;
-        const maxScroll = Math.max(0, rows.reduce((height, row) => height + (row.subcategory ? 20 : ROW_HEIGHT), 0) - listHeight);
+        const maxScroll = Math.max(0, rows.totalHeight - listHeight);
         scrollY = Math.max(0, Math.min(scrollY, maxScroll));
 
         layout = {
@@ -145,20 +155,17 @@ export const macroToggleGui = {
 
         Render2D.save();
         Render2D.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
-        let rowY = listY - scrollY;
-        const listBottom = listY + listHeight;
-        rows.forEach((entry) => {
+        const [firstRow, lastRow] = getVisibleRowRange(rows, scrollY, scrollY + listHeight);
+        for (let i = firstRow; i <= lastRow; i++) {
+            const entry = rows[i];
+            const rowY = listY + entry.y - scrollY;
             if (entry.subcategory) {
-                if (rowY + 20 >= listY && rowY <= listBottom) {
-                    drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
-                }
-                rowY += 20;
-                return;
+                drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                continue;
             }
 
             const { module } = entry;
             const row = { x, y: rowY, width, height: ROW_HEIGHT, module };
-            rowY += ROW_HEIGHT;
             row.keybind = {
                 x: row.x + row.width - 104,
                 y: row.y,
@@ -166,7 +173,6 @@ export const macroToggleGui = {
                 height: row.height,
             };
             layout.rows.push(row);
-            if (row.y + row.height < listY || row.y > listBottom) return;
 
             const keyName = bindingModule === module ? 'Press a key...' : module.getToggleKeyName();
             if (isInside(mouseX, mouseY, row) || module.enabled) {
@@ -187,7 +193,7 @@ export const macroToggleGui = {
             const moduleColor = getModuleBorderColor(Categories.findItem('Modules', module.name)?.moduleType);
             drawText(module.name, row.x + 32, row.y + row.height / 2, FontSizes.REGULAR, moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED));
             drawText(keyName, row.x + row.width - 8, row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
-        });
+        }
         Render2D.restore();
 
         if (rows.length === 0) drawText('No macros found', x + 8, listY + 12, FontSizes.REGULAR, THEME.TEXT_MUTED);
