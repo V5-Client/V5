@@ -157,6 +157,7 @@ class BazaarNpcMacro extends ModuleBase {
         this.sellEmptySince = 0;
         this.nextTradesRetryAt = 0;
         this.orderCooldownUntil = 0;
+        this.orderMissingSince = 0;
         this.cleanupMode = false;
         this.inventoryReady = false;
         this.requestToken = (this.requestToken || 0) + 1;
@@ -216,10 +217,15 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     commandAndWait(command, action, status, delay = 0, timeout = GUI_TIMEOUT) {
+        ChatLib.chat(command);
         const run = () => {
             const wait = this.runCommand(command);
             if (wait) return this.setAction(run, status, wait, 0);
-            this.setAction(action, status, delay, timeout, run);
+            this.setAction(action, status, delay, timeout, retry);
+        };
+        const retry = () => {
+            action();
+            if (this.action === action && this.retryAction === retry) run();
         };
         run();
     }
@@ -253,7 +259,7 @@ class BazaarNpcMacro extends ModuleBase {
                 this.bazaarData = bazaar;
                 this.itemData = items;
                 this.adoptOpenOrders(bazaar, items);
-                if (adoptOnly) return this.setAction(this.openOrders, 'Checking duplicates', this.clickDelay, 0);
+                if (adoptOnly) return this.setAction(this.inspectOrder, 'Checking duplicates', this.clickDelay);
                 this.orderQueue = this.findBestFlips(bazaar, items);
                 if (!this.orderQueue.length) {
                     if (!this.activeTargets.length) return this.fail('No Bazaar item meets the configured profit minimums.');
@@ -577,6 +583,7 @@ class BazaarNpcMacro extends ModuleBase {
 
         this.target.expectedOrderPrice = Math.ceil((topPrice + 0.1) * 10) / 10;
         this.cancelQuantity = 0;
+        this.orderMissingSince = 0;
         this.message(
             duplicateCount > 1
                 ? `&eFound ${duplicateCount} ${this.target.name} orders; cancelling all before relisting.`
@@ -588,12 +595,27 @@ class BazaarNpcMacro extends ModuleBase {
     openOutbidOrder() {
         if (!clean(getGuiName()).includes('bazaar orders')) return;
         const slot = this.findOrderSlot(this.target);
-        if (slot === -1) return this.finishOrderCancellation();
+        if (slot === -1) {
+            if (!this.orderMissingSince) this.orderMissingSince = Date.now();
+            if (Date.now() - this.orderMissingSince < STUCK_RETRY_DELAY * 2) return;
+            this.orderMissingSince = 0;
+            return this.finishOrderCancellation();
+        }
+        this.orderMissingSince = 0;
+        if (this.inventoryFull()) {
+            if (this.hasInventoryIncrease()) return this.setAction(this.openTrades, 'Inventory full', 500);
+            return this.fail('Inventory is full, but none of it was added by this macro.');
+        }
         this.clickAndWait(slot, this.cancelOutbidOrder, 'Opening outbid order');
     }
 
     cancelOutbidOrder() {
-        if (!clean(getGuiName()).includes('order options')) return;
+        const gui = clean(getGuiName());
+        if (gui.includes('bazaar orders')) {
+            if (this.findOrderSlot(this.target) !== -1) return;
+            return this.openOutbidOrder();
+        }
+        if (!gui.includes('order options')) return;
         const slot = this.findSlot('Cancel Order', true);
         if (slot === -1) return;
 
