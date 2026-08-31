@@ -6,6 +6,7 @@ const SESSION_RESUME_WINDOW_MS = 5 * 60 * 1000;
 const LAST_MACRO_TOGGLE_TITLE = 'Global Toggle Last Used Macro';
 
 export const modules = new Map();
+let enabledModulesRevision = 0;
 const enabledMacros = new Set();
 const macroStartTimes = new Map();
 const lastDisableMeta = new Map();
@@ -19,6 +20,8 @@ let hasBoundLastMacroToggleKey = false;
 const getLastActiveMacro = () => lastActiveMacros[0] || null;
 export const getLastActiveMacros = () => lastActiveMacros;
 export const getModule = (name) => modules.get(name);
+export const getEnabledModulesRevision = () => enabledModulesRevision;
+export const markEnabledModulesChanged = () => enabledModulesRevision++;
 export const isMacroRunning = () => running;
 export const getActiveMacro = () => activeMacro;
 export const getStartTime = () => startTime;

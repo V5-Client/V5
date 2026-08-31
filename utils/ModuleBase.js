@@ -2,7 +2,16 @@ import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { chat } from './Chat';
-import { getActiveMacro, getModule, getStartTime, isMacroRunning, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
+import {
+    getActiveMacro,
+    getModule,
+    getStartTime,
+    isMacroRunning,
+    markEnabledModulesChanged,
+    onModuleDisabled,
+    onModuleEnabled,
+    registerModule,
+} from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
@@ -148,6 +157,7 @@ export class ModuleBase {
         }
 
         this.enabled = newVal;
+        markEnabledModulesChanged();
 
         if (newVal) {
             this.isParentManaged = parentManaged;

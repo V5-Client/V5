@@ -1,5 +1,5 @@
 import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, isInside } from './Utils';
-import { modules as registeredModules } from '../utils/MacroState';
+import { getEnabledModulesRevision, modules as registeredModules } from '../utils/MacroState';
 import { formatUptime } from '../utils/TimeUtils';
 import { area, subArea } from '../utils/Utils';
 import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
@@ -16,6 +16,8 @@ const HEADER_TO_FIRST_ROW = 24;
 const CARD_BOTTOM_PADDING = 4;
 
 let lastModuleLayouts = [];
+let activeModules = [];
+let activeModulesRevision = -1;
 
 const normalizeLocation = (value) => {
     if (!value || String(value).trim().length === 0) return 'Unknown';
@@ -23,7 +25,10 @@ const normalizeLocation = (value) => {
 };
 
 const getActiveModules = () => {
-    const activeModules = [];
+    const revision = getEnabledModulesRevision();
+    if (revision === activeModulesRevision) return activeModules;
+
+    activeModules = [];
 
     registeredModules.forEach((module, name) => {
         if (!module?.enabled) return;
@@ -34,11 +39,13 @@ const getActiveModules = () => {
         });
     });
 
-    return activeModules.sort((a, b) => {
+    activeModules.sort((a, b) => {
         const categorySort = a.subcategory.localeCompare(b.subcategory);
         if (categorySort !== 0) return categorySort;
         return a.name.localeCompare(b.name);
     });
+    activeModulesRevision = revision;
+    return activeModules;
 };
 
 const getDebugRows = () => {
