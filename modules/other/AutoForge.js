@@ -1,12 +1,153 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { TabListUtils } from '../../utils/TabListUtils';
+import { fastDistance } from '../../utils/Math';
+import { getTabListNames, stripTabFormatting } from '../../utils/TabListUtils';
 import { Utils } from '../../utils/Utils';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { clickSlot, closeInventory } from '../../utils/player/Inventory';
+import { Rotations } from '../../utils/player/Rotations';
 
 const FORGE_SLOTS = [10, 11, 12, 13, 14, 15, 16];
+const FORGE_NPCS = [
+    [-23, 150, -50],
+    [23, 150, -58],
+    [-23, 150, -80],
+    [23, 150, -88],
+    [-4, 148, -109],
+];
+const FORGE_PROCESSES = {
+    Refining: ['Refined Diamond', 'Refined Mithril', 'Refined Titanium', 'Refined Tungsten', 'Refined Umber'],
+    Forging: [
+        'Bejeweled Handle',
+        'Drill Motor',
+        'Fuel Canister',
+        'Gemstone Mixture',
+        'Glacite Amalgamation',
+        'Golden Plate',
+        'Mithril Plate',
+        'Tungsten Plate',
+        'Umber Plate',
+        'Perfect Plate',
+    ],
+    Tools: [
+        'Mithril Drill SX-R226',
+        'Mithril Drill SX-R326',
+        'Ruby Drill TX-15',
+        'Gemstone Drill LT-522',
+        'Topaz Drill KGR-12',
+        'Jasper Drill X',
+        'Topaz Rod',
+        'Titanium Drill DR-X355',
+        'Titanium Drill DR-X455',
+        'Titanium Drill DR-X555',
+        'Titanium Drill DR-X655',
+        "Divan's Drill",
+        'Reinforced Chisel',
+        'Glacite-Plated Chisel',
+        'Perfect Chisel',
+    ],
+    Gear: [
+        'Mithril Necklace',
+        'Mithril Cloak',
+        'Mithril Belt',
+        'Mithril Gauntlet',
+        'Titanium Necklace',
+        'Titanium Cloak',
+        'Titanium Belt',
+        'Titanium Gauntlet',
+        'Titanium Talisman',
+        'Titanium Ring',
+        'Titanium Artifact',
+        'Titanium Relic',
+        "Divan's Powder Coating",
+        'Helmet of Divan',
+        'Chestplate of Divan',
+        'Leggings of Divan',
+        'Boots of Divan',
+        'Amber Necklace',
+        'Sapphire Cloak',
+        'Jade Belt',
+        'Amethyst Gauntlet',
+        'Gemstone Chamber',
+        'Dwarven Handwarmers',
+        'Dwarven Metal Talisman',
+        'Pendant of Divan',
+        'Relic of Power',
+    ],
+    'Reforge Stones': [
+        'Diamonite',
+        'Pocket Iceberg',
+        'Petrified Starfall',
+        'Pure Mithril',
+        'Dwarven Geode',
+        'Titanium Tesseract',
+        'Gleaming Crystal',
+        'Scorched Topaz',
+        'Amber Material',
+        'Frigid Husk',
+    ],
+    'Drill Parts': [
+        'Starfall Seasoning',
+        'Goblin Omelette',
+        'Blue Cheese Goblin Omelette',
+        'Pesto Goblin Omelette',
+        'Spicy Goblin Omelette',
+        'Sunny Side Goblin Omelette',
+        'Tungsten Regulator',
+        'Mithril-Plated Drill Engine',
+        'Titanium-Plated Drill Engine',
+        'Ruby-Polished Drill Engine',
+        'Sapphire-Polished Drill Engine',
+        'Amber-Polished Drill Engine',
+        'Mithril-Infused Fuel Tank',
+        'Titanium-Infused Fuel Tank',
+        'Gemstone Fuel Tank',
+        'Perfectly-Cut Fuel Tank',
+    ],
+    'Perfect Gemstones': [
+        'Perfect Amber Gemstone',
+        'Perfect Amethyst Gemstone',
+        'Perfect Jade Gemstone',
+        'Perfect Jasper Gemstone',
+        'Perfect Opal Gemstone',
+        'Perfect Ruby Gemstone',
+        'Perfect Sapphire Gemstone',
+        'Perfect Topaz Gemstone',
+        'Perfect Aquamarine Gemstone',
+        'Perfect Citrine Gemstone',
+        'Perfect Onyx Gemstone',
+        'Perfect Peridot Gemstone',
+    ],
+    Pets: ['Bejeweled Collar', '[Lvl 1] Mole', '[Lvl 1] Ammonite', 'Penguin', 'T-Rex', 'Spinosaurus', 'Goblin', 'Ankylosaurus', 'Mammoth'],
+    Other: [
+        'Beacon II',
+        'Beacon III',
+        'Beacon IV',
+        'Beacon V',
+        'Travel Scroll to the Dwarven Forge',
+        'Travel Scroll to the Dwarven Base Camp',
+        'Secret Railroad Pass',
+        'Mithril Lantern',
+        'Titanium Lantern',
+        'Glacite Lantern',
+        "Will-o'-wisp",
+        'Power Crystal',
+        'Tungsten Key',
+        'Umber Key',
+        'Skeleton Key',
+        'Portable Campfire',
+    ],
+};
 const GUI_TIMEOUT_TICKS = 120;
-const ITEM_MODES = ['Tungsten Key', 'Umber Key', 'Tungber Keys', 'Bejeweled Handle'];
-const clean = (value) => TabListUtils.stripFormatting(value).trim();
+const clean = (value) => stripTabFormatting(value).trim();
+const normalize = (value) =>
+    clean(value)
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+const FORGE_ITEMS = Object.keys(FORGE_PROCESSES).reduce((items, process) => {
+    FORGE_PROCESSES[process].forEach((name) => (items[normalize(name)] = { name, process }));
+    return items;
+}, {});
 
 class AutoForge extends ModuleBase {
     constructor() {
@@ -14,25 +155,18 @@ class AutoForge extends ModuleBase {
             name: 'Auto Forge',
             subcategory: 'Other',
             description: 'Forges and claims items.',
-            tooltip: 'Look at forger before enabling. Have forge in tablist.',
+            tooltip: 'Have forge in tablist.',
             autoDisableOnWorldUnload: true,
             isMacro: true,
         });
         this.bindToggleKey();
 
-        this.itemMode = ITEM_MODES[0];
+        this.itemName = 'Tungsten Key';
         this.minDelay = 250;
         this.maxDelay = 500;
         this.waitForAll = false;
 
-        this.addMultiToggle(
-            'Item',
-            ITEM_MODES,
-            true,
-            (options) => (this.itemMode = options.find((option) => option.enabled)?.name || ITEM_MODES[0]),
-            'Tungber Keys makes Tungsten Keys first, then switches to Umber Keys when materials run out.',
-            ITEM_MODES[0]
-        );
+        this.addTextInput('Forge Item', this.itemName, (value) => (this.itemName = String(value).trim()), 'The exact item name to forge.');
         this.addRangeSlider('Click Delay (ms)', 50, 2000, { low: this.minDelay, high: this.maxDelay }, (value) => {
             this.minDelay = Math.round(value.low);
             this.maxDelay = Math.round(value.high);
@@ -44,25 +178,42 @@ class AutoForge extends ModuleBase {
     }
 
     onEnable() {
+        const item = this.findConfiguredItem();
+        if (!item) {
+            this.message(`&cUnknown Forge item: ${this.itemName || '(blank)'}`);
+            this.message('&eValid items:');
+            Object.entries(FORGE_PROCESSES).forEach(([process, items]) => ChatLib.chat(`&6${process}: &f${items.join(', ')}`));
+            return this.toggle(false);
+        }
+
         if (this.forgeTabLines()?.length !== FORGE_SLOTS.length) {
             this.message('&cForge widget must show all 7 slots. Enable/move it to the top!');
             return this.toggle(false);
         }
 
         this.reset();
+        this.activeItem = item.name;
+        this.activeProcess = item.process;
         this.message('&aEnabled');
         this.startOpening(this.freeSlot);
     }
 
     onDisable() {
         this.message('&cDisabled');
+        if (this.pathingToForge) Pathfinder.resetPath();
+        if (this.rotationPending) Rotations.stop();
         this.reset();
     }
 
     reset() {
         this.action = this.waitForReady;
         this.openTarget = null;
-        this.activeItem = this.itemMode === 'Tungber Keys' ? 'Tungsten Key' : this.itemMode;
+        this.forgeNpc = null;
+        this.pathingToForge = false;
+        this.rotationPending = false;
+        this.rotationToken = (this.rotationToken || 0) + 1;
+        this.activeItem = null;
+        this.activeProcess = null;
         this.nextActionAt = 0;
         this.idleUntil = 0;
         this.waitTicks = 0;
@@ -81,7 +232,41 @@ class AutoForge extends ModuleBase {
 
     startOpening(target) {
         this.openTarget = target;
-        this.setState(this.openForge, true);
+        this.forgeNpc = this.closestForgeNpc();
+        this.setState(fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...this.forgeNpc) <= 4 ? this.rotateToForge : this.pathToForge, true);
+    }
+
+    pathToForge() {
+        if (this.pathingToForge || Pathfinder.isPathing()) return;
+
+        this.pathingToForge = true;
+        Pathfinder.findPath(FORGE_NPCS, (success) => {
+            this.pathingToForge = false;
+            if (!this.enabled) return;
+            if (!success) {
+                this.message('&cCould not path to a Forge NPC.');
+                return this.toggle(false);
+            }
+
+            this.forgeNpc = this.closestForgeNpc();
+            this.setState(this.rotateToForge, true);
+        });
+    }
+
+    rotateToForge() {
+        if (Rotations.active || !this.canAct()) return;
+
+        const token = ++this.rotationToken;
+        this.rotationPending = true;
+        if (!Rotations.lookAtVector([this.forgeNpc[0] + 0.5, this.forgeNpc[1] + 1.8, this.forgeNpc[2] + 0.5])) {
+            this.rotationPending = false;
+            return;
+        }
+        Rotations.onComplete(() => {
+            if (!this.enabled || !this.rotationPending || token !== this.rotationToken) return;
+            this.rotationPending = false;
+            this.setState(this.openForge);
+        });
     }
 
     openForge() {
@@ -127,15 +312,8 @@ class AutoForge extends ModuleBase {
         const container = this.getOpenContainer();
         if (!container || !this.canAct()) return;
 
-        const forging = this.activeItem === 'Bejeweled Handle';
-        const slot = forging
-            ? this.findNamedSlot(container, 'forging')
-            : this.findSlot(
-                  container,
-                  (item) => item?.type?.getRegistryName?.() === 'minecraft:nether_star' && clean(item.getName()).toLowerCase() === 'other'
-              );
-        if (slot !== -1) clickSlot(slot);
-        if (slot !== -1 || !forging) this.setState(this.item, true);
+        const slot = this.findNamedSlot(container, this.activeProcess, true);
+        if (slot !== -1) this.click(slot, this.item);
         else this.timeout();
     }
 
@@ -144,7 +322,7 @@ class AutoForge extends ModuleBase {
         if (!container || !this.canAct()) return;
         if (this.isMainForge(container)) return this.timeout();
 
-        const slot = this.findNamedSlot(container, this.activeItem.toLowerCase());
+        const slot = this.findNamedSlot(container, this.activeItem);
         if (slot !== -1) this.click(slot, this.confirm);
         else this.timeout();
     }
@@ -158,14 +336,8 @@ class AutoForge extends ModuleBase {
 
         if (!this.isConfirmAvailable(container.getStackInSlot(slot))) {
             closeInventory();
-            if (this.itemMode === 'Tungber Keys' && this.activeItem === 'Tungsten Key') {
-                this.activeItem = 'Umber Key';
-                this.message('&eOut of Tungsten materials, switching to Umber Keys.');
-                this.startOpening(this.freeSlot);
-            } else {
-                this.message('&cNot enough materials!');
-                this.toggle(false);
-            }
+            this.message('&cNot enough materials!');
+            this.toggle(false);
             return;
         }
 
@@ -213,7 +385,7 @@ class AutoForge extends ModuleBase {
     }
 
     forgeTabLines() {
-        const lines = TabListUtils.getNames().map((line) => clean(line?.getName?.() ?? line));
+        const lines = getTabListNames().map((line) => clean(line?.getName?.() ?? line));
         const header = lines.findIndex((line) => /^forges?:?$/i.test(line));
         if (header === -1) return null;
 
@@ -237,8 +409,20 @@ class AutoForge extends ModuleBase {
         ).length;
     }
 
+    findConfiguredItem() {
+        return FORGE_ITEMS[normalize(this.itemName)] || null;
+    }
+
+    closestForgeNpc() {
+        return FORGE_NPCS.reduce((closest, npc) =>
+            fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...npc) < fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest)
+                ? npc
+                : closest
+        );
+    }
+
     isMainForge(container) {
-        return !!container && clean(container.getName()).toLowerCase().includes('forge');
+        return !!container && normalize(container.getName()).includes('forge');
     }
 
     findForgeSlot(container, pattern) {
@@ -246,9 +430,10 @@ class AutoForge extends ModuleBase {
     }
 
     findNamedSlot(container, search, exact = false) {
+        const target = normalize(search);
         return this.findSlot(container, (item) => {
-            const name = clean(item?.getName?.()).toLowerCase();
-            return exact ? name === search : name.includes(search);
+            const name = normalize(item?.getName?.());
+            return exact ? name === target : name.includes(target);
         });
     }
 
@@ -263,7 +448,7 @@ class AutoForge extends ModuleBase {
 
     isConfirmAvailable(item) {
         const id = item?.type?.getRegistryName?.()?.toLowerCase() || '';
-        const name = clean(item?.getName?.()).toLowerCase();
+        const name = normalize(item?.getName?.());
         return !id.includes('red_terracotta') && !id.includes('red_stained_glass') && !/cancel|not enough|insufficient/.test(name);
     }
 }
