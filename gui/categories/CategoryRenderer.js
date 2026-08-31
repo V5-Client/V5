@@ -543,10 +543,6 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
-    if (itemY + itemHeight < GuiRectangles.RightPanel.y || itemY > GuiRectangles.RightPanel.y + GuiRectangles.RightPanel.height) {
-        return;
-    }
-
     const isDirectComponent = item && item.type === 'direct-component';
     const isModuleComponent = item && item.type === 'module-component';
     const isThemeComponent = item && item.type === 'theme-component';
@@ -650,7 +646,10 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
 
             g.items.forEach((item) => {
                 if (subIdx % columns === 0 && subIdx > 0) yOffset += rowHeight;
-                drawItemBox(item, panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
+                if (yOffset + itemHeight >= panel.y && yOffset <= panel.y + panel.height) {
+                    const itemX = panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING);
+                    drawItemBox(item, itemX, yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
+                }
                 subIdx++;
             });
             if (g.items.length > 0) {
@@ -658,7 +657,9 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             }
         } else {
             if (rowIdx % columns === 0 && rowIdx > 0) yOffset += rowHeight;
-            drawItemBox(g, panelX + PADDING + (rowIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, false);
+            if (yOffset + itemHeight >= panel.y && yOffset <= panel.y + panel.height) {
+                drawItemBox(g, panelX + PADDING + (rowIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, false);
+            }
             rowIdx++;
         }
     });
