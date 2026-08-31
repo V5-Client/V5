@@ -54,6 +54,7 @@ import './other/AutoBeg';
 import './other/AutoConversation';
 import './other/AutoForge';
 import './other/AuctionHelper';
+import './bazaar/BazaarNpcMacro';
 import './other/BeachBaller';
 import './other/CancelInteract';
 import './other/ChatQOL';
