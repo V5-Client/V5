@@ -80,6 +80,7 @@ export class Slider {
         this.description = null;
         this.valueRects = {};
         this.sliderRect = {};
+        this.titleCache = null;
         this.highlight = createHighlight();
         allSliders.push(this);
 
@@ -123,7 +124,11 @@ export class Slider {
         const valueBoxesWidth = valueBoxWidths.reduce((total, width) => total + width, 0) + valueBoxGap * (valueKeys.length - 1);
         const valueStringX = this.x + panelWidth - valueBoxesWidth;
         const sliderX = valueStringX - sliderWidth - 14;
-        const titleLines = wrapTitle(this.title, sliderX - this.x - 12);
+        const titleWidth = sliderX - this.x - 12;
+        if (!this.titleCache || this.titleCache.title !== this.title || this.titleCache.width !== titleWidth) {
+            this.titleCache = { title: this.title, width: titleWidth, lines: wrapTitle(this.title, titleWidth) };
+        }
+        const titleLines = this.titleCache.lines;
         const componentHeight = Math.max(this.containerHeight, titleLines.length * 12 + 12);
         this.layoutHeight = componentHeight;
 

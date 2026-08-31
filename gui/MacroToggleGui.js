@@ -19,6 +19,7 @@ let bindingModule = null;
 let scrollY = 0;
 let layout = {};
 let favorites = new Set();
+let cachedRows = null;
 const macroCategory = { name: 'Macro Toggle', subcategories: [] };
 const macroCategoryState = {
     selectedSubcategory: null,
@@ -50,16 +51,19 @@ const syncCategories = () => {
     macroCategory.subcategories = Categories.categories.find((entry) => entry.name === 'Modules')?.subcategories || [];
 };
 
+const invalidateRows = () => (cachedRows = null);
+
 const getRows = () => {
+    if (cachedRows) return cachedRows;
     const macros = getMacros();
-    if (macroCategoryState.selectedSubcategory) return macros.map((module) => ({ module }));
+    if (macroCategoryState.selectedSubcategory) return (cachedRows = macros.map((module) => ({ module })));
 
     const rows = [];
     macroCategory.subcategories.forEach((subcategory) => {
         const modules = macros.filter((module) => module.subcategory === subcategory);
         if (modules.length) rows.push({ subcategory }, ...modules.map((module) => ({ module })));
     });
-    return rows;
+    return (cachedRows = rows);
 };
 
 const drawButton = (rect, text, active = false) => {
@@ -74,12 +78,14 @@ const drawButton = (rect, text, active = false) => {
 export const macroToggleGui = {
     open() {
         loadFavorites();
+        syncCategories();
         query = '';
         queryFocused = false;
         favoritesOnly = false;
         bindingModule = null;
         macroCategoryState.selectedSubcategory = null;
         scrollY = 0;
+        invalidateRows();
         GuiState.macroToggleOpen = true;
         GuiState.isOpening = true;
         GuiState.openStartTime = Date.now();
@@ -88,7 +94,6 @@ export const macroToggleGui = {
     },
 
     draw(mouseX, mouseY) {
-        syncCategories();
         const panel = GuiRectangles.RightPanel;
         const rows = getRows();
         const x = panel.x + PADDING;
@@ -203,7 +208,11 @@ export const macroToggleGui = {
                 })
             );
             if (index !== -1) {
-                macroCategoryState.selectedSubcategory = index ? subcategories[index] : null;
+                const selectedSubcategory = index ? subcategories[index] : null;
+                if (selectedSubcategory !== macroCategoryState.selectedSubcategory) {
+                    macroCategoryState.selectedSubcategory = selectedSubcategory;
+                    invalidateRows();
+                }
                 scrollY = 0;
             }
             return;
@@ -211,6 +220,7 @@ export const macroToggleGui = {
         if (isInside(mouseX, mouseY, layout.filter)) {
             favoritesOnly = !favoritesOnly;
             scrollY = 0;
+            invalidateRows();
             return;
         }
 
@@ -221,6 +231,7 @@ export const macroToggleGui = {
             if (favorites.has(row.module.name)) favorites.delete(row.module.name);
             else favorites.add(row.module.name);
             saveFavorites();
+            invalidateRows();
             return;
         }
 
@@ -253,11 +264,16 @@ register('guiKey', (char, keyCode, gui, event) => {
     } else if (!queryFocused) return;
     else if (keyCode === 256 || keyCode === 257) queryFocused = false;
     else if (keyCode === 259) {
-        query = query.slice(0, -1);
+        const nextQuery = query.slice(0, -1);
+        if (nextQuery !== query) {
+            query = nextQuery;
+            invalidateRows();
+        }
         scrollY = 0;
     } else if (char && String(char).length === 1 && String(char).codePointAt(0) >= 32) {
         query += char;
         scrollY = 0;
+        invalidateRows();
     }
     cancel(event);
 });
