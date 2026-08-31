@@ -81,7 +81,7 @@ class EtherwarpPathHandler {
         this.executionToken = 0;
         this.stateVersion = 0;
         this.originalSlot = -1;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -153,7 +153,7 @@ class EtherwarpPathHandler {
 
         this.cancel(false);
 
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = goal;
         this.currentRun = {
@@ -184,7 +184,7 @@ class EtherwarpPathHandler {
         PathManager.clear();
 
         this.stopExecution(restoreSlot);
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -248,6 +248,27 @@ class EtherwarpPathHandler {
         return true;
     }
 
+    setPath(path) {
+        this.path = path;
+        this.renderGeometry = path.map((point, index) => {
+            const shape = getEtherwarpBlockShape(point);
+            const shapeBoxes = shape?.toAabbs?.();
+            const boxes = [];
+            const bounds = shape?.bounds?.();
+
+            for (let i = 0; i < (shapeBoxes?.size?.() || 0); i++) boxes.push(shapeBoxes.get(i).move(point.x, point.y, point.z));
+
+            return {
+                boxes,
+                position: new Vec3d(point.x, point.y, point.z),
+                center: bounds
+                    ? new Vec3d(point.x + (bounds.minX + bounds.maxX) / 2, point.y + (bounds.minY + bounds.maxY) / 2, point.z + (bounds.minZ + bounds.maxZ) / 2)
+                    : new Vec3d(point.x + 0.5, point.y + 0.5, point.z + 0.5),
+                color: index === 0 ? PATH_COLORS.start : index === path.length - 1 ? PATH_COLORS.end : PATH_COLORS.pending,
+            };
+        });
+    }
+
     startSearch(goal, isRetry = false) {
         const slot = this.getEtherwarpSlot();
         if (slot < 0) {
@@ -255,7 +276,7 @@ class EtherwarpPathHandler {
             return false;
         }
 
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.preparePlayer(slot);
 
@@ -290,7 +311,7 @@ class EtherwarpPathHandler {
         this.searchActive = false;
         PathManager.cancelSearch();
         PathManager.clear();
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.stopExecution(false, true);
     }
@@ -335,13 +356,13 @@ class EtherwarpPathHandler {
 
         if (!PathManager.hasEtherwarpPath()) {
             const reason = PathManager.getLastError() || 'No etherpath found';
-            this.path = [];
+            this.setPath([]);
             this.angles = [];
             this.retryPath(reason);
             return;
         }
 
-        this.path = readPathPoints(PathManager.getEtherwarpPathArray());
+        this.setPath(readPathPoints(PathManager.getEtherwarpPathArray()));
         this.angles = readAngles(PathManager.getEtherwarpAnglesArray());
         const timeMs = Number(PathManager.getEtherwarpLastTimeMs());
         const nodeCount = this.path.length;
@@ -525,40 +546,22 @@ class EtherwarpPathHandler {
 
     render() {
         if (!World.isLoaded()) return;
-        if (!this.path.length) return;
+        if (!this.renderGeometry.length) return;
 
-        for (let i = 0; i < this.path.length; i++) {
-            const point = this.path[i];
-            const boxColor = i === 0 ? PATH_COLORS.start : i === this.path.length - 1 ? PATH_COLORS.end : PATH_COLORS.pending;
-            const shape = getEtherwarpBlockShape(point);
-            const boxes = shape?.toAabbs?.();
-            const bounds = shape?.bounds?.();
-            const centerVec = bounds
-                ? new Vec3d(point.x + (bounds.minX + bounds.maxX) / 2, point.y + (bounds.minY + bounds.maxY) / 2, point.z + (bounds.minZ + bounds.maxZ) / 2)
-                : new Vec3d(point.x + 0.5, point.y + 0.5, point.z + 0.5);
+        for (let i = 0; i < this.renderGeometry.length; i++) {
+            const geometry = this.renderGeometry[i];
 
-            if (boxes?.size?.()) {
-                for (let boxIndex = 0; boxIndex < boxes.size(); boxIndex++) {
-                    const box = boxes.get(boxIndex).move(point.x, point.y, point.z);
-                    Render3D.drawFilledBox(box, boxColor, false);
-                    Render3D.drawWireFrameBox(box, boxColor, 3, false);
+            if (geometry.boxes.length) {
+                for (const box of geometry.boxes) {
+                    Render3D.drawFilledBox(box, geometry.color, false);
+                    Render3D.drawWireFrameBox(box, geometry.color, 3, false);
                 }
             } else {
-                Render3D.drawStyledBox(new Vec3d(point.x, point.y, point.z), boxColor, boxColor, 3, false);
+                Render3D.drawStyledBox(geometry.position, geometry.color, geometry.color, 3, false);
             }
 
-            if (i >= this.path.length - 1) continue;
-
-            const next = this.path[i + 1];
-            const nextBounds = getEtherwarpBlockShape(next)?.bounds?.();
-            const nextCenter = nextBounds
-                ? new Vec3d(
-                      next.x + (nextBounds.minX + nextBounds.maxX) / 2,
-                      next.y + (nextBounds.minY + nextBounds.maxY) / 2,
-                      next.z + (nextBounds.minZ + nextBounds.maxZ) / 2
-                  )
-                : new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5);
-            Render3D.drawLine(centerVec, nextCenter, PATH_COLORS.pending, 3, false);
+            const next = this.renderGeometry[i + 1];
+            if (next) Render3D.drawLine(geometry.center, next.center, PATH_COLORS.pending, 3, false);
         }
     }
 
@@ -578,7 +581,7 @@ class EtherwarpPathHandler {
 
         PathManager.clear();
         this.searchActive = false;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -597,7 +600,7 @@ class EtherwarpPathHandler {
         PathManager.cancelSearch();
         PathManager.clear();
         this.searchActive = false;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
