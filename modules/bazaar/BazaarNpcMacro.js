@@ -19,6 +19,13 @@ const clean = (value) =>
         .trim()
         .toLowerCase();
 const lore = (item) => (item?.getLore?.() || []).map((line) => ChatLib.removeFormatting(String(line)).trim());
+const formatCoins = (value) => {
+    const unit = [
+        [1e6, 'M'],
+        [1e3, 'K'],
+    ].find(([minimum]) => Math.abs(value) >= minimum);
+    return unit ? `${(value / unit[0]).toFixed(2)}${unit[1]}` : Math.round(value).toLocaleString();
+};
 
 class BazaarNpcMacro extends ModuleBase {
     constructor() {
@@ -61,6 +68,15 @@ class BazaarNpcMacro extends ModuleBase {
             (coins) => (this.minProfitPerItem = coins),
             'Minimum coins earned on each item after buying it from Bazaar and selling it to NPC.'
         );
+        this.minItemProfitPerHour = 0;
+        this.addSlider(
+            'Minimum Item Profit/hr (K)',
+            0,
+            10_000,
+            0,
+            (thousands) => (this.minItemProfitPerHour = thousands * 1_000),
+            'Minimum estimated hourly profit for each item.'
+        );
         this.minProfitPercent = 1;
         this.addSlider(
             'Minimum Profit (%)',
@@ -76,15 +92,14 @@ class BazaarNpcMacro extends ModuleBase {
                 data: {
                     State: () => this.status,
                     'Active Orders': () => `${this.activeTargets.length}/${this.maxBuyOrders}`,
-                    'Hourly Profit': () =>
-                        `${Math.round(this.activeTargets.reduce((total, target) => total + Number(target.profit || 0) * 2, 0)).toLocaleString()} coins`,
+                    'Hourly Profit': () => `${formatCoins(this.activeTargets.reduce((total, target) => total + Number(target.profit || 0) * 2, 0))} coins`,
                 },
             },
             {
                 title: 'Item',
                 data: {
                     Item: () => this.target?.name || 'None',
-                    'Item Profit': () => `${Math.round(this.target?.profit || 0).toLocaleString()} coins`,
+                    'Item Profit': () => `${formatCoins(this.target?.profit || 0)} coins`,
                     'Profit %': () => `${(this.target?.profitPercent || 0).toFixed(2)}%`,
                 },
             },
@@ -186,15 +201,15 @@ class BazaarNpcMacro extends ModuleBase {
 
     tick() {
         const now = Date.now();
-        if (this.deadline && now >= this.deadline) return this.fail(`Timed out while ${this.status.toLowerCase()}.`);
+        if (this.deadline && now >= this.deadline) return this.restart(`Timed out while ${this.status.toLowerCase()}.`);
         if (this.retryAction && now >= this.retryAt) {
             this.retryAt = now + STUCK_RETRY_DELAY;
             this.nextActionAt = now + this.clickDelay;
-            this.retryAction();
+            this.retryAction.call(this);
             return;
         }
         if (now < this.nextActionAt) return;
-        if (this.action) this.action();
+        if (this.action) this.action.call(this);
     }
 
     setAction(action, status, delay = this.clickDelay, timeout = GUI_TIMEOUT, retryAction = null) {
@@ -224,7 +239,7 @@ class BazaarNpcMacro extends ModuleBase {
             this.setAction(action, status, delay, timeout, retry);
         };
         const retry = () => {
-            action();
+            action.call(this);
             if (this.action === action && this.retryAction === retry) run();
         };
         run();
@@ -298,7 +313,7 @@ class BazaarNpcMacro extends ModuleBase {
             const profitPercent = (profitPerItem / npcPrice) * 100;
 
             // ponytail: 30 minutes of historical volume is the fill estimate; simulate the order book only if this proves inaccurate.
-            if (quantity > 0 && profitPerItem > 0 && profitPerItem >= this.minProfitPerItem && profitPercent >= this.minProfitPercent) {
+            if (quantity > 0 && this.isProfitablePrice({ npcPrice, quantity }, orderPrice)) {
                 candidates.push({
                     id,
                     name: item.name,
@@ -871,6 +886,7 @@ class BazaarNpcMacro extends ModuleBase {
             profitPerItem > 0 &&
             profitPerItem >= this.minProfitPerItem &&
             (profitPerItem / target.npcPrice) * 100 >= this.minProfitPercent &&
+            profitPerItem * target.quantity * 2 >= this.minItemProfitPerHour &&
             price * target.quantity <= this.maxSpend
         );
     }
@@ -885,6 +901,20 @@ class BazaarNpcMacro extends ModuleBase {
         this.message(`&e${message}`);
         if (this.target?.id) this.skippedIds.add(this.target.id);
         this.setAction(this.placeNextOrder, 'Skipping item', 500, 0);
+    }
+
+    restart(message) {
+        const startingInventory = this.startingInventory;
+        const lastCheckedInventory = this.lastCheckedInventory;
+        const cleanupMode = this.cleanupMode;
+        this.message(`&e${message} Restarting...`);
+        closeInventory();
+        this.reset();
+        this.startingInventory = startingInventory;
+        this.lastCheckedInventory = lastCheckedInventory;
+        this.cleanupMode = cleanupMode;
+        this.inventoryReady = true;
+        this.openOrders();
     }
 
     fail(message) {
