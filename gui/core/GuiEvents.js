@@ -87,7 +87,7 @@ GuiState.myGui.registerClicked((mouseX, mouseY, button) => {
     if (button === 0) handleClick(mouseX, mouseY);
 });
 
-GuiState.myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
+GuiState.myGui.registerMouseDragged((mouseX, mouseY, button) => {
     if (button === 0) handleMouseDrag(mouseX, mouseY);
 });
 

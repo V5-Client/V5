@@ -139,7 +139,6 @@ export const handleCategoryClick = (
         const optionY = panel.y + PADDING;
         const sY = Categories.optionsScrollY;
 
-        const backButtonText = 'Back';
         const backButtonWidth = BACK_TEXT_WIDTH;
         const drawnBackY = optionY + 12 - sY;
         const backButtonRect = {

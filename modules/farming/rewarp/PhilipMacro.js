@@ -61,7 +61,7 @@ class PhilipMacro {
         return World.getAllPlayers().find((player) => {
             try {
                 return player.toMC().getSkin().body().texturePath().toString() === SKIN_ID;
-            } catch (ignored) {
+            } catch {
                 return false;
             }
         });

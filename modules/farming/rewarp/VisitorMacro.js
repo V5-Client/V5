@@ -20,7 +20,6 @@ const STATES = {
 const INTERACT_DISTANCE = 3;
 const OPEN_TIMEOUT_MS = 1000;
 const VISITOR_TIMEOUT_MS = 15_000;
-const TELEPORT_RETRY_MS = 1000;
 const VISITOR_BLACKLIST = ['Vinyl Collector', 'Gold Forger', 'Rhys'];
 const cleanText = (value) => ChatLib.removeFormatting(String(value ?? '')).trim();
 

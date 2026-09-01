@@ -41,7 +41,7 @@ const isPointInsideBlock = (point) => {
         const position = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
         const state = world.getBlockState(position);
         return !!state && !state.getCollisionShape(world, position).isEmpty();
-    } catch (_error) {
+    } catch {
         return false;
     }
 };

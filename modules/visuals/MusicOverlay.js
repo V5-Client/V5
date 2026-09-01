@@ -152,8 +152,6 @@ class Music extends ModuleBase {
         if (!this.overlayEnabled) return;
 
         const sw = Render2D.screen.getWidth();
-        const sh = Render2D.screen.getHeight();
-
         const isSkeleton = !this.data;
         const songName = isSkeleton ? 'Searching for Media...' : this.data.song || 'Unknown Title';
         const imageURL = isSkeleton || !this.data.art || this.data.art.toLowerCase() === 'none' ? '' : this.data.art;
@@ -249,7 +247,7 @@ class Music extends ModuleBase {
                 console.error(`[Music] Download error: ${e}`);
                 try {
                     if (this.exePath.exists() && this.exePath.length() <= 0) this.exePath.delete();
-                } catch (deleteError) {}
+                } catch {}
             } finally {
                 this.isDownloadingHelper = false;
             }
