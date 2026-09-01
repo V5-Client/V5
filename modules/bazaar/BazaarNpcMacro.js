@@ -239,7 +239,6 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     commandAndWait(command, action, status, delay = 0, timeout = GUI_TIMEOUT) {
-        ChatLib.chat(command);
         const run = () => {
             const wait = this.runCommand(command);
             if (wait) return this.setAction(run, status, wait, 0);
