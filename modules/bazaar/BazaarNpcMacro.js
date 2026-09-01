@@ -86,6 +86,13 @@ class BazaarNpcMacro extends ModuleBase {
             (percent) => (this.minProfitPercent = percent),
             'Minimum profit as a percentage of the NPC sell value.'
         );
+        this.itemNameBlacklist = [];
+        this.addTextInput(
+            'Item Name Blacklist',
+            '',
+            (value) => (this.itemNameBlacklist = String(value).split(',').map(clean).filter(Boolean)),
+            'Case-insensitive item names to exclude, separated by commas.'
+        );
         this.createOverlay([
             {
                 title: 'Status',
@@ -301,7 +308,15 @@ class BazaarNpcMacro extends ModuleBase {
             const item = items[id];
             const product = bazaar.products[id];
             const prices = (product.sell_summary || []).map((order) => Number(order.pricePerUnit)).filter(Number.isFinite);
-            if (!item || !prices.length || this.skippedIds.has(id) || activeNames.has(clean(item.name))) continue;
+            const itemName = clean(item?.name);
+            if (
+                !item ||
+                !prices.length ||
+                this.skippedIds.has(id) ||
+                activeNames.has(itemName) ||
+                this.itemNameBlacklist.some((blocked) => itemName.includes(blocked))
+            )
+                continue;
 
             const orderPrice = Math.ceil((Math.max(...prices) + 0.1) * 10) / 10;
             const npcPrice = Number(item.npc_sell_price);
