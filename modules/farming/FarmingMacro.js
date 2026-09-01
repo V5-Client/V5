@@ -135,17 +135,23 @@ export class FarmingMacro extends ModuleBase {
         if (farmingSettings.killNearbyPests && !rewarpSettings.pestKiller && this.handlePest(player)) return;
 
         const looping = rewarpSettings.looping;
+        const hybrid = rewarpSettings.hybrid;
         if (rewarpSettings.pestKiller && Utils.getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold) {
             const pestColumnClear = this.isPestColumnClear(player);
-            if (looping || pestColumnClear) {
+            if (looping || hybrid || pestColumnClear) {
                 const returnPoint = { x: player.getX(), y: player.getY(), z: player.getZ() };
-                if (looping) ChatLib.command('sethome');
+                if (looping || hybrid) ChatLib.command('sethome');
                 return this.beginRewarp(returnPoint, true);
             }
         }
+
+        // if we're not looping, and we're at rewarp point
         if (!looping && this.isAtPoint(player, this.points.end)) {
             return this.beginRewarp(this.points.start, rewarpSettings.pestKiller && Utils.getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold);
         }
+
+        // if we're looping and hsould run bar ntasks.
+        // dont carea bout this case
         if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });

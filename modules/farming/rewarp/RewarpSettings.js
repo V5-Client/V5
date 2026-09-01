@@ -12,6 +12,7 @@ class RewarpSettings extends ModuleBase {
         });
 
         this.looping = false;
+        this.hybrid = false;
         this.triggerRadius = 2;
         this.rewarpButtons = [];
         this.runVisitorMacro = false;
@@ -24,10 +25,11 @@ class RewarpSettings extends ModuleBase {
 
         this.addMultiToggle(
             'Rewarp Style',
-            ['Start/End', 'Looping'],
+            ['Start/End', 'Looping', 'Hybrid'],
             true,
             (options) => {
                 this.looping = options[1].enabled;
+                this.hybrid = options[2].enabled;
                 this.rewarpButtons.forEach((button) => (button.visible = !this.looping));
             },
             'Start/End warps at the saved endpoint. Looping sets home before running barn tasks.',
