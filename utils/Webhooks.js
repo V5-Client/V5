@@ -15,13 +15,11 @@ class DiscordNotifier {
     constructor() {
         this.endpoint = null;
         this.mentionId = null;
-        this.active = false;
-        this.clientVersion = CLIENT_VERSION;
         this.sendLoadEmbeds = true;
         this.sendFailsafeEmbeds = true;
 
         this.loadSettings();
-        this.initTriggers();
+        register('gameLoad', () => this.onStartup());
     }
 
     loadSettings() {
@@ -30,9 +28,6 @@ class DiscordNotifier {
             if (cfg) {
                 this.endpoint = cfg.url || null;
                 this.mentionId = cfg.userId || null;
-                this.active = !!this.endpoint;
-
-                if (this.active) return { url: this.endpoint, userId: this.mentionId };
             }
         } catch (e) {
             console.error(e);
@@ -40,26 +35,21 @@ class DiscordNotifier {
     }
 
     persistSettings() {
-        try {
-            writeConfigFile('webhook.json', {
-                url: this.endpoint,
-                userId: this.mentionId,
-            });
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    initTriggers() {
-        register('gameLoad', () => this.onStartup());
+        writeConfigFile('webhook.json', {
+            url: this.endpoint,
+            userId: this.mentionId,
+        });
     }
 
     updateEndpoint(url) {
-        if (!url || !url.startsWith('https://discord.com/api/webhooks/')) return;
+        const canonical = String(url ?? '')
+            .trim()
+            .split(/[?#]/)[0];
+        if (canonical && !/^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s/]+\/?$/.test(canonical)) return false;
 
-        this.endpoint = url;
-        this.active = true;
+        this.endpoint = String(url ?? '').trim() || null;
         this.persistSettings();
+        return true;
     }
 
     updateMention(id) {
@@ -102,7 +92,7 @@ class DiscordNotifier {
     }
 
     publish(embeds, shouldMention = true) {
-        if (!this.endpoint || !this.active) return;
+        if (!this.endpoint) return;
 
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
@@ -118,7 +108,7 @@ class DiscordNotifier {
                 connection.setReadTimeout(5000);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'application/json');
-                connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
+                connection.setRequestProperty('User-Agent', 'V5-Client/' + CLIENT_VERSION);
                 connection.setDoOutput(true);
 
                 const body = {
@@ -156,7 +146,7 @@ class DiscordNotifier {
             title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
             color: 0x3498db,
             timestamp: new Date().toISOString(),
-            footer: { text: 'V5 Client ' + this.clientVersion },
+            footer: { text: 'V5 Client ' + CLIENT_VERSION },
         };
 
         if (areaName) {
@@ -168,26 +158,8 @@ class DiscordNotifier {
         this.publish([embed]);
     }
 
-    setLoadEmbeds(value) {
-        this.sendLoadEmbeds = value;
-    }
-
-    setFailsafeEmbeds(value) {
-        this.sendFailsafeEmbeds = !!value;
-    }
-
-    publishFailsafe(embeds, shouldMention = true) {
-        if (!this.sendFailsafeEmbeds) return;
-        this.publish(embeds, shouldMention);
-    }
-
-    takeFailsafeScreenshot(title = null, description = null, color, footer, ping = false) {
-        if (!this.sendFailsafeEmbeds) return;
-        this.takeScreenshot(title, description, color, footer, ping);
-    }
-
     uploadScreenshot(file, title = 'Screenshot Captured', description, color = 0x3498db, footer = 'V5 Client', ping = false) {
-        if (!this.endpoint || !this.active) return;
+        if (!this.endpoint) return;
 
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
@@ -229,7 +201,7 @@ class DiscordNotifier {
                                 url: 'attachment://' + filename,
                             },
                             timestamp: new Date().toISOString(),
-                            footer: { text: footer + ' ' + this.clientVersion },
+                            footer: { text: footer + ' ' + CLIENT_VERSION },
                         },
                     ],
                 };
@@ -270,14 +242,4 @@ class DiscordNotifier {
     }
 }
 
-const notifier = new DiscordNotifier();
-
-export const setWebhook = (url) => notifier.updateEndpoint(url);
-export const setWebhookUserId = (id) => notifier.updateMention(id);
-export const sendEmbed = (embeds, shouldMention) => notifier.publish(embeds, shouldMention);
-export const sendFailsafeEmbed = (embeds, shouldMention) => notifier.publishFailsafe(embeds, shouldMention);
-export const getWebhookData = () => notifier.loadSettings();
-export const setLoadEmbedsEnabled = (enabled) => notifier.setLoadEmbeds(enabled);
-export const setFailsafeEmbedsEnabled = (enabled) => notifier.setFailsafeEmbeds(enabled);
-export const sendScreenshot = (...args) => notifier.takeScreenshot(...args);
-export const sendFailsafeScreenshot = (...args) => notifier.takeFailsafeScreenshot(...args);
+export const Webhook = new DiscordNotifier();

@@ -3,7 +3,7 @@ import { getEnabledMacros, getLastDisableMeta, getModule, getModuleDuration } fr
 import { ModuleBase } from '../../utils/ModuleBase';
 import { formatDurationMs, Timer } from '../../utils/TimeUtils';
 import { getConfigFile, writeConfigFile } from '../../utils/Utils';
-import { sendEmbed, sendScreenshot } from '../../utils/Webhooks';
+import { Webhook } from '../../utils/Webhooks';
 
 const STATE = {
     IDLE: 'Idle',
@@ -339,7 +339,7 @@ class MacroScheduler extends ModuleBase {
 
         this.trackedMacros.splice(index, 1);
 
-        sendScreenshot(`Disabled ${macroName}`, getModuleDuration(macroName));
+        Webhook.takeScreenshot(`Disabled ${macroName}`, getModuleDuration(macroName));
 
         if (this.trackedMacros.length === 0) {
             this.state = STATE.IDLE;
@@ -397,7 +397,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     sendSchedulerEmbed(title, description, color) {
-        sendEmbed(
+        Webhook.publish(
             [
                 {
                     title,

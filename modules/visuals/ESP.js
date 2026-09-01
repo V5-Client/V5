@@ -62,9 +62,7 @@ class ESP extends ModuleBase {
 
                 if (!this.showNames) continue;
 
-                if (distanceSq <= 32 * 32) continue;
-                if (distanceSq > 64 * 64) continue;
-                if (distanceSq <= 64 * 64 && !self.hasLineOfSight(entity)) continue;
+                if (distanceSq <= (self.hasLineOfSight(entity) ? 64 * 64 : 32 * 32)) continue;
 
                 const vec = new Vec3d(player.x, player.y + 2.3, player.z);
                 Render3D.drawText(player.getName(), vec, 1.2, true, false, true);
