@@ -1,21 +1,7 @@
 import { formatDurationMs, formatUptime } from '../utils/TimeUtils';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
-import {
-    BORDER_WIDTH,
-    clamp,
-    colorWithAlpha,
-    CORNER_RADIUS,
-    drawRoundedRectangle,
-    drawRoundedRectangleWithBorder,
-    drawText,
-    FontSizes,
-    getTextWidth,
-    isInside,
-    PADDING,
-    THEME,
-} from './Utils';
+import { clamp, colorWithAlpha, drawRoundedRectangle, isInside, PADDING, THEME } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
-import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
 import { loadSettings } from './GuiSave';
 import {
     drawInventoryHudBackground,

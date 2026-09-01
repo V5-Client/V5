@@ -1,7 +1,6 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { calculateDistance } from '../../utils/Math';
 
 class SeaLumie extends ModuleBase {
     constructor() {

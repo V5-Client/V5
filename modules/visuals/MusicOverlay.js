@@ -1,5 +1,5 @@
 import requestV2 from 'requestV2';
-import { BORDER_WIDTH, CORNER_RADIUS, drawImageFromURL, drawRoundedRectangleWithBorder, drawText, FontSizes, getTextWidth, THEME } from '../../gui/Utils';
+import { drawImageFromURL, THEME } from '../../gui/Utils';
 import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
 import { chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';

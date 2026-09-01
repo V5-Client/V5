@@ -2,7 +2,7 @@ import { BP, ClipContext, CritParticle, HappyVillagerParticle, MCHand, Vec3d } f
 import { calculateAbsoluteAngles, calculateAngles, getDistanceToPlayerEyes } from '../../utils/Math';
 import { getDrills, getMineTime, getMiningSpeed, getSpeedWithCold, refuel, refreshMiningStatsIfNeeded } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { nuke, queueNuke } from '../../utils/NukerUtils';
+import { queueNuke } from '../../utils/NukerUtils';
 import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
 import { isLineClear } from '../../utils/Raytrace';
 import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
