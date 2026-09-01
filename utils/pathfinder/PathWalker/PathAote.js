@@ -183,6 +183,7 @@ class PathAote {
 
     hasEnoughMana() {
         const mana = Utils.getCurrentMana();
+
         if (mana === null) {
             this.debug('mana unavailable');
             //return false;
