@@ -36,7 +36,7 @@ import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
-import { globalAssetsDir } from '../../utils/Constants';
+import { CLIENT_VERSION, globalAssetsDir } from '../../utils/Constants';
 import { getDiscordPfpPath } from '../../utils/NetworkUtils';
 
 const ASSETS_PATH = globalAssetsDir.getPath() + '/';
@@ -45,7 +45,6 @@ const THEME_ICON_PATH = ASSETS_PATH + 'colorpalette.svg';
 const SETTINGS_ICON_PATH = ASSETS_PATH + 'settings.svg';
 const DASHBOARD_ICON_PATH = ASSETS_PATH + 'dashboard.svg';
 const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
-const SCRIPT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
 const moduleNavLayouts = new WeakMap();
 const titleLayouts = new WeakMap();
 const BACK_TEXT = 'Back';
@@ -79,7 +78,7 @@ export const getDiscordPfpRect = () => {
 
 export const getVersionButtonRect = () => {
     const leftPanel = GuiRectangles.LeftPanel;
-    const width = getTextWidth(`V${SCRIPT_VERSION}`, FontSizes.TINY) + 8;
+    const width = getTextWidth(`V${CLIENT_VERSION}`, FontSizes.TINY) + 8;
     return {
         x: leftPanel.x + (leftPanel.width - width) / 2,
         y: leftPanel.y + leftPanel.height - 15,
@@ -541,7 +540,7 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     }
     const versionRect = getVersionButtonRect();
     drawCenteredText(
-        `V${SCRIPT_VERSION}`,
+        `V${CLIENT_VERSION}`,
         versionRect.x,
         versionRect.width,
         FontSizes.TINY,

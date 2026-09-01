@@ -4,7 +4,7 @@ import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, g
 import { chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Executor } from '../../utils/ThreadExecutor';
+import { executeAsync } from '../../utils/ThreadExecutor';
 import { Utils } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { clamp, drawMusicOverlay, getMusicOverlayBounds } from '../../gui/OverlayRenderers';
@@ -233,7 +233,7 @@ class Music extends ModuleBase {
         if (!isWindows || this.isDownloadingHelper) return;
         this.isDownloadingHelper = true;
 
-        Executor.execute(() => {
+        executeAsync(() => {
             try {
                 chat('&7WindowsMusicHelper.exe not found. Downloading...');
                 let lastUpdate = -25;

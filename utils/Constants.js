@@ -1,6 +1,6 @@
 export const MCHand = net.minecraft.world.InteractionHand;
 
-export const CLIENT_VERSION = '1.0.0';
+export const CLIENT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
 
 export const StandardCharsets = java.nio.charset.StandardCharsets;
 export const BufferedInputStream = java.io.BufferedInputStream;
@@ -36,7 +36,6 @@ export const SnowBlock = net.minecraft.world.level.block.SnowLayerBlock;
 export const ArmorStandEntity = net.minecraft.world.entity.decoration.ArmorStand;
 export const ZombieEntity = net.minecraft.world.entity.monster.zombie.Zombie;
 export const EndermanEntity = net.minecraft.world.entity.monster.EnderMan;
-export const BatEntity = net.minecraft.world.entity.ambient.Bat;
 export const PortalParticle = net.minecraft.client.particle.PortalParticle;
 export const CritParticle = net.minecraft.core.particles.ParticleTypes.CRIT;
 export const HappyVillagerParticle = net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER;

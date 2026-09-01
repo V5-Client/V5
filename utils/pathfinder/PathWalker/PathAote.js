@@ -10,7 +10,6 @@ import { isRecovering } from './PathMovement';
 class PathAote {
     constructor() {
         this.cooldownTicks = 0;
-        this.lastUsedPathPosition = null;
         this.MAX_AIM_YAW_ERROR = 12;
         this.FINAL_POINT_NO_AOTE_RADIUS = 18;
 
@@ -19,9 +18,7 @@ class PathAote {
         this.hasSwappedToAote = false;
 
         this.lastSkipReason = '';
-        this.lastSkipAt = 0;
         this.lastMissingItemAt = 0;
-        this.AOTE_RANGE = 14;
         this.AOTE_MIN_GAIN = 10;
         this.AOTE_STRAIGHTNESS_THRESHOLD = 25;
         this.MINIMUM_MANA_TO_USE = 100;
@@ -103,7 +100,6 @@ class PathAote {
         Jump.invalidateNearestIndex();
         rotations.onTeleportTriggered(candidate.targetPathPosition);
         this.cooldownTicks = 10;
-        this.lastUsedPathPosition = rotations.currentPathPosition;
 
         if (PathConfig.PATHFINDING_DEBUG) {
             chatPathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
@@ -456,9 +452,7 @@ class PathAote {
         if (restoreSlot) this.restoreOriginalSlot();
 
         this.cooldownTicks = 0;
-        this.lastUsedPathPosition = null;
         this.lastSkipReason = '';
-        this.lastSkipAt = 0;
         this.lastMissingItemAt = 0;
     }
 }

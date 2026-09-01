@@ -4,7 +4,7 @@ import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { clickItem, clickSlot, closeInventory, findFirstItem } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
-import { TabListUtils } from '../../../utils/TabListUtils';
+import { readVisitors } from '../../../utils/TabListUtils';
 import { Utils } from '../../../utils/Utils';
 import { farmingDelays } from '../FarmingDelays';
 import { rewarpSettings } from './RewarpSettings';
@@ -42,7 +42,7 @@ function parseRequiredItems(lore) {
 class VisitorMacro {
     start() {
         this.running = true;
-        this.visitors = TabListUtils.readVisitors();
+        this.visitors = readVisitors();
         if (!this.visitors.length) {
             chat('&eNo visitors found.');
             this.running = false;
@@ -92,7 +92,7 @@ class VisitorMacro {
     advanceToNextVisitor() {
         closeInventory();
         this.visitorIndex++;
-        this.visitors.push(...TabListUtils.readVisitors().filter((visitor) => !this.visitors.includes(visitor)));
+        this.visitors.push(...readVisitors().filter((visitor) => !this.visitors.includes(visitor)));
         this.firstSeek = true;
         this.declineCurrentVisitor = false;
         this.visitorStartedAt = Date.now();

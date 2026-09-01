@@ -40,7 +40,6 @@ class Finder {
         this.pathVariantSeed = 0;
         this.lastPathSignature = '';
         this.samePathSignatureCount = 0;
-        this.lastRecalculateReason = '';
 
         this.currentStarts = null;
         this.startCandidates = [];
@@ -380,7 +379,6 @@ class Finder {
     }
 
     recalculate(reason = 'generic') {
-        this.lastRecalculateReason = reason;
         if (!this.isFly) {
             const intensity = this.samePathSignatureCount >= 2 ? 2 : 1;
             this.pathVariantSeed += intensity;
@@ -1027,7 +1025,6 @@ class Finder {
             this.pathVariantSeed = 0;
             this.lastPathSignature = '';
             this.samePathSignatureCount = 0;
-            this.lastRecalculateReason = '';
             this.isFly = false;
         }
     }

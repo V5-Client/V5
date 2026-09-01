@@ -1,13 +1,12 @@
 import { chat } from './Chat';
 import { Blocks, BP } from './Constants';
-import { Flowstate } from './Flowstate';
-import { Executor } from './ThreadExecutor';
+import { getCurrentFlowstate } from './Flowstate';
+import { executeAsync } from './ThreadExecutor';
 import { Utils } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
 import { clickItems, clickSlot, closeInventory, findFirstItem, getGuiName, setItemSlot } from './player/Inventory';
 import { Rotations } from './player/Rotations';
-import { TabListUtils } from './TabListUtils';
 
 const BLOCK_HARDNESS_DATA = {
     'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
@@ -291,7 +290,7 @@ class MiningStatsCollector {
 
 const miningStatsCollector = new MiningStatsCollector();
 
-v5Command('mining stats', () => Executor.execute(() => miningStatsCollector.beginCollection()));
+v5Command('mining stats', () => executeAsync(() => miningStatsCollector.beginCollection()));
 
 class ToolFinder {
     static findBest() {
@@ -369,7 +368,7 @@ class SpeedCalculations {
             base = base + stats.professional;
         }
 
-        const flowBonus = Flowstate.CurrentFlowstate();
+        const flowBonus = getCurrentFlowstate();
         this.lastCalculated = base + flowBonus;
 
         return this.lastCalculated;
@@ -422,7 +421,7 @@ class MineTimeCalculations {
         let data = BLOCK_HARDNESS_DATA[blockName];
         let hardness = data ? data.hardness : 20000;
 
-        let effectiveSpeed = speed + Flowstate.CurrentFlowstate();
+        let effectiveSpeed = speed + getCurrentFlowstate();
 
         if (boosted) {
             let stats = this.collector.getStoredStats();
@@ -915,10 +914,6 @@ class ScoreboardDebuffReader {
 }
 
 class CommissionParser {
-    static parseTab() {
-        return TabListUtils.readCommissions();
-    }
-
     static parseGui(container, isKnownCommission) {
         try {
             if (!container) return [];
@@ -1016,71 +1011,26 @@ v5Command('mining refuel', () => {
     });
 });
 
-export const MiningUtils = {
-    getMiningSpeed: function (area) {
-        return speedCalc.getBaseSpeed(area);
-    },
-    getSpeedWithCold: function () {
-        return speedCalc.getSpeedWithColdPenalty();
-    },
-    getMineTime: function (pos, speed, boost) {
-        return timeCalc.calculateTicks(pos, speed, boost);
-    },
-    getBlockInfo: function (registryName) {
-        return lookupBlock(registryName);
-    },
-    refreshMiningStatsIfNeeded: function (callback = null) {
-        Executor.execute(() => {
-            const refreshed = miningStatsCollector.refreshIfNeeded();
-            if (callback) Client.scheduleTask(0, () => callback(refreshed));
-        });
-    },
-    getDrills: function () {
-        let bestTool = ToolFinder.findBest();
-        if (!bestTool) {
-            return { blueCheese: null, drill: null };
-        }
-        return {
-            blueCheese: bestTool.blueCheese ? bestTool : null,
-            drill: bestTool,
-        };
-    },
-    doRefueling: function (callback) {
-        refueler.refuel(callback);
-    },
-    MaxGreatExplorer: function (callback) {
-        explorer.upgrade(callback);
-    },
-    inCamp: function () {
-        return Player.getZ() > 185 && Utils.area() === 'Dwarven Mines';
-    },
-    getDebuff: function (type) {
-        return type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat();
-    },
-    GhostBlock: function (pos) {
-        BlockUtils.setToAir(pos);
-    },
-    readCommissions: function () {
-        return CommissionParser.parseTab();
-    },
-    readCommissionsFromGui: function (container, isKnownCommission) {
-        return CommissionParser.parseGui(container, isKnownCommission);
-    },
+export const getMiningSpeed = (area) => speedCalc.getBaseSpeed(area);
+export const getSpeedWithCold = () => speedCalc.getSpeedWithColdPenalty();
+export const getMineTime = (pos, speed, boost) => timeCalc.calculateTicks(pos, speed, boost);
+export const getBlockInfo = lookupBlock;
+export const refreshMiningStatsIfNeeded = (callback = null) =>
+    executeAsync(() => {
+        const refreshed = miningStatsCollector.refreshIfNeeded();
+        if (callback) Client.scheduleTask(0, () => callback(refreshed));
+    });
+export const getDrills = () => {
+    const drill = ToolFinder.findBest();
+    return { blueCheese: drill?.blueCheese ? drill : null, drill: drill || null };
 };
-
-export const getMiningSpeed = (...args) => MiningUtils.getMiningSpeed(...args);
-export const getSpeedWithCold = (...args) => MiningUtils.getSpeedWithCold(...args);
-export const getMineTime = (...args) => MiningUtils.getMineTime(...args);
-export const getBlockInfo = (...args) => MiningUtils.getBlockInfo(...args);
-export const refreshMiningStatsIfNeeded = (...args) => MiningUtils.refreshMiningStatsIfNeeded(...args);
-export const getDrills = (...args) => MiningUtils.getDrills(...args);
-export const refuel = (callback) => MiningUtils.doRefueling(callback);
-export const getDebuff = (...args) => MiningUtils.getDebuff(...args);
-export const setGhostBlock = (...args) => MiningUtils.GhostBlock(...args);
-export const readCommissionsFromGui = (...args) => MiningUtils.readCommissionsFromGui(...args);
+export const refuel = (callback) => refueler.refuel(callback);
+export const getDebuff = (type) => (type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat());
+export const setGhostBlock = (pos) => BlockUtils.setToAir(pos);
+export const readCommissionsFromGui = (container, isKnownCommission) => CommissionParser.parseGui(container, isKnownCommission);
 
 v5Command('mining maxge', () => {
-    MiningUtils.MaxGreatExplorer((success) => {
+    explorer.upgrade((success) => {
         if (success) {
             chat('Great Explorer upgrade completed');
         } else {

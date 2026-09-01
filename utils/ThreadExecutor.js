@@ -18,8 +18,6 @@ export function executeAsync(task) {
     });
 }
 
-export const Executor = { execute: executeAsync };
-
 const shutdownExecutor = () => service.shutdownNow();
 
 register('gameUnload', shutdownExecutor);

@@ -1,14 +1,12 @@
 export class Timer {
     constructor() {
         this.epoch = Date.now();
-        this.pausedAt = 0;
         this.delayTarget = 0;
         this.running = false;
     }
 
     setDelay(delay) {
         this.epoch = Date.now();
-        this.pausedAt = 0;
         this.delayTarget = delay;
         this.running = true;
     }
@@ -21,39 +19,12 @@ export class Timer {
         return this.running && this.hasPassed(this.delayTarget);
     }
 
-    getTime() {
-        return this.epoch;
-    }
-
-    setTime(newTime) {
-        this.epoch = newTime;
-    }
-
     hasPassed(duration) {
-        return this.getTimePassed() >= duration;
-    }
-
-    getTimePassed() {
-        return (this.pausedAt > 0 ? this.pausedAt : Date.now()) - this.epoch;
-    }
-
-    pause() {
-        if (this.pausedAt === 0) {
-            this.pausedAt = Date.now();
-        }
-    }
-
-    unpause() {
-        if (this.pausedAt > 0) {
-            const pauseDuration = Date.now() - this.pausedAt;
-            this.epoch += pauseDuration;
-            this.pausedAt = 0;
-        }
+        return Date.now() - this.epoch >= duration;
     }
 
     reset() {
         this.epoch = Date.now();
-        this.pausedAt = 0;
         this.running = false;
     }
 }

@@ -139,8 +139,4 @@ class BazaarUtil {
     }
 }
 
-const bazaar = new BazaarUtil();
-
-export const buyFromBazaar = (...args) => bazaar.buy(...args);
-export const cancelBazaarPurchase = () => bazaar.cancel();
-export const bazaarUtil = { buy: buyFromBazaar, cancel: cancelBazaarPurchase };
+export const bazaarUtil = new BazaarUtil();

@@ -4,22 +4,8 @@ const MIN_LOOK_POINT_SPACING_SQ = 0.8 ** 2;
 const MAX_GAP_DISTANCE = 12;
 const OUTWARD_OFFSET_STRENGTH = 1.2;
 
-let lastDataHash = null;
+let lastPath = null;
 let cachedLookPoints = [];
-
-const buildPathHash = (points, prefix = 'path', sampleCount = 6) => {
-    if (!points?.length) return `${prefix}-empty`;
-    const first = points[0];
-    const last = points[points.length - 1];
-    const components = [prefix, points.length, first.x, first.y, first.z, last.x, last.y, last.z];
-    const samples = Math.min(sampleCount, points.length - 2);
-    for (let i = 1; i <= samples; i++) {
-        const index = Math.floor((i * (points.length - 1)) / (samples + 1));
-        const point = points[index];
-        components.push(index, point.x, point.y, point.z);
-    }
-    return components.join('|');
-};
 
 export function generateSpline(nodes, tolerance = 10) {
     if (!nodes || nodes.length < 2) return [];
@@ -77,9 +63,8 @@ const appendLookPoint = (points, point) => {
 
 export function createLookPoints(path, minInterval = 1.2, maxInterval = 8) {
     if (!path || path.length < 2) return [];
-    const hash = buildPathHash(path, 'look');
-    if (hash === lastDataHash) return cachedLookPoints;
-    lastDataHash = hash;
+    if (path === lastPath) return cachedLookPoints;
+    lastPath = path;
 
     const points = [{ x: path[0].x, y: path[0].y + 2.62, z: path[0].z }];
     let lastPlaced = path[0];
@@ -155,5 +140,5 @@ export function drawFloatingSpline(path) {
 
 export function clearSplineCache() {
     cachedLookPoints = [];
-    lastDataHash = null;
+    lastPath = null;
 }

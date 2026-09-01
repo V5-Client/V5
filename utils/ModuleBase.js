@@ -2,16 +2,7 @@ import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { chat } from './Chat';
-import {
-    getActiveMacro,
-    getModule,
-    getStartTime,
-    isMacroRunning,
-    markEnabledModulesChanged,
-    onModuleDisabled,
-    onModuleEnabled,
-    registerModule,
-} from './MacroState';
+import { getModule, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
@@ -232,30 +223,6 @@ export class ModuleBase {
         chat(`${theme}${this.name}: &f${message}`);
     }
 
-    /**
-     * Check if any macro is currently running
-     * @returns {boolean}
-     */
-    isAnyMacroRunning() {
-        return isMacroRunning();
-    }
-
-    /**
-     * Get the name of the currently active macro
-     * @returns {string|null}
-     */
-    getActiveMacroName() {
-        return getActiveMacro();
-    }
-
-    /**
-     * Get the start time of the current macro session
-     * @returns {number}
-     */
-    getMacroStartTime() {
-        return getStartTime();
-    }
-
     bindToggleKey(title = `Toggle ${this.name}`) {
         const existingKeybinds = getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
@@ -438,18 +405,6 @@ export class ModuleBase {
     }
 
     /**
-     * Add a color picker directly to the Settings page
-     * @param {string} title - The title of the color picker
-     * @param {object} defaultColor - Default color (java.awt.Color)
-     * @param {function} callback - Callback function when color changes
-     * @param {string} [description=null] - Description/tooltip for the color picker
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectColorPicker(title, defaultColor, callback, description = null, sectionName = null) {
-        return Categories.addSettingsColorPicker(title, defaultColor, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a text input to the module's GUI
      * @param {string} title - The title of the text input
      * @param {string} defaultValue - Default text
@@ -458,18 +413,6 @@ export class ModuleBase {
      */
     addTextInput(title, defaultValue, callback, description = null) {
         return Categories.addTextInput('Modules', this.name, title, defaultValue, callback, description);
-    }
-
-    /**
-     * Add a text input directly to the Settings page
-     * @param {string} title - The title of the text input
-     * @param {string} defaultValue - Default text
-     * @param {function} callback - Callback function when text changes
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectTextInput(title, defaultValue, callback, description = null, sectionName = null) {
-        return Categories.addSettingsTextInput(title, defaultValue, callback, description, sectionName, 'Settings');
     }
 
     /**
@@ -483,17 +426,6 @@ export class ModuleBase {
     }
 
     /**
-     * Add a button directly to the Settings page
-     * @param {string} title - The title of the button
-     * @param {function} callback - Callback function when button is pressed
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectButton(title, callback, description = null, sectionName = null) {
-        return Categories.addSettingsButton(title, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a popup to the module's GUI
      * @param {string} title - The title of the popup
      * @param {function} callback - Callback function when popup opens/closes
@@ -504,31 +436,12 @@ export class ModuleBase {
     }
 
     /**
-     * Add a popup directly to the Settings page
-     * @param {string} title - The title of the popup
-     * @param {function} callback - Callback function when popup opens/closes
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectPopup(title, callback, description = null, sectionName = null) {
-        return Categories.addSettingsPopup(title, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a separator to the module's GUI
      * @param {string} title - The title of the separator
      * @param {boolean} [fullWidth=false] - Whether the separator spans the full panel width
      */
     addSeparator(title, fullWidth = false) {
         return Categories.addSeparator('Modules', this.name, title, fullWidth);
-    }
-
-    /**
-     * Add a separator directly to the Settings page
-     * @param {string} title - The title of the separator
-     */
-    addDirectSeparator(title) {
-        return Categories.addSettingsSeparator(title, 'Settings');
     }
 
     // Allow for overriding onEnable and onDisable if you need more control

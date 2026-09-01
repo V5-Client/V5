@@ -130,5 +130,3 @@ export function getPestCooldown() {
     }
     return 0;
 }
-
-export const TabListUtils = { readCommissions, readVisitors };

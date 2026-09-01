@@ -57,4 +57,3 @@ register('step', () => {
 }).setFps(1);
 
 export const getCurrentFlowstate = () => Math.min(600, blocksBroken);
-export const Flowstate = { CurrentFlowstate: getCurrentFlowstate };

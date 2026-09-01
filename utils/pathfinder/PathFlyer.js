@@ -1,6 +1,6 @@
 import { calculateAbsoluteAngles, getAngleDifference, wrapTo180 } from '../Math';
+import { applyToPlayer } from '../player/RotationGCD';
 import { onPathStep, onPathTick } from './PathExecutor';
-import { PathRotationsUtility } from './PathWalker/PathRotationsUtility';
 
 class SimulationPathFlyer {
     constructor() {
@@ -420,7 +420,7 @@ class SimulationPathFlyer {
         const pitchStep = Math.max(-pitchLimit, Math.min(pitchLimit, (this.targetPitch - this.currentPitch) * smoothing));
         this.currentYaw = wrapTo180(this.currentYaw + yawStep);
         this.currentPitch = Math.max(-90, Math.min(90, this.currentPitch + pitchStep));
-        const applied = PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
+        const applied = applyToPlayer(this.currentYaw, this.currentPitch);
         if (applied) {
             this.currentYaw = applied.yaw;
             this.currentPitch = applied.pitch;

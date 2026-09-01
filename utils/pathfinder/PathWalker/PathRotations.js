@@ -2,10 +2,10 @@ import { BP, Vec3d } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 import { calculateAbsoluteAngles, getAngleDifference, wrapTo180 } from '../../Math';
+import { applyToPlayer } from '../../player/RotationGCD';
 import { onPathTick } from '../PathExecutor';
 import { createLookPoints } from '../PathSpline';
 import { predictXZ } from './PathPrediction';
-import { PathRotationsUtility } from './PathRotationsUtility';
 
 class PathRotations {
     constructor() {
@@ -54,7 +54,7 @@ class PathRotations {
             this.lastRotationUpdate = now;
             this.updateLookPoint(timeScale);
             this.applyHumanizedPhysics(timeScale);
-            PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
+            applyToPlayer(this.currentYaw, this.currentPitch);
         });
 
         onPathTick(() => {
@@ -97,7 +97,6 @@ class PathRotations {
         this.entityTrackDistance = this.ENTITY_TRACK_DISTANCE;
         this.entityBlend = 0;
         this.lastEntityLookPoint = null;
-        PathRotationsUtility.stopRotation();
     }
 
     onTeleportTriggered(targetPathPosition = null) {
