@@ -1,2 +1,0 @@
-- More pest options (flight killer, disco)
-- Profit calc

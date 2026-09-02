@@ -5,7 +5,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
+import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import { destroyPathExecutor } from '../../utils/pathfinder/PathExecutor';
 import { angleToPlayer, fastDistance, formatRoundedNumber } from '../../utils/Math';
 import { area } from '../../utils/Utils';
@@ -483,7 +483,7 @@ class PeltMacro extends ModuleBase {
     stopPathing() {
         this.mobPathActive = false;
         this.mobPathToken++;
-        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
         destroyPathExecutor();
     }
@@ -495,7 +495,7 @@ class PeltMacro extends ModuleBase {
     }
 
     prepareForTravel() {
-        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
         destroyPathExecutor();
         this.cancelRestartSequence();
@@ -551,7 +551,7 @@ class PeltMacro extends ModuleBase {
                     this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
                     return true;
                 }
-                const started = EtherwarpPathfinder.findPath(goal, {
+                const started = FastEtherwarp.findPath(goal, {
                     silent: true,
                     restoreSlot: true,
                     onSuccess: () => {
@@ -790,7 +790,7 @@ class PeltMacro extends ModuleBase {
 
     /**
      * Resolves a PathManager-valid etherwarp landing near the anchor (see RatMacro / getEtherwarpLandingCandidates).
-     * Sort origin uses the player's support block when available so the native finder matches EtherwarpPathfinder start.
+     * Sort origin uses the player's support block when available so the native finder matches FastEtherwarp start.
      * Picks the first candidate (native order) with valid LOS; one raycast per candidate until one passes.
      */
     resolveEtherwarpLandingGoal(anchorX, anchorY, anchorZ, options = {}) {
@@ -802,7 +802,7 @@ class PeltMacro extends ModuleBase {
         const az = Math.floor(Number(anchorZ));
         if (![ax, ay, az].every(Number.isFinite)) return null;
 
-        const support = EtherwarpPathfinder.getPlayerSupportBlock();
+        const support = FastEtherwarp.getPlayerSupportBlock();
         const sortOrigin = support || {
             x: Math.floor(Player.getX()),
             y: Math.floor(Player.getY()),
@@ -841,7 +841,7 @@ class PeltMacro extends ModuleBase {
     }
 
     resetAreaTravelState() {
-        if (this.areaTravelState) EtherwarpPathfinder.cancel(true);
+        if (this.areaTravelState) FastEtherwarp.cancel(true);
         this.areaTravelState = null;
         this.areaTravelToken++;
         this.areaPathRequestToken++;
@@ -883,7 +883,7 @@ class PeltMacro extends ModuleBase {
     trackCurrentMob(mobId) {
         if (this.currentMobId !== mobId) {
             this.resetEtherwarpLandingBlacklist();
-            if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+            if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
             this.resetAreaTravelState();
             this.currentMobId = mobId;
             this.mobShots = 0;
@@ -984,7 +984,7 @@ class PeltMacro extends ModuleBase {
         if (this.useEtherwarpPathfinder) {
             const etherGoal = this.resolvePeltMobEtherwarpGoal(mob);
             if (etherGoal) {
-                const started = EtherwarpPathfinder.findPath(etherGoal, {
+                const started = FastEtherwarp.findPath(etherGoal, {
                     silent: true,
                     restoreSlot: true,
                     onSuccess: () => {
@@ -1026,12 +1026,12 @@ class PeltMacro extends ModuleBase {
 
         this.mobRepositionUntil = 0;
         this.mobShots = 0;
-        if (this.mobPathActive || Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) this.stopPathing();
+        if (this.mobPathActive || Pathfinder.isPathing() || FastEtherwarp.isPathing()) this.stopPathing();
         return false;
     }
 
     handleVisibleMob(entity) {
-        if (Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) {
+        if (Pathfinder.isPathing() || FastEtherwarp.isPathing()) {
             this.stopPathing();
         }
 

@@ -2,7 +2,7 @@ import { OverlayManager } from '../../gui/OverlayUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getModuleElapsedMs } from '../../utils/MacroState';
 import { closestDirection, createBlockPosition, isBlockInRange, sendBreakPackets } from '../../utils/NukerUtils';
-import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
+import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { executeAsync } from '../../utils/ThreadExecutor';
 import { getCurrentMana } from '../../utils/Utils';
@@ -63,7 +63,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         if (mana !== null && mana < 100) return this.rewarp();
 
         this.refreshTargets();
-        if (this.pathing || EtherwarpPathfinder.isPathing()) return;
+        if (this.pathing || FastEtherwarp.isPathing()) return;
 
         const now = Date.now();
         const targets = this.targets.filter((target) => (this.blacklistedTargets.get(this.key(target)) || 0) <= now);
@@ -89,7 +89,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
 
         const token = ++this.pathToken;
         this.status = 'Pathing';
-        const started = EtherwarpPathfinder.findPath(target, {
+        const started = FastEtherwarp.findPath(target, {
             goalRadius: 5,
             silent: true,
             onSuccess: () => {
@@ -154,7 +154,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.targets = [];
         this.scanActive = false;
         this.lastScanAt = 0;
-        if (this.pathing && EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (this.pathing && FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         this.pathing = false;
 
         const token = ++this.rewarpToken;
@@ -186,7 +186,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.pathToken++;
         this.rewarpToken++;
         this.scanToken++;
-        if (this.pathing && EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (this.pathing && FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         this.pathing = false;
         this.rewarping = false;
         this.waitingForGalateaWorld = false;

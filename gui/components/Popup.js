@@ -49,11 +49,6 @@ export class Popup {
         this.button = new Button(title, x, y, openText, () => this.toggleOpen(undefined, false));
     }
 
-    setStatus(text) {
-        const next = text !== null && text !== undefined ? String(text) : null;
-        this.statusText = next && next.trim().length > 0 ? next : null;
-    }
-
     addComponent(component) {
         this.components.push(component);
         return component;

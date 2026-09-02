@@ -5,7 +5,7 @@ import { chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { executeAsync } from '../../utils/ThreadExecutor';
-import { Utils } from '../../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { clamp, drawMusicOverlay, getMusicOverlayBounds } from '../../gui/OverlayRenderers';
 
@@ -24,7 +24,7 @@ class Music extends ModuleBase {
         this.lastDataReceivedAt = 0;
         this.lastRestartAttempt = 0;
 
-        this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
+        this.positionConfig = getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
         const savedY = typeof this.positionConfig.y === 'number' ? this.positionConfig.y : 100;
         const savedScale = typeof this.positionConfig.scale === 'number' ? this.positionConfig.scale : 1.0;
@@ -130,7 +130,7 @@ class Music extends ModuleBase {
             enabled: this.overlayEnabled,
         };
         if (OverlayManager && OverlayManager.musicSettings) Object.assign(OverlayManager.musicSettings, this.positionConfig);
-        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
+        writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
     }
 
     syncFromOverlayEditor() {
@@ -247,7 +247,7 @@ class Music extends ModuleBase {
                 console.error(`[Music] Download error: ${e}`);
                 try {
                     if (this.exePath.exists() && this.exePath.length() <= 0) this.exePath.delete();
-                } catch {}
+                } catch (e) {}
             } finally {
                 this.isDownloadingHelper = false;
             }

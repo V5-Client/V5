@@ -11,9 +11,6 @@ export class Failsafe {
         this._registerListeners();
     }
 
-    shouldTrigger() {
-        return true;
-    }
     isActive() {
         return isFailsafeMacroRunning();
     }

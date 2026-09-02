@@ -1,7 +1,7 @@
 import { chat } from '../../utils/Chat';
 import { File } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 
 const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/Gifs');
 if (!GIF_SOURCE_DIR.exists()) GIF_SOURCE_DIR.mkdirs();
@@ -218,7 +218,7 @@ class GIFOverlay extends ModuleBase {
         });
 
         this.instances = [];
-        this.positionConfig = Utils.getConfigFile('Gifs/gif_positions.json') || {};
+        this.positionConfig = getConfigFile('Gifs/gif_positions.json') || {};
         this.renderOverEverything = true;
 
         const gifFiles = this.getGifFiles();
@@ -334,7 +334,7 @@ class GIFOverlay extends ModuleBase {
         const merged = { ...this.positionConfig, ...data };
         this.positionConfig = merged;
 
-        Utils.writeConfigFile('Gifs/gif_positions.json', merged);
+        writeConfigFile('Gifs/gif_positions.json', merged);
     }
 
     resetAll() {

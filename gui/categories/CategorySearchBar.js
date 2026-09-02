@@ -297,13 +297,6 @@ export const SearchBar = {
         return true;
     },
 
-    updateHoverBlock(panel, y) {
-        if (!panel) return;
-        const currentWidth = this.animatedWidth;
-        const x = this.getX(panel, currentWidth);
-        this.hoverBlockRect = { x, y, width: currentWidth, height: this.height };
-    },
-
     isHoverBlocked(mouseX, mouseY) {
         if (!this.hoverBlockRect) return false;
         return isInside(mouseX, mouseY, this.hoverBlockRect);
@@ -328,9 +321,5 @@ export const SearchBar = {
         this.animatedWidth = this.collapsedWidth;
         this.cursorIndex = 0;
         this.query = '';
-    },
-
-    getSearchQuery() {
-        return this.query.toLowerCase().trim();
     },
 };

@@ -3,9 +3,7 @@ import { File } from './Constants';
 import { getConfigFile, writeConfigFile } from './Utils';
 
 function toDisplayFileName(filePath) {
-    if (!filePath || typeof filePath !== 'string') return 'unknown';
-    const lastSlashIndex = filePath.lastIndexOf('/');
-    return lastSlashIndex === -1 ? filePath : filePath.substring(lastSlashIndex + 1);
+    return typeof filePath === 'string' ? filePath.split('/').pop() || 'unknown' : 'unknown';
 }
 
 function normalizeRoute(rawRoute) {
@@ -53,22 +51,11 @@ export function getFilesInDir(folder) {
     }
 
     const fileArray = configPath.listFiles();
-    const fileNames = [];
-
     if (!fileArray) return [];
-
-    for (const file of fileArray) {
-        if (!file || !file.isFile()) continue;
-
-        let name = file.getName();
-        if (!name.endsWith('.json')) continue;
-        name = name.substring(0, name.length - 5);
-
-        fileNames.push(name);
-    }
-
-    fileNames.sort((a, b) => a.localeCompare(b));
-    return fileNames;
+    return Array.from(fileArray)
+        .filter((file) => file?.isFile() && file.getName().endsWith('.json'))
+        .map((file) => file.getName().slice(0, -5))
+        .sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -198,31 +185,21 @@ export function editRoute(action, route, file, indexNum, takeMovementTypes = fal
             break;
 
         case 'REMOVE':
-            if (indexToUse !== undefined) {
-                let arrayIndex = indexToUse - 1;
-
-                if (arrayIndex >= 0 && arrayIndex < normalizedRoute.length) {
-                    normalizedRoute.splice(arrayIndex, 1);
-                    routeModified = true;
-                    chat(`Removed waypoint ${indexToUse}`);
-                } else {
-                    if (normalizedRoute.length > 0) {
-                        normalizedRoute.pop();
-                        routeModified = true;
-                        chat(`Invalid waypoint position, removing the last waypoint.`);
-                    } else {
-                        chat('Route is already empty!');
-                    }
-                }
-            } else {
-                if (normalizedRoute.length > 0) {
-                    normalizedRoute.pop();
-                    routeModified = true;
-                    chat(`Removed the last waypoint.`);
-                } else {
-                    chat('Route is already empty!');
-                }
+            if (!normalizedRoute.length) {
+                chat('Route is already empty!');
+                break;
             }
+            const hasValidIndex = indexToUse !== undefined && indexToUse <= normalizedRoute.length;
+            const removeIndex = hasValidIndex ? indexToUse - 1 : normalizedRoute.length - 1;
+            normalizedRoute.splice(removeIndex, 1);
+            routeModified = true;
+            chat(
+                hasValidIndex
+                    ? `Removed waypoint ${indexToUse}`
+                    : indexToUse
+                      ? 'Invalid waypoint position, removing the last waypoint.'
+                      : 'Removed the last waypoint.'
+            );
             break;
 
         case 'CLEAR':

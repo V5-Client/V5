@@ -141,8 +141,6 @@ export function getGardenPestStatus() {
 
 export const getCurrentMana = () => currentMana;
 
-export const Utils = { area, convertToVector, getConfigFile, randomInt, writeConfigFile };
-
 register('worldLoad', () => (currentMana = null));
 register('packetReceived', (packet) => {
     if (!packet?.overlay?.()) return;

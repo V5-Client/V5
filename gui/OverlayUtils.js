@@ -1,6 +1,5 @@
-import { formatDurationMs, formatUptime } from '../utils/TimeUtils';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
-import { clamp, colorWithAlpha, drawRoundedRectangle, isInside, PADDING, THEME } from './Utils';
+import { BORDER_WIDTH, clamp, colorWithAlpha, CORNER_RADIUS, drawRoundedRectangle, drawText, FontSizes, getTextWidth, isInside, PADDING, THEME } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
 import { loadSettings } from './GuiSave';
 import {
@@ -210,17 +209,6 @@ class OverlayUtils {
         this.resetTime(idName, false);
     }
 
-    deleteID(idName) {
-        this.ids = this.ids.filter((id) => id.name !== idName);
-        delete this.animations[idName];
-        delete this.startTimes[idName];
-        delete this.savedSessions[idName];
-        delete this.sessionTrackedDefaults[idName];
-        delete this.sessionTrackedValues[idName];
-        this.updateRenderActive();
-        this.saveSettings();
-    }
-
     resetAll() {
         this.ids = [];
         this.animations = {};
@@ -237,14 +225,6 @@ class OverlayUtils {
             this.stepTrigger.unregister();
             this.stepTrigger = null;
         }
-    }
-
-    getMacroDuration(macroName) {
-        const saved = this.savedSessions && this.savedSessions[macroName];
-        if (saved && typeof saved.elapsedMs === 'number') return formatDurationMs(saved.elapsedMs);
-
-        const startTime = this.startTimes && this.startTimes[macroName];
-        return startTime ? formatUptime(startTime) : '';
     }
 
     initTriggers() {
@@ -330,20 +310,6 @@ class OverlayUtils {
     incrementTrackedValue(idName, key, amount = 1) {
         const current = Number(this.getTrackedValue(idName, key, 0)) || 0;
         return this.setTrackedValue(idName, key, current + amount);
-    }
-
-    getSessionElapsedMs(idName) {
-        const startedAt = this.startTimes[idName];
-        if (startedAt !== undefined) {
-            return Math.max(0, Date.now() - startedAt);
-        }
-
-        const saved = this.savedSessions[idName];
-        if (saved && saved.elapsedMs !== undefined) {
-            return Math.max(0, saved.elapsedMs);
-        }
-
-        return 0;
     }
 
     getExampleOverlay() {
@@ -552,24 +518,6 @@ class OverlayUtils {
             x: Math.max(border, Math.min(x, sw - w - border)),
             y: Math.max(border, Math.min(y, sh - h - border)),
         };
-    }
-
-    drawAccentGlow(x, y, width, height, radius, progress, accentOverride = null) {
-        const accentColor = accentOverride || THEME.ACCENT;
-        const glowIntensity = 0.12;
-        for (let i = 2; i >= 0; i--) {
-            const expand = i * 2;
-            const alpha = (glowIntensity - i * 0.025) * progress;
-            if (alpha <= 0) continue;
-            drawRoundedRectangle({
-                x: x - expand,
-                y: y - expand,
-                width: width + expand * 2,
-                height: height + expand * 2,
-                radius: radius + expand,
-                color: colorWithAlpha(accentColor, alpha),
-            });
-        }
     }
 
     drawSectionDivider(x, y, width, progress, accentOverride = null) {
@@ -1012,10 +960,6 @@ class OverlayUtils {
             totalTime: '--:--',
         });
         return overlay;
-    }
-
-    getHudStatsLines() {
-        return getStatsHudLines();
     }
 
     openPositionsGUI() {

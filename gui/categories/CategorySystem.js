@@ -197,10 +197,6 @@ export const Categories = {
         return component;
     },
 
-    addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
-        Categories.attachSettingsComponent(component, sectionName, categoryName);
-    },
-
     addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null, categoryName = 'Settings') {
         return Categories.attachSettingsComponent(
             new ToggleButton(title, 0, 0, undefined, undefined, callback, defaultValue),
@@ -261,19 +257,6 @@ export const Categories = {
 
     addSettingsButton(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
         return Categories.attachSettingsComponent(new Button(title, 0, 0, undefined, callback), sectionName, categoryName, description);
-    },
-
-    addSettingsPopup(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        return Categories.attachSettingsComponent(new Popup(title, 0, 0, undefined, undefined, callback), sectionName, categoryName, description);
-    },
-
-    addSettingsSeparator(title, categoryName = 'Settings') {
-        return Categories.attachSettingsComponent(new Separator(title), null, categoryName);
-    },
-
-    getSettingsComponents(categoryName = 'Settings') {
-        const settingsCat = Categories.categories.find((c) => c.name === categoryName);
-        return settingsCat?.directComponents || [];
     },
 };
 

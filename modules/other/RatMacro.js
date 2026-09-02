@@ -6,7 +6,7 @@ import { MCHand } from '../../utils/Constants';
 import { finiteNumber, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
-import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
+import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import { clickSlot, closeInventory, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -239,7 +239,7 @@ class RatMacro extends ModuleBase {
             return;
         }
 
-        if (this.currentPathMode === PATH_MODES.RAT && EtherwarpPathfinder.isPathing()) {
+        if (this.currentPathMode === PATH_MODES.RAT && FastEtherwarp.isPathing()) {
             this.setState(STATES.PATHING, `actively pathing to ${this.formatRatRef()}`);
             return;
         }
@@ -308,7 +308,7 @@ class RatMacro extends ModuleBase {
         this.currentPathMode = PATH_MODES.RAT;
         this.setState(STATES.PATHING, `pathing to rat ${this.formatRatRef()}`);
 
-        const started = EtherwarpPathfinder.findPath(goal, {
+        const started = FastEtherwarp.findPath(goal, {
             silent: !PathConfig.PATHFINDING_DEBUG,
             restoreSlot: true,
             onSuccess: (resolvedGoal) => {
@@ -715,7 +715,7 @@ class RatMacro extends ModuleBase {
     }
 
     getPathSortOrigin() {
-        return EtherwarpPathfinder.getPlayerSupportBlock() || { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+        return FastEtherwarp.getPlayerSupportBlock() || { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
     }
 
     resolveNearestLandingGoal(anchor, options = {}) {
@@ -1051,7 +1051,7 @@ class RatMacro extends ModuleBase {
     }
 
     startVipSwapPath() {
-        if (this.currentPathMode === PATH_MODES.VIP && EtherwarpPathfinder.isPathing()) return;
+        if (this.currentPathMode === PATH_MODES.VIP && FastEtherwarp.isPathing()) return;
 
         this.cancelPathing();
         const goal = VIP_SWAP_PATH_GOAL;
@@ -1061,7 +1061,7 @@ class RatMacro extends ModuleBase {
         this.debug(`starting VIP path toward &b${this.formatPosition(goal)}`);
         this.setState('Etherwarping to VIP NPC', 'pathing to VIP selector NPC');
 
-        const started = EtherwarpPathfinder.findPath(goal, {
+        const started = FastEtherwarp.findPath(goal, {
             silent: !PathConfig.PATHFINDING_DEBUG,
             restoreSlot: true,
             onSuccess: () => {
@@ -1087,15 +1087,15 @@ class RatMacro extends ModuleBase {
     }
 
     cancelRatPathState() {
-        if (this.currentPathMode === PATH_MODES.RAT || EtherwarpPathfinder.isPathing()) {
-            EtherwarpPathfinder.cancel(true);
+        if (this.currentPathMode === PATH_MODES.RAT || FastEtherwarp.isPathing()) {
+            FastEtherwarp.cancel(true);
         }
         this.currentPathRequestToken++;
         this.currentPathMode = PATH_MODES.NONE;
     }
 
     cancelPathing() {
-        EtherwarpPathfinder.cancel(true);
+        FastEtherwarp.cancel(true);
         this.currentPathRequestToken++;
         this.currentPathMode = PATH_MODES.NONE;
     }

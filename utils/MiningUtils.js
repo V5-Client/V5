@@ -2,7 +2,7 @@ import { chat } from './Chat';
 import { Blocks, BP } from './Constants';
 import { getCurrentFlowstate } from './Flowstate';
 import { executeAsync } from './ThreadExecutor';
-import { Utils } from './Utils';
+import { area as getArea, convertToVector, getConfigFile, writeConfigFile } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
 import { clickItems, clickSlot, closeInventory, findFirstItem, getGuiName, setItemSlot } from './player/Inventory';
@@ -70,7 +70,7 @@ const TOOL_PRIORITY_LIST = [
 
 class MiningStatsCollector {
     constructor() {
-        this.stats = Utils.getConfigFile('miningstats.json') || {};
+        this.stats = getConfigFile('miningstats.json') || {};
         this.isCollecting = false;
         this.checkedThisSession = false;
         this.statsFile = 'miningstats.json';
@@ -228,7 +228,7 @@ class MiningStatsCollector {
             maxge: this.collectedData.maxge || false,
         };
 
-        Utils.writeConfigFile(this.statsFile, finalStats);
+        writeConfigFile(this.statsFile, finalStats);
         this.stats = finalStats;
         this.checkedThisSession = true;
 
@@ -361,7 +361,7 @@ class SpeedCalculations {
             return null;
         }
 
-        let targetArea = area || Utils.area();
+        let targetArea = area || getArea();
         let base = stats.speed;
 
         if (targetArea === 'Crystal Hollows' && stats.professional) {
@@ -400,7 +400,7 @@ class MineTimeCalculations {
             return this.clamp(100);
         }
 
-        const vec = Utils.convertToVector(position);
+        const vec = convertToVector(position);
         const x = vec?.x();
         const y = vec?.y();
         const z = vec?.z();
@@ -980,7 +980,7 @@ class BlockUtils {
     static setToAir(pos) {
         if (!pos) return;
         try {
-            const vec = Utils.convertToVector(pos);
+            const vec = convertToVector(pos);
             const x = vec?.x();
             const y = vec?.y();
             const z = vec?.z();

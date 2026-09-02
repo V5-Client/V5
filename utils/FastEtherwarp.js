@@ -613,4 +613,3 @@ class EtherwarpPathHandler {
 }
 
 export const FastEtherwarp = new EtherwarpPathHandler();
-export const EtherwarpPathfinder = FastEtherwarp;

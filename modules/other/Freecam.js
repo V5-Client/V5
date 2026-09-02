@@ -118,26 +118,24 @@ class Freecam extends ModuleBase {
         let moveY = 0;
         let moveZ = 0;
 
-        const forwardX = -Math.sin(yaw);
-        const forwardZ = Math.cos(yaw);
-        const leftX = Math.cos(yaw);
-        const leftZ = Math.sin(yaw);
+        const sinYaw = Math.sin(yaw);
+        const cosYaw = Math.cos(yaw);
 
         if (this.isKeyDown(options.keyUp)) {
-            moveX += forwardX;
-            moveZ += forwardZ;
+            moveX -= sinYaw;
+            moveZ += cosYaw;
         }
         if (this.isKeyDown(options.keyDown)) {
-            moveX -= forwardX;
-            moveZ -= forwardZ;
+            moveX += sinYaw;
+            moveZ -= cosYaw;
         }
         if (this.isKeyDown(options.keyLeft)) {
-            moveX += leftX;
-            moveZ += leftZ;
+            moveX += cosYaw;
+            moveZ += sinYaw;
         }
         if (this.isKeyDown(options.keyRight)) {
-            moveX -= leftX;
-            moveZ -= leftZ;
+            moveX -= cosYaw;
+            moveZ -= sinYaw;
         }
         if (this.isKeyDown(options.keyJump)) moveY += 1;
         if (this.isKeyDown(options.keyShift)) moveY -= 1;

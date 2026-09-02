@@ -1,7 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { fastDistance } from '../../utils/Math';
 import { getTabListNames, stripTabFormatting } from '../../utils/TabListUtils';
-import { Utils } from '../../utils/Utils';
+import { randomInt } from '../../utils/Utils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
@@ -366,7 +366,7 @@ class AutoForge extends ModuleBase {
     }
 
     delay() {
-        this.nextActionAt = Date.now() + Utils.randomInt(this.minDelay, this.maxDelay);
+        this.nextActionAt = Date.now() + randomInt(this.minDelay, this.maxDelay);
     }
 
     canAct() {

@@ -133,8 +133,7 @@ class ExcavatorMacro extends ModuleBase {
                     }
 
                     if (brownSlots.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * brownSlots.length);
-                        const randomBrownSlot = brownSlots[randomIndex];
+                        const randomBrownSlot = brownSlots[Math.floor(Math.random() * brownSlots.length)];
 
                         if (!this.clickDelay()) return;
 
