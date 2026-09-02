@@ -144,14 +144,9 @@ export class FarmingMacro extends ModuleBase {
                 return this.beginRewarp(returnPoint, true);
             }
         }
-
-        // if we're not looping, and we're at rewarp point
         if (!looping && this.isAtPoint(player, this.points.end)) {
             return this.beginRewarp(this.points.start, rewarpSettings.pestKiller && Utils.getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold);
         }
-
-        // if we're looping and hsould run bar ntasks.
-        // dont carea bout this case
         if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
