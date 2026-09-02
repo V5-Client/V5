@@ -1,5 +1,19 @@
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
-import { BORDER_WIDTH, clamp, colorWithAlpha, CORNER_RADIUS, drawRoundedRectangle, drawText, FontSizes, getTextWidth, isInside, PADDING, THEME } from './Utils';
+import { formatUptime } from '../utils/TimeUtils';
+import {
+    BORDER_WIDTH,
+    clamp,
+    colorWithAlpha,
+    CORNER_RADIUS,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    drawText,
+    FontSizes,
+    getTextWidth,
+    isInside,
+    PADDING,
+    THEME,
+} from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
 import { loadSettings } from './GuiSave';
 import {

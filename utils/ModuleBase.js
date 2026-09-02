@@ -2,7 +2,7 @@ import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { chat } from './Chat';
-import { getModule, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
+import { getModule, isMacroRunning, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
