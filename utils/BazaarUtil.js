@@ -1,6 +1,5 @@
 import { clickSlot, closeInventory, getGuiName } from './player/Inventory';
 import { setSignLine } from './Sign';
-import { randomInt } from './Utils';
 import { farmingDelays } from '../modules/farming/FarmingDelays';
 
 const TIMEOUT = 10_000;
@@ -123,7 +122,7 @@ class BazaarUtil {
             .toLowerCase();
     }
 
-    setState(state, delay = randomInt(farmingDelays.bazaarActionDelayMin, farmingDelays.bazaarActionDelayMax)) {
+    setState(state, delay = farmingDelays.random('bazaarAction')) {
         this.state = state;
         this.deadline = Date.now() + TIMEOUT;
         this.waitUntil = Date.now() + delay;

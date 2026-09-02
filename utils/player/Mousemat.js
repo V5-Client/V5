@@ -1,6 +1,5 @@
 import { ScheduleTask } from '../ScheduleTask';
 import { setSignLine } from '../Sign';
-import { randomInt } from '../Utils';
 import { findItemInHotbar, setItemSlot } from './Inventory';
 import { farmingDelays } from '../../modules/farming/FarmingDelays';
 
@@ -90,7 +89,7 @@ class MousematController {
     }
 
     getActionDelay() {
-        return randomInt(farmingDelays.mousematActionDelayMin, farmingDelays.mousematActionDelayMax);
+        return farmingDelays.ticks('mousematAction');
     }
 
     complete(rotation) {

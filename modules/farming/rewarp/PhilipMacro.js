@@ -2,7 +2,6 @@ import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { clickItem, closeInventory } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
-import { randomInt } from '../../../utils/Utils';
 import { farmingDelays } from '../FarmingDelays';
 
 const STATES = {
@@ -129,7 +128,7 @@ class PhilipMacro {
 
     retry() {
         Client.stopMovement();
-        this.transition(STATES.SEEKING, randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax));
+        this.transition(STATES.SEEKING, farmingDelays.random('visitorRetry'));
     }
 
     stop() {

@@ -2,7 +2,6 @@ import { autoSell } from './AutoSell';
 import { philipMacro } from './PhilipMacro';
 import { visitorMacro } from './VisitorMacro';
 import { rewarpSettings } from './RewarpSettings';
-import { randomInt } from '../../../utils/Utils';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { pestKiller } from './PestKiller';
 import { loadoutHandler } from '../LoadoutHandler';
@@ -47,7 +46,7 @@ class RewarpHandler {
         const hasBarnTasks = this.tasks.length > 0;
         if (runPestKiller) this.tasks.push(pestKiller, autoSell);
         this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
-        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + randomInt(farmingDelays.rewarpDelayMin, farmingDelays.rewarpDelayMax);
+        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + farmingDelays.random('rewarp');
     }
 
     stop() {

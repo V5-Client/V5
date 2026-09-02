@@ -80,8 +80,8 @@ class OreRotationController {
 
         const currentYaw = player.getYRot();
         const currentPitch = player.getXRot();
-        const deltaYaw = angleDifference(this.targetYaw, currentYaw);
-        const deltaPitch = this.targetPitch - currentPitch;
+        let deltaYaw = angleDifference(this.targetYaw, currentYaw);
+        let deltaPitch = this.targetPitch - currentPitch;
         const distance = Math.hypot(deltaYaw, deltaPitch);
 
         if (distance <= 0.5) {

@@ -4,7 +4,6 @@ import { angleToPlayer, blockCenter, distanceToPlayerPoint } from '../../utils/M
 import { getDrills, refuel } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getLookingAt, getPlayerEyePosition, testPointVisibility } from '../../utils/Raytrace';
-import { getFilesInDir } from '../../utils/Router';
 import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 import { getPickaxeAbilityStatus } from '../../utils/TabListUtils';
 import { getConfigFile, writeConfigFile } from '../../utils/Utils';
@@ -454,6 +453,8 @@ class OreMiner extends ModuleBase {
     saveRoute(name) {
         const cleanName = sanitizeRouteName(name);
         if (!cleanName || !this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('&cUsage: /v5 mining ore save <name>');
+        const invalidWarp = this.loadedWaypoints.findIndex((waypoint) => waypoint.type === 'Warp' && !String(waypoint.warpCommand || '').trim());
+        if (invalidWarp !== -1) return this.message(`&cWarp waypoint [${invalidWarp}] needs a destination before saving.`);
         writeConfigFile(`${ROUTE_DIR_RELATIVE}/${cleanName}.json`, this.loadedWaypoints);
         this.loadedPath = String(new File(ORE_ROUTES_DIR, `${cleanName}.json`).getAbsolutePath());
         this.undoStack = [];
@@ -483,7 +484,7 @@ class OreMiner extends ModuleBase {
     }
 
     listRoutes() {
-        const files = getFilesInDir(ROUTE_DIR_RELATIVE);
+        const files = this.getRouteNames();
         this.message(`&bOre Miner Routes &7(${files.length})`);
         files.forEach((name) => this.message(`  &f${name} &7- /v5 mining ore load ${name}`));
     }
@@ -932,7 +933,7 @@ class OreMiner extends ModuleBase {
         const previousWaypoint = this.loadedWaypoints[(this.waypointIndex - 1 + this.loadedWaypoints.length) % this.loadedWaypoints.length];
         const intentionalDrop = previousWaypoint?.pos?.y > y;
         const nearEdge = !intentionalDrop && this.hasEdgeAhead(x, y, z);
-        setKeysForStraightLineCoords(x, y, z, !nearEdge);
+        setKeysForStraightLineCoords(x + 0.5, y, z + 0.5, !nearEdge);
         Client.setKey('shift', nearEdge);
         Client.setKey('sprint', !nearEdge && dx * dx + dz * dz > 2);
         this.waitTicks++;
@@ -1105,8 +1106,8 @@ class OreMiner extends ModuleBase {
         }
 
         this.ensureShiftHeld();
-        OreRotations.trackVector(blockCenter(block.x, block.y, block.z), this.oreMineSpeed);
-        const aim = this.getMineAim(block);
+        if (!Player.isSneaking()) return;
+        const aim = this.getMineAim(block, this.waitTicks % 3 === 0);
         if (aim) {
             this.stopMiningStrafe(false);
             this.prepareBlock(block, aim);
@@ -1126,6 +1127,7 @@ class OreMiner extends ModuleBase {
         }
 
         if (!Player.isSneaking()) return;
+        if (!Player.isSneaking()) return;
         setKeysForStraightLineCoords(this.mineStrafeTarget.x, Player.getY(), this.mineStrafeTarget.z, false);
         this.ensureShiftHeld();
     }
@@ -1143,7 +1145,6 @@ class OreMiner extends ModuleBase {
         this.mineStrafeTarget = target;
         this.strafedForBlock = true;
         this.ensureShiftHeld();
-        OreRotations.trackVector(blockCenter(block.x, block.y, block.z), this.oreMineSpeed);
         this.enterState('MINE_STRAFE');
         return true;
     }
@@ -1593,7 +1594,7 @@ class OreMiner extends ModuleBase {
         this.etherwarpStrafeAligned = false;
     }
 
-    stopMiningStrafe(releaseSneak = true) {
+    stopMiningStrafe(releaseSneak = true, stopRotation = true) {
         Client.stopMovement();
         if (releaseSneak) Client.setKey('shift', false);
         this.mineStrafeTarget = null;
@@ -1614,10 +1615,18 @@ class OreMiner extends ModuleBase {
                     ? [COLORS.selectedFill, COLORS.selectedWire]
                     : waypoint.isDeployable
                       ? [COLORS.deployableFill, COLORS.deployableWire]
-                      : waypoint.type === 'Walk'
-                        ? [COLORS.walkFill, COLORS.walkWire]
-                        : [COLORS.teleportFill, COLORS.teleportWire];
+                      : waypoint.type === 'Warp'
+                        ? [COLORS.warpFill, COLORS.warpWire]
+                        : waypoint.type === 'Walk'
+                          ? [COLORS.walkFill, COLORS.walkWire]
+                          : [COLORS.teleportFill, COLORS.teleportWire];
             Render3D.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
+            Render3D.drawText(`[${index}]`, new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5), 1.2, true, false, false);
+            if (index === closestWaypoint) {
+                waypoint.minableBlocks.forEach((block, mineIndex) => {
+                    Render3D.drawText(`M[${mineIndex}]`, new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5), 1, true, false, true);
+                });
+            }
             if (this.editing) {
                 waypoint.minableBlocks.forEach((block) => {
                     const mineColors =

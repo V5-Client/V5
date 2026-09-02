@@ -5,7 +5,6 @@ import { clickItem, clickSlot, closeInventory, findFirstItem } from '../../../ut
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
 import { readVisitors } from '../../../utils/TabListUtils';
-import { randomInt } from '../../../utils/Utils';
 import { farmingDelays } from '../FarmingDelays';
 import { rewarpSettings } from './RewarpSettings';
 
@@ -127,7 +126,7 @@ class VisitorMacro {
             Client.leftClick();
             if (!this.firstSeek) return;
             this.firstSeek = false;
-            ScheduleTask(randomInt(farmingDelays.visitorDoubleClickDelayMin, farmingDelays.visitorDoubleClickDelayMax), () => {
+            ScheduleTask(farmingDelays.ticks('visitorDoubleClick'), () => {
                 if (this.running) Client.leftClick();
             });
         });
@@ -139,7 +138,7 @@ class VisitorMacro {
     }
 
     retry(state) {
-        this.transition(state, randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax));
+        this.transition(state, farmingDelays.random('visitorRetry'));
     }
 
     findVisitor(target) {
@@ -214,7 +213,7 @@ class VisitorMacro {
     }
 
     advanceVisitor() {
-        this.transition(STATES.ADVANCING, randomInt(farmingDelays.visitorNextDelayMin, farmingDelays.visitorNextDelayMax));
+        this.transition(STATES.ADVANCING, farmingDelays.random('visitorNext'));
     }
 
     skipVisitor() {

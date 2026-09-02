@@ -4,7 +4,7 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { getPestCooldown, getTabListNames, stripTabFormatting } from '../../utils/TabListUtils';
 import { regrab, ungrab } from '../../utils/Ungrab';
-import { getConfigFile, getGardenPestStatus, randomInt, writeConfigFile } from '../../utils/Utils';
+import { getConfigFile, getGardenPestStatus, writeConfigFile } from '../../utils/Utils';
 import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
 import { farmingDelays } from './FarmingDelays';
@@ -181,10 +181,10 @@ export class FarmingMacro extends ModuleBase {
         this.sprayonatorAction = action;
         Client.unpressKeys();
         setItemSlot(slot);
-        ScheduleTask(randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax), () => {
+        ScheduleTask(farmingDelays.ticks('sprayonatorAction'), () => {
             if (this.sprayonatorAction !== action) return;
             Client.rightClick();
-            ScheduleTask(randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax), () => {
+            ScheduleTask(farmingDelays.ticks('sprayonatorAction'), () => {
                 if (this.sprayonatorAction !== action) return;
                 setItemSlot(this.sprayonatorOriginalSlot);
                 this.startDelayTicks = Math.max(this.startDelayTicks, SPRAY_RESTORE_DELAY_TICKS);
@@ -281,7 +281,7 @@ export class FarmingMacro extends ModuleBase {
             const player = Player.getPlayer();
             if (this.enabled && player) this.resumeFarming(player, farmState, rotation);
         };
-        ScheduleTask(randomInt(farmingDelays.pestRestoreDelayMin, farmingDelays.pestRestoreDelayMax), () => {
+        ScheduleTask(farmingDelays.ticks('pestRestore'), () => {
             if (!farmingSettings.useMousemat) {
                 if (!this.rotateTo(rotation.yaw, rotation.pitch, resume)) resume();
                 return;
