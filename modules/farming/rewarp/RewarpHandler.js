@@ -46,7 +46,7 @@ class RewarpHandler {
         if (runPhilip) this.tasks.push(philipMacro);
         const hasBarnTasks = this.tasks.length > 0;
         if (runPestKiller) this.tasks.push(pestKiller, autoSell);
-        this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
+        this.phase = hasBarnTasks ? PHASES.BARN : PHASES.DECIDING;
         this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + Utils.randomInt(farmingDelays.rewarpDelayMin, farmingDelays.rewarpDelayMax);
     }
 
@@ -89,7 +89,9 @@ class RewarpHandler {
                     break;
                 }
             }
-            if (!this.task) this.phase = this.runPestKiller && !rewarpSettings.looping ? PHASES.RETURNING : PHASES.REWARP;
+            // when do we rewarp
+            // if we're looping, or we're hybrid. otherwise we fly back
+            if (!this.task) this.phase = this.runPestKiller && (rewarpSettings.looping || rewarpSettings.hybrid) ? PHASES.REWARP : PHASES.RETURNING;
         }
 
         if (this.phase === PHASES.RUNNING && this.task.tick()) this.phase = PHASES.DECIDING;

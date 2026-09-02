@@ -17,6 +17,7 @@ class LoadoutHandler extends ModuleBase {
         this.pestSpawningSlot = 1;
         this.pestKillingSlot = 1;
         this.visitorSlot = 1;
+        this.postSwapDelay = 4;
         this.pestSpawnSwapCooldown = 140;
         this.currentSlot = null;
         this.targetSlot = null;
@@ -34,6 +35,7 @@ class LoadoutHandler extends ModuleBase {
             (value) => (this.pestSpawnSwapCooldown = Math.round(value)),
             'Switches to the pest spawning loadout at or below this cooldown in seconds.'
         );
+        this.addSlider('Post Swap Delay', 1, 20, this.postSwapDelay, (value) => (this.postSwapDelay = Math.round(value)));
 
         register('tick', () => this.tick());
     }
@@ -57,7 +59,7 @@ class LoadoutHandler extends ModuleBase {
         this.switching = true;
         ScheduleTask(5, () => {
             if (Guis.guiName()?.includes('(1/3) Loadouts')) Guis.closeInv();
-            ScheduleTask(4, () => (this.switching = false));
+            ScheduleTask(this.postSwapDelay, () => (this.switching = false));
         });
     }
 }
