@@ -9,10 +9,12 @@ import { clamp, isInside } from '../Utils';
 import { drawGUI } from './GuiRenderer';
 import { GuiRectangles, GuiState } from './GuiState';
 import { macroToggleGui } from '../MacroToggleGui';
+import { onboarding } from '../Onboarding';
 
 const handleClick = (mouseX, mouseY) => {
     if (GuiState.isOpening) return;
     ({ x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(mouseX, mouseY));
+    if (onboarding.handleClick(mouseX, mouseY)) return;
     if (GuiState.macroToggleOpen) return macroToggleGui.handleClick(mouseX, mouseY);
     if (
         isInside(mouseX, mouseY, GuiRectangles.Background) &&
@@ -30,6 +32,7 @@ const handleClick = (mouseX, mouseY) => {
 const handleMouseDrag = (mouseX, mouseY) => {
     if (GuiState.isOpening) return;
     ({ x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(mouseX, mouseY));
+    if (onboarding.isActive()) return;
     if (GuiState.macroToggleOpen) return;
     if (GuiState.dragging) {
         const newX = mouseX - GuiRectangles.Background.dx;
@@ -48,6 +51,7 @@ const handleMouseDrag = (mouseX, mouseY) => {
 const handleScroll = (mouseX, mouseY, dir) => {
     if (GuiState.isOpening) return;
     ({ x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(mouseX, mouseY));
+    if (onboarding.isActive()) return;
     if (GuiState.macroToggleOpen) return macroToggleGui.handleScroll(mouseX, mouseY, dir);
     categoryManager?.handleScroll(mouseX, mouseY, dir);
 };
@@ -80,6 +84,7 @@ const openGui = () => {
     loadSettings();
     categoryManager?.invalidateLayoutCache();
     categoryManager?.invalidateContentHeightCache();
+    onboarding.open();
     GuiState.myGui.open();
 };
 

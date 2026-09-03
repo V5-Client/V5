@@ -12,6 +12,7 @@ import { BORDER_WIDTH, PADDING, THEME, clamp, drawRect, drawRoundedRectangleWith
 import { ANIMATION_DURATION, GuiRectangles, GuiState } from './GuiState';
 import { GuiTooltip } from './GuiTooltip';
 import { macroToggleGui } from '../MacroToggleGui';
+import { onboarding } from '../Onboarding';
 
 export const drawGUI = (mouseX, mouseY) => {
     const elapsed = Date.now() - GuiState.openStartTime;
@@ -104,6 +105,7 @@ export const drawGUI = (mouseX, mouseY) => {
 
         GuiTooltip.update();
         GuiTooltip.draw(mouseX, mouseY);
+        onboarding.draw(mouseX, mouseY);
 
         Render2D.restore();
     } catch (e) {

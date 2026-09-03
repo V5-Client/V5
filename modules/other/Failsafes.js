@@ -24,6 +24,7 @@ class Failsafes extends ModuleBase {
         this.slotChange = true;
         this.chatMention = true;
         this.playerGrief = true;
+        this.banTelemetry = true;
         this.clipOnBan = true;
         this.playerProximityDistance = 3;
         this.actionDelay = { low: 500, high: 2000 };
@@ -81,6 +82,15 @@ class Failsafes extends ModuleBase {
             sectionName
         );
         this.addDirectToggle(
+            'Ban telemetry',
+            (value) => {
+                this.banTelemetry = value;
+            },
+            'Send ban details to help track detection rates',
+            this.banTelemetry,
+            sectionName
+        );
+        this.addDirectToggle(
             'Clip on ban',
             (value) => {
                 this.clipOnBan = value;
@@ -135,7 +145,7 @@ class Failsafes extends ModuleBase {
     }
 
     postBanLog(reason) {
-        if (!reason?.includes('https://www.hypixel.net/appeal')) return;
+        if (!this.banTelemetry || !reason?.includes('https://www.hypixel.net/appeal')) return;
 
         const now = Date.now();
         if (now - this.lastBanLogTime < 60000) return;
