@@ -17,6 +17,7 @@ const COMMAND_RESTORE_TIME = 1_050;
 const clean = (value) =>
     ChatLib.removeFormatting(String(value ?? ''))
         .trim()
+        .replace(/^[^a-z0-9]+/i, '')
         .toLowerCase();
 const lore = (item) => (item?.getLore?.() || []).map((line) => ChatLib.removeFormatting(String(line)).trim());
 const formatCoins = (value) => {
