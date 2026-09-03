@@ -10,6 +10,8 @@ UI code lives in `gui/`;
 failsafe implementations live in `failsafes/impl/`.
 Keep images, SVGs, and bundled data in `assets/`.
 
+Development-only utilities belong in `scripts/`. Prefer Node's standard library; existing V5Loader development dependencies may be reused when matching runtime behavior requires them. Never import these tools from CTJS/runtime code, and write all generated artifacts to the normally gitignored `scriptoutputs/` directory.
+
 Refer to `typings.d.ts` for the available runtime APIs. This is an extremely large file so do not attempt to read it all at once. Use searching methods to determin what you want.
 
 ## Coding Style
@@ -44,6 +46,9 @@ Not lazy about: understanding the problem (read it fully and trace the real flow
 ## Build, Test, and Development Process
 
 There is no package manifest, build step, or automated test runner. Do not attempt to make or run any tests.
+
+Offline development scripts may be run directly with Node. They are not CTJS tests and must not launch Minecraft.
+The GUI preview must execute the real `gui/` sources and replay their captured `Render2D` calls; do not hardcode a parallel GUI layout in the renderer.
 
 You should run prettier formatting before completion.
 
