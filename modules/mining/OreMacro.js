@@ -114,12 +114,18 @@ class OreMiner extends ModuleBase {
         this.nextRenderTarget = null;
         this.typeMineEnabled = false;
         this.typeMineName = 'Mithril';
-        this.typeMineMinVisibleDegrees = 0;
+        this.typeMineMinVisibleRays = 0;
         this.typeMineFov = 120;
         this.typeMinePriority = 'Nearest';
         this.typeMineBlock = null;
         this.typeMineNextBlock = null;
         this.typeMineIgnored = {};
+        this.typeMineCosts = {
+            Mithril: { ...MiningBot.mithrilCosts },
+            Gemstone: { ...MiningBot.gemstoneCosts },
+            Ore: { ...MiningBot.oreCosts },
+            Tunnel: { ...MiningBot.tunnelCosts },
+        };
 
         this.oreMineSpeed = 0.48;
         this.oreTeleportSpeed = 0.48;
@@ -175,12 +181,12 @@ class OreMiner extends ModuleBase {
             'Mithril'
         );
         this.addSlider(
-            'Minimum Visible Degrees',
+            'Minimum Visible Rays',
             0,
-            20,
+            9,
             0,
-            (value) => (this.typeMineMinVisibleDegrees = value),
-            'Minimum angular width of an exposed block surface required by Type Mine. Zero accepts any visible amount.'
+            (value) => (this.typeMineMinVisibleRays = Math.round(value)),
+            'Minimum number of nine face samples that must raycast to the block. Zero accepts any visible amount.'
         );
         this.addSlider(
             'Type Mine FOV',
@@ -1582,7 +1588,7 @@ class OreMiner extends ModuleBase {
     }
 
     findTypeMineBlocks() {
-        const costs = MiningBot[`${this.typeMineName.toLowerCase()}Costs`];
+        const costs = this.typeMineCosts[this.typeMineName];
         const eyePos = Player.getPlayer()?.getEyePosition?.();
         if (!costs || !eyePos) return [];
 
@@ -1610,33 +1616,9 @@ class OreMiner extends ModuleBase {
     }
 
     hasMinimumTypeMineVisibility(block, aim, eyePosition) {
-        const minimum = this.typeMineMinVisibleDegrees;
-        if (minimum <= 0) return true;
-
-        const eye = { x: eyePosition.x(), y: eyePosition.y(), z: eyePosition.z() };
-        const aimPoint = [aim.x, aim.y, aim.z];
-        const distance = Math.hypot(aim.x - eye.x, aim.y - eye.y, aim.z - eye.z);
-        const halfSpan = Math.tan((minimum * 1.05 * Math.PI) / 360) * distance;
-        const local = [aim.x - block.x, aim.y - block.y, aim.z - block.z];
-        const edgeDistances = local.map((value) => Math.min(value, 1 - value));
-        const faceAxis = edgeDistances.indexOf(Math.min(...edgeDistances));
-
-        for (let axis = 0; axis < 3; axis++) {
-            if (axis === faceAxis) continue;
-            const axisName = ['x', 'y', 'z'][axis];
-            const low = [...aimPoint];
-            const high = [...aimPoint];
-            low[axis] = Math.max(block[axisName] + 0.02, aimPoint[axis] - halfSpan);
-            high[axis] = Math.min(block[axisName] + 0.98, aimPoint[axis] + halfSpan);
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, low, eye)) continue;
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, high, eye)) continue;
-
-            const a = [low[0] - eye.x, low[1] - eye.y, low[2] - eye.z];
-            const b = [high[0] - eye.x, high[1] - eye.y, high[2] - eye.z];
-            const dot = (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]) / (Math.hypot(...a) * Math.hypot(...b));
-            if ((Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI >= minimum) return true;
-        }
-        return false;
+        return (
+            this.typeMineMinVisibleRays <= 0 || MiningBot.countVisibleRays(block, aim, eyePosition, this.typeMineMinVisibleRays) >= this.typeMineMinVisibleRays
+        );
     }
 
     getCurrentMineBlock(waypoint) {

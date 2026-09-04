@@ -26,6 +26,7 @@ const AIM_POINT_EDGE_MAG = 0.4;
 const AIM_POINT_MID_CAP = 0.3;
 const AIM_POINT_LO = 0.02;
 const AIM_POINT_HI = 0.98;
+const AIM_RETRY_MIN_DELTA_SQ = 0.0025;
 const VISIBLE_RAY_OFFSETS = [0.15, 0.5, 0.85];
 const TARGET_MODES = {
     REACHABLE: 'reachable',
@@ -773,9 +774,15 @@ class Bot extends ModuleBase {
         const timedOut = this.tickCount > this.totalTicks * 2;
         const shouldGlide = this.shouldGlideToNextBlock(blockName);
         if (timedOut && !this.isAirOrBedrock(blockName)) {
+            const failedAim = {
+                x: this.currentTarget.aimX,
+                y: this.currentTarget.aimY,
+                z: this.currentTarget.aimZ,
+            };
             this.resetTickCounters();
+            this.precisionMinerAim = null;
             this.currentTarget.aimX = this.currentTarget.aimY = this.currentTarget.aimZ = null;
-            this.refreshCurrentTargetAimPoint();
+            if (!this.refreshCurrentTargetAimPoint(failedAim)) this.handleRotationOrScan(false);
         } else if (shouldGlide) {
             this.resetTickCounters();
             this.handleRotationOrScan(false);
@@ -1059,7 +1066,7 @@ class Bot extends ModuleBase {
         return this.scanning;
     }
 
-    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
+    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true, excludedAim = null) {
         if (!eyePos || !Number.isFinite(maxReachSq) || maxReachSq <= 0) return null;
 
         const cx = x + 0.5,
@@ -1069,6 +1076,9 @@ class Bot extends ModuleBase {
             eyeY = eyePos.y(),
             eyeZ = eyePos.z();
         const rayEye = { x: eyeX, y: eyeY, z: eyeZ };
+        const hasExcludedAim = excludedAim && [excludedAim.x, excludedAim.y, excludedAim.z].every(Number.isFinite);
+        const isExcludedAim = (pointX, pointY, pointZ) =>
+            hasExcludedAim && (pointX - excludedAim.x) ** 2 + (pointY - excludedAim.y) ** 2 + (pointZ - excludedAim.z) ** 2 < AIM_RETRY_MIN_DELTA_SQ;
         const vx = cx - eyeX,
             vy = cy - eyeY,
             vz = cz - eyeZ;
@@ -1204,7 +1214,11 @@ class Bot extends ModuleBase {
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
+                    if (
+                        !isExcludedAim(fx, fy, fz) &&
+                        Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) &&
+                        visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)
+                    ) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1245,7 +1259,11 @@ class Bot extends ModuleBase {
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
+                    if (
+                        !isExcludedAim(fx, fy, fz) &&
+                        Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) &&
+                        visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)
+                    ) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1419,11 +1437,12 @@ class Bot extends ModuleBase {
         Client.setKey('space', shouldJump);
     }
 
-    refreshCurrentTargetAimPoint() {
+    refreshCurrentTargetAimPoint(excludedAim = null) {
         if (!this.currentTarget) return false;
 
         const eyePos = Player.getPlayer().getEyePosition();
         if (
+            !excludedAim &&
             this.isCurrentAimPointVisible(eyePos) &&
             (!this.isApproachTarget() ||
                 this.hasMinimumVisibleRays(this.currentTarget, { x: this.currentTarget.aimX, y: this.currentTarget.aimY, z: this.currentTarget.aimZ }, eyePos))
@@ -1444,7 +1463,8 @@ class Bot extends ModuleBase {
             eyePos,
             lookVec,
             this.faceReach * this.faceReach,
-            false
+            false,
+            excludedAim
         );
 
         if (!hit || !this.hasMinimumVisibleRays(this.currentTarget, hit, eyePos)) return false;
@@ -1668,6 +1688,10 @@ class Bot extends ModuleBase {
             this.lastAimPos = null;
         }
 
+        const isLiveTarget = (target) => {
+            const blockName = World.getBlockAt(target.x, target.y, target.z)?.type?.getRegistryName() || '';
+            return !this.isAirOrBedrock(blockName);
+        };
         let nextTarget = null;
         if (this.foundLocations.length > 1 && current.aimX !== undefined) {
             const eyePos = Player.getPlayer().getEyePosition();
@@ -1685,6 +1709,7 @@ class Bot extends ModuleBase {
                 for (const loc of this.foundLocations) {
                     if (loc.x === current.x && loc.y === current.y && loc.z === current.z) continue;
                     if (loc.aimX === undefined) continue;
+                    if (!isLiveTarget(loc)) continue;
 
                     const dx = loc.aimX - eyePos.x();
                     const dy = loc.aimY - eyePos.y();
@@ -1703,7 +1728,11 @@ class Bot extends ModuleBase {
                 }
             }
         } else if (this.foundLocations.length > 1) {
-            nextTarget = this.foundLocations.find((loc) => loc.x !== current.x || loc.y !== current.y || loc.z !== current.z) || null;
+            nextTarget =
+                this.foundLocations.find((loc) => {
+                    if (loc.x === current.x && loc.y === current.y && loc.z === current.z) return false;
+                    return isLiveTarget(loc);
+                }) || null;
         }
 
         if (nextTarget) {
