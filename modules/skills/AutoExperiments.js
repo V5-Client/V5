@@ -248,30 +248,40 @@ class AutoExperiments extends ModuleBase {
     }
 
     handleSuperpairs(items) {
+        // Read the backing inventory: SkyHanni replaces getItem() results with remembered cards.
+        const slots = Client.getMinecraft().player.containerMenu.slots;
+        items = items.slice();
+        for (let slot = 9; slot <= 44; slot++) {
+            const inventorySlot = slots.get(slot);
+            items[slot] = Item.fromMC(inventorySlot.container.getItems().get(inventorySlot.getContainerSlot()));
+        }
+
         const proceedSlot = items.findIndex(
             (item, slot) => slot >= 9 && slot <= 44 && this.getLoreLines(item).some((line) => line.includes('Click any to proceed!'))
         );
         if (proceedSlot !== -1) {
-            if (this.canClick()) this._clickSlot(proceedSlot, 'LEFT');
+            if (Date.now() - this.lastClickTime >= Math.max(this.actionDelay, 1000)) this._clickSlot(proceedSlot);
             return;
         }
 
         if (this.superpairsPendingSlot !== null) {
             const item = items[this.superpairsPendingSlot];
             if (!item || this.isSuperpairsHidden(item)) {
-                if (item && Date.now() - this.lastClickTime >= Math.max(this.actionDelay, 1000)) {
+                if (item && ChatLib.removeFormatting(item.getName()) !== '?' && Date.now() - this.lastClickTime >= Math.max(this.actionDelay, 1000)) {
                     this._clickSlot(this.superpairsPendingSlot);
                 }
                 return;
             }
 
-            const ignored = this.isSuperpairsPowerup(item) || (this.ignoreEnchantingXp && ChatLib.removeFormatting(item.getName()).includes('Enchanting Exp'));
-            this.superpairsCurrentKey = ignored ? null : this.getSuperpairsKey(item);
-            this.superpairsCards.set(this.superpairsPendingSlot, this.superpairsCurrentKey);
+            const powerup = this.isSuperpairsPowerup(item);
+            const ignored = powerup || (this.ignoreEnchantingXp && ChatLib.removeFormatting(item.getName()).includes('Enchanting Exp'));
+            const key = ignored ? null : this.getSuperpairsKey(item);
+            if (!powerup) this.superpairsCurrentKey = key;
+            this.superpairsCards.set(this.superpairsPendingSlot, key);
             this.superpairsPendingSlot = null;
         }
 
-        if (!this.canClick()) return;
+        if (!this.canClick() || items.slice(9, 45).some((item) => ChatLib.removeFormatting(item?.getName() ?? '') === '?')) return;
 
         const hiddenSlots = [];
         const knownByKey = new Map();
