@@ -4,16 +4,16 @@ import { MultiToggle } from './Dropdown';
 import { Separator } from './Separator';
 import { PADDING } from '../Utils';
 
-export const SEPARATOR_HEIGHT = 16;
-export const COMPONENT_HEIGHT = 26;
-export const BUTTON_ONLY_HEIGHT = 24;
-export const DIRECT_SECTION_GAP = 8;
-export const DIRECT_SECTION_HEADER_HEIGHT = 26;
-export const DIRECT_SECTION_PADDING = 8;
+const SEPARATOR_HEIGHT = 16;
+const COMPONENT_HEIGHT = 26;
+const BUTTON_ONLY_HEIGHT = 24;
+const DIRECT_SECTION_GAP = 8;
+const DIRECT_SECTION_HEADER_HEIGHT = 26;
+const DIRECT_SECTION_PADDING = 8;
 
 export const isComponentVisible = (component) => component.visible !== false;
 
-export const getComponentExpansionHeight = (component, useExpandedHeightWhenStatic = false) => {
+const getComponentExpansionHeight = (component, useExpandedHeightWhenStatic = false) => {
     if (!(component instanceof MultiToggle || component instanceof ColorPicker) || typeof component.getExpandedHeight !== 'function') {
         return 0;
     }
@@ -42,10 +42,56 @@ export const getDirectComponentX = (panel, panelX = panel.x) => panelX + PADDING
 
 export const getDirectComponentPanelWidth = (panel) => panel.width - DIRECT_SECTION_PADDING * 2;
 
+export const getVisibleRowRange = (rows, top, bottom) => {
+    let first = 0;
+    let last = rows.length - 1;
+    while (first <= last) {
+        const middle = (first + last) >> 1;
+        if (rows[middle].y + rows[middle].height < top) first = middle + 1;
+        else last = middle - 1;
+    }
+    last = rows.length - 1;
+    let low = first;
+    while (low <= last) {
+        const middle = (low + last) >> 1;
+        if (rows[middle].y <= bottom) low = middle + 1;
+        else last = middle - 1;
+    }
+    return [first, last];
+};
+
 export const layoutDirectComponents = (components, startY = 0, useExpandedHeightWhenStatic = false) => {
-    const rows = [];
-    const sections = [];
-    let y = startY;
+    let cache = components._directLayoutCache;
+    if (!cache) {
+        cache = { revision: -1, expanded: useExpandedHeightWhenStatic, visible: [], rows: [], sections: [], sectionByName: new Map() };
+        Object.defineProperty(components, '_directLayoutCache', { value: cache, writable: true });
+    }
+    let visibleCount = 0;
+    let same = cache.expanded === useExpandedHeightWhenStatic && cache.visible.length <= components.length;
+    for (const component of components) {
+        if (!isComponentVisible(component)) continue;
+        if (cache.visible[visibleCount] !== component) same = false;
+        visibleCount++;
+    }
+    if (!same || cache.visible.length !== visibleCount) {
+        const visible = [];
+        for (const component of components) if (isComponentVisible(component)) visible.push(component);
+        cache.visible = visible;
+        cache.rows = visible.map((component) => ({ component, y: 0, height: 0 }));
+        cache.sections = [];
+        cache.sectionByName.clear();
+        cache.revision++;
+        cache.expanded = useExpandedHeightWhenStatic;
+    }
+    const rows = cache.rows;
+    const sections = cache.sections;
+    const hasDynamicHeight = rows.some(({ component }) => component.animationProgress !== undefined);
+    if (!hasDynamicHeight && cache.ready) {
+        cache.baseY = startY;
+        return cache;
+    }
+    sections.length = 0;
+    let y = 0;
     let currentSection = null;
     let section = null;
 
@@ -55,21 +101,29 @@ export const layoutDirectComponents = (components, startY = 0, useExpandedHeight
         section.height = y - section.y;
     };
 
-    components.filter(isComponentVisible).forEach((component, index) => {
+    rows.forEach((row, index) => {
+        const component = row.component;
         if (component.sectionName && component.sectionName !== currentSection) {
             closeSection();
             currentSection = component.sectionName;
             if (index > 0) y += DIRECT_SECTION_GAP;
-            section = { name: currentSection, y, height: 0 };
+            section = cache.sectionByName.get(currentSection) || { name: currentSection, y: 0, height: 0, separator: null };
+            cache.sectionByName.set(currentSection, section);
+            section.y = y;
+            section.height = 0;
             sections.push(section);
             y += DIRECT_SECTION_HEADER_HEIGHT;
         }
 
         const height = getComponentLayoutHeight(component, useExpandedHeightWhenStatic);
-        rows.push({ component, y, height });
+        row.y = y;
+        row.height = height;
         y += height;
     });
 
     closeSection();
-    return { rows, sections, height: y - startY };
+    cache.baseY = startY;
+    cache.height = y;
+    cache.ready = true;
+    return cache;
 };

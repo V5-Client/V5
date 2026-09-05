@@ -1,15 +1,14 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { calculateAbsoluteAngles, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
-import { Movement } from '../../utils/player/Movement';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
-import { Router } from '../../utils/Router';
-import RouteState from '../../utils/RouteState';
+import { getVisiblePoint } from '../../utils/Raytrace';
+import { editRoute, getFileFromCallback, getFilesInDir, loadRouteFromFile, saveRouteToFile } from '../../utils/Router';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Mouse } from '../../utils/Ungrab';
+import { regrab, ungrab } from '../../utils/Ungrab';
 import { v5Command } from '../../utils/V5Commands';
 
 class RouteWalkerer extends ModuleBase {
@@ -26,7 +25,7 @@ class RouteWalkerer extends ModuleBase {
 
         this.bindToggleKey();
 
-        this.routesDir = Router.getFilesInDir('RoutewalkerRoutes');
+        this.routesDir = getFilesInDir('RoutewalkerRoutes');
 
         this.LEFTCLICK = false;
         this.SNEAK = false;
@@ -46,6 +45,42 @@ class RouteWalkerer extends ModuleBase {
         };
 
         this.action = this.ACTIONS.WALK;
+        this.renderRoute = [];
+        this.renderLinePoints = [];
+        this.renderLineColors = [];
+
+        this.updateRenderRoute = () => {
+            const route = this.route || [];
+            const getColor = (movement) => {
+                switch (movement?.toUpperCase()) {
+                    case 'WALK':
+                        return new RenderColor(0, 128, 255, 80);
+                    case 'ETHERWARP':
+                        return new RenderColor(170, 0, 255, 80);
+                    default:
+                        return new RenderColor(255, 255, 255, movement ? 80 : 255);
+                }
+            };
+            this.renderRoute = route.map((point) => {
+                const valid = this.checkPoint(point);
+                return {
+                    point,
+                    position: valid ? new Vec3d(point.x, point.y, point.z) : null,
+                    endpoint: valid ? new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5) : null,
+                    color: getColor(point.movements),
+                };
+            });
+            const validEntries = this.renderRoute.filter((entry) => entry.endpoint);
+            if (validEntries.length === this.renderRoute.length && validEntries.length > 1) {
+                this.renderLinePoints = validEntries.map((entry) => entry.endpoint);
+                this.renderLinePoints.push(validEntries[0].endpoint);
+                this.renderLineColors = validEntries.slice(1).map((entry) => entry.color);
+                this.renderLineColors.push(validEntries[0].color);
+            } else {
+                this.renderLinePoints = [];
+                this.renderLineColors = [];
+            }
+        };
 
         v5Command(
             'routes',
@@ -59,13 +94,13 @@ class RouteWalkerer extends ModuleBase {
                     const createdRouteName = `${createdRouteId}.json`;
                     const createdRoutePath = `RoutewalkerRoutes/${createdRouteName}`;
 
-                    if (!Router.saveRouteToFile(createdRoutePath, [])) return;
+                    if (!saveRouteToFile(createdRoutePath, [])) return;
 
                     this.loadedFile = createdRouteName;
                     this.route = [];
+                    this.updateRenderRoute();
                     this.invalidateEtherwarpClick();
                     this.refreshRoutesToggle();
-                    RouteState.setRoute(this.route, 'Route Walker');
                     this.message(`&aCreated route: &f${createdRouteName}`);
                     return;
                 }
@@ -76,7 +111,7 @@ class RouteWalkerer extends ModuleBase {
                     if (!Number.isNaN(parsedNum) && parsedNum >= 1) indexNum = parsedNum;
                 }
 
-                this.route = Router.Edit(
+                this.route = editRoute(
                     actionUpper,
                     this.route,
                     'RoutewalkerRoutes/' + this.loadedFile,
@@ -86,6 +121,7 @@ class RouteWalkerer extends ModuleBase {
                     [arg1?.toUpperCase()]
                 );
                 this.invalidateEtherwarpClick();
+                this.updateRenderRoute();
             },
             ['greedyString']
         );
@@ -94,53 +130,31 @@ class RouteWalkerer extends ModuleBase {
             () => this.RENDERPOINTS,
             'postRenderWorld',
             () => {
-                let route = this.route;
-                if (!route || route.length === 0) return;
+                const route = this.renderRoute;
+                if (!route.length) return;
 
-                const getColor = (movement) => {
-                    if (!movement) return new RenderColor(255, 255, 255, 255);
-                    switch (movement.toUpperCase()) {
-                        case 'WALK':
-                            return new RenderColor(0, 128, 255, 80);
-                        case 'ETHERWARP':
-                            return new RenderColor(170, 0, 255, 80);
-                        default:
-                            return new RenderColor(255, 255, 255, 80);
-                    }
-                };
+                route.forEach((entry, i) => {
+                    if (!entry.position || !entry.endpoint) return;
+                    Render3D.drawStyledBox(entry.position, entry.color, entry.color, 4, false);
 
-                route.forEach((point, i) => {
-                    if (!this.checkPoint(point)) return;
-
-                    const pointColor = getColor(point.movements);
-
-                    RenderUtils.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
-
-                    if (i < route.length - 1) {
-                        const nextPoint = route[i + 1];
-                        if (!this.checkPoint(nextPoint)) return;
-                        RenderUtils.drawLine(
-                            new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
-                            new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
-                            getColor(nextPoint.movements),
-                            3,
-                            false
-                        );
+                    if (!this.renderLinePoints.length && i < route.length - 1) {
+                        const next = route[i + 1];
+                        if (!next.endpoint) return;
+                        Render3D.drawLine(entry.endpoint, next.endpoint, next.color, 3, false);
                     }
                 });
+
+                if (this.renderLinePoints.length) {
+                    Render3D.drawLines(this.renderLinePoints, this.renderLineColors, 3, false);
+                    return;
+                }
 
                 const firstPoint = route[0];
                 const lastPoint = route[route.length - 1];
 
-                if (route.length < 1 || !this.checkPoint(firstPoint) || !this.checkPoint(lastPoint)) return;
+                if (!firstPoint.endpoint || !lastPoint.endpoint) return;
 
-                RenderUtils.drawLine(
-                    new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
-                    new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
-                    getColor(firstPoint.movements),
-                    3,
-                    false
-                );
+                Render3D.drawLine(lastPoint.endpoint, firstPoint.endpoint, firstPoint.color, 3, false);
             }
         );
 
@@ -158,20 +172,20 @@ class RouteWalkerer extends ModuleBase {
             if (!this.point) return;
             this.action = this.ACTIONS[this.point.movements];
 
-            let distData = MathUtils.getDistanceToPlayer(this.point.x, this.point.y, this.point.z);
+            let distData = getDistanceToPlayer(this.point.x, this.point.y, this.point.z);
             let currentDistance = distData.distance;
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Movement.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true, true);
+                    setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true, true);
 
                     Client.setKey('shift', this.SNEAK);
                     Client.setKey('leftclick', this.LEFTCLICK);
                     Client.setKey('sprint', true);
 
-                    if (this.LEFTCLICK) Guis.setItemSlot(this.LEFTCLICKSLOT - 1);
+                    if (this.LEFTCLICK) setItemSlot(this.LEFTCLICKSLOT - 1);
 
-                    let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
+                    let angle = calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
                     Rotations.lookAtAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : player.getXRot(), { speedMultiplier: 1.0 });
 
@@ -189,8 +203,8 @@ class RouteWalkerer extends ModuleBase {
                     Client.stopMovement();
                     Client.setKey('shift', true);
 
-                    let aotv = Guis.findItemInHotbar('Aspect of the Void');
-                    if (aotv === -1) aotv = Guis.findItemInHotbar('Aspect of the End'); // can aote etherwarp?
+                    let aotv = findItemInHotbar('Aspect of the Void');
+                    if (aotv === -1) aotv = findItemInHotbar('Aspect of the End'); // can aote etherwarp?
 
                     if (aotv === -1) {
                         this.toggle(false);
@@ -198,13 +212,13 @@ class RouteWalkerer extends ModuleBase {
                         return;
                     }
 
-                    Guis.setItemSlot(aotv);
+                    setItemSlot(aotv);
 
                     const targetBlockPos = new BlockPos(this.point.x, this.point.y, this.point.z);
 
-                    if (Math.abs(player.getMotionX()) + Math.abs(player.getMotionZ()) > 0.1) return;
+                    if (Math.abs(player.getDeltaMovement().x) + Math.abs(player.getDeltaMovement().z) > 0.1) return;
 
-                    const point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
+                    const point = getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {
@@ -243,12 +257,12 @@ class RouteWalkerer extends ModuleBase {
             this.routesDir,
             true,
             (selected) => {
-                this.loadedFile = Router.getFilefromCallback(selected);
-                this.route = Router.loadRouteFromFile('RoutewalkerRoutes/', this.loadedFile);
+                this.loadedFile = getFileFromCallback(selected);
+                this.route = loadRouteFromFile('RoutewalkerRoutes/', this.loadedFile);
+                this.updateRenderRoute();
                 this.invalidateEtherwarpClick();
                 this.currentIndex = 0;
                 this.foundpoint = false;
-                RouteState.setRoute(this.route, 'Route Walker');
             },
             'The route the macro will use'
         );
@@ -319,7 +333,7 @@ class RouteWalkerer extends ModuleBase {
     }
 
     refreshRoutesToggle() {
-        const routes = Router.getFilesInDir('RoutewalkerRoutes').map((name) => String(name));
+        const routes = getFilesInDir('RoutewalkerRoutes').map((name) => String(name));
         if (!this.routesToggle) return;
 
         const prevState = new Map((this.routesToggle.options || []).map((option) => [option.name, !!option.enabled]));
@@ -349,7 +363,7 @@ class RouteWalkerer extends ModuleBase {
             const point = this.route[i];
 
             if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
-                let distData = MathUtils.getDistanceToPlayer(point.x, point.y, point.z);
+                let distData = getDistanceToPlayer(point.x, point.y, point.z);
                 let currentDistance = distData.distance;
 
                 if (currentDistance < shortestDistance) {
@@ -373,7 +387,7 @@ class RouteWalkerer extends ModuleBase {
 
     onEnable() {
         this.message('&aEnabled');
-        Mouse.ungrab();
+        ungrab();
     }
 
     onDisable() {
@@ -382,10 +396,10 @@ class RouteWalkerer extends ModuleBase {
         Client.unpressKeys();
         Client.setKey('leftclick', false);
         Rotations.stop();
-        Mouse.regrab();
+        regrab();
         this.foundpoint = false;
         this.currentIndex = 0;
     }
 }
 
-export const RouteWalker = isDeveloperModeEnabled() ? new RouteWalkerer() : null;
+if (isDeveloperModeEnabled()) new RouteWalkerer();

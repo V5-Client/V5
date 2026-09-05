@@ -1,17 +1,16 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { MCHand, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { distanceToPlayerFeet, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
-import { Raytrace } from '../../utils/Raytrace';
-import RouteState from '../../utils/RouteState';
-import { Router } from '../../utils/Router';
+import { isLineClear } from '../../utils/Raytrace';
+import { getFileFromCallback, getFilesInDir, loadRouteFromFile } from '../../utils/Router';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Mouse } from '../../utils/Ungrab';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { regrab, ungrab } from '../../utils/Ungrab';
+import { area } from '../../utils/Utils';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
-import { ServerInfo } from '../../utils/player/ServerInfo';
+import { getTPS } from '../../utils/player/ServerInfo';
 import { MiningBot } from './MiningBot';
 
 class GemstoneMacro extends ModuleBase {
@@ -65,7 +64,7 @@ class GemstoneMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesInDir('GemstoneRoutes');
+        this.routesDir = getFilesInDir('GemstoneRoutes');
         this.route = null;
         this.loadedFile = null;
 
@@ -94,13 +93,13 @@ class GemstoneMacro extends ModuleBase {
                     },
                     'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length + 1}` : 'No Route'),
                     'Targets Found': () => MiningBot.foundLocations.length,
-                    TPS: () => ServerInfo.getTPS().toFixed(1),
+                    TPS: () => getTPS().toFixed(1),
                 },
             },
         ]);
 
         this.when(
-            () => Utils.area() === 'Crystal Hollows',
+            () => area() === 'Crystal Hollows',
             'postRenderWorld',
             () => {
                 if (!this.route || this.route.length < 1) return;
@@ -113,18 +112,24 @@ class GemstoneMacro extends ModuleBase {
 
                     const pos = new Vec3d(current.x, current.y, current.z);
 
-                    RenderUtils.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    RenderUtils.drawStyledBox(pos, new RenderColor(...amethyst, 80), new RenderColor(...amethyst, 255), 2, false);
+                    Render3D.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                    Render3D.drawStyledBox(
+                        pos,
+                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 80),
+                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
+                        2,
+                        false
+                    );
 
                     const nextIndex = (i + 1) % this.route.length;
 
                     if (this.route.length > 1) {
                         const next = this.route[nextIndex];
                         if (next && typeof next.x === 'number') {
-                            RenderUtils.drawLine(
+                            Render3D.drawLine(
                                 new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
                                 new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
-                                new RenderColor(...amethyst, 255),
+                                new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
                                 2
                             );
                         }
@@ -156,7 +161,7 @@ class GemstoneMacro extends ModuleBase {
                 case this.STATES.ETHERWARPING:
                     MiningBot.toggle(false);
                     Client.setKey('leftclick', false);
-                    let aotv = Guis.findItemInHotbar('Aspect of the Void');
+                    let aotv = findItemInHotbar('Aspect of the Void');
 
                     if (aotv === -1) {
                         this.message('&cAspect of the Void not found in hotbar!');
@@ -192,7 +197,7 @@ class GemstoneMacro extends ModuleBase {
                         this.attemptedEtherwarp = false;
                     }
 
-                    this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x, this.closestPoint.y, this.closestPoint.z]);
+                    this.dist = distanceToPlayerFeet([this.closestPoint.x, this.closestPoint.y, this.closestPoint.z]);
 
                     if (this.dist.distance < 2) {
                         this.message(`Arrived at point ${this.closestPointIndex + 1}.`);
@@ -201,17 +206,15 @@ class GemstoneMacro extends ModuleBase {
                         this.attemptedEtherwarp = false;
                         this.etherwarpTicks = 0;
                         this.closestPointIndex = (this.closestPointIndex + 1) % this.route.length;
-                        MiningBot.equipDrill = false;
-
                         this.state = this.STATES.MINING;
                         return;
                     }
 
                     if (!this.rotatedToPoint) {
-                        Guis.setItemSlot(aotv);
+                        setItemSlot(aotv);
                         Client.setKey('shift', true);
                         const player = Player.getPlayer();
-                        if (!player?.isSneaking()) return;
+                        if (!Player.isSneaking()) return;
 
                         Rotations.lookAtVector(this.closestPoint, { speedMultiplier: 1 });
                         Rotations.onComplete(() => {
@@ -280,9 +283,8 @@ class GemstoneMacro extends ModuleBase {
             this.routesDir,
             true,
             (selected) => {
-                this.loadedFile = Router.getFilefromCallback(selected);
-                this.route = Router.loadRouteFromFile('GemstoneRoutes/', this.loadedFile);
-                RouteState.setRoute(this.route, 'Gemstone Macro');
+                this.loadedFile = getFileFromCallback(selected);
+                this.route = loadRouteFromFile('GemstoneRoutes/', this.loadedFile);
             },
             'The route the macro will use'
         );
@@ -395,7 +397,7 @@ class GemstoneMacro extends ModuleBase {
             shortest = Infinity;
         for (const face of faces) {
             const [tx, ty, tz] = face.target;
-            if (Raytrace.isLineClear(start.x(), start.y(), start.z(), tx, ty, tz)) {
+            if (isLineClear(start.x(), start.y(), start.z(), tx, ty, tz)) {
                 let d = Math.hypot(tx - start.x(), ty - start.y(), tz - start.z());
                 if (d < shortest) {
                     shortest = d;
@@ -411,7 +413,7 @@ class GemstoneMacro extends ModuleBase {
         let closest = null,
             shortest = Infinity;
         for (let i = 0; i < this.route.length; i++) {
-            let d = MathUtils.getDistanceToPlayer(this.route[i].x, this.route[i].y, this.route[i].z).distance;
+            let d = getDistanceToPlayer(this.route[i].x, this.route[i].y, this.route[i].z).distance;
             if (d < shortest) {
                 shortest = d;
                 closest = { index: i };
@@ -428,13 +430,11 @@ class GemstoneMacro extends ModuleBase {
             dz = targetVec.z - eye.z();
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
-        Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, Number.parseFloat(yaw), Number.parseFloat(pitch)));
+        Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
     }
 
     onEnable() {
-        if (this.route) RouteState.setRoute(this.route, 'Gemstone Macro');
-
-        Mouse.ungrab();
+        ungrab();
 
         this.state = this.STATES.DECIDING;
         this.resetRuntimeState();
@@ -443,12 +443,11 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onDisable() {
-        RouteState.clearRoute();
         Rotations.stop();
         MiningBot.toggle(false, true);
         MiningBot.foundLocations = [];
         Client.unpressKeys();
-        Mouse.regrab();
+        regrab();
 
         this.state = this.STATES.WAITING;
         this.resetRuntimeState();

@@ -1,8 +1,6 @@
-import { Vec3d } from '../../utils/Constants';
+import { ShulkerEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
-
-const ShulkerEntity = net.minecraft.world.entity.monster.Shulker;
+import { area } from '../../utils/Utils';
 
 class HideonLeafESP extends ModuleBase {
     constructor() {
@@ -20,7 +18,7 @@ class HideonLeafESP extends ModuleBase {
         this.on('step', () => this.scanTargets()).setFps(5);
 
         this.when(
-            () => this.enabled && World.isLoaded() && Utils.area() === 'Galatea' && this.targets.length > 0,
+            () => this.enabled && World.isLoaded() && area() === 'Galatea' && this.targets.length > 0,
             'postRenderWorld',
             () => this.renderTargets()
         );
@@ -31,7 +29,7 @@ class HideonLeafESP extends ModuleBase {
     }
 
     scanTargets() {
-        if (!this.enabled || !World.isLoaded() || Utils.area() !== 'Galatea') {
+        if (!this.enabled || !World.isLoaded() || area() !== 'Galatea') {
             this.targets = [];
             return;
         }
@@ -43,8 +41,8 @@ class HideonLeafESP extends ModuleBase {
         this.targets = this.targets.filter((entity) => entity && !entity.isDead());
 
         this.targets.forEach((entity) => {
-            RenderUtils.drawHitbox(entity.toMC(), this.fillColor, 2, false);
-            RenderUtils.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
+            Render3D.drawHitbox(entity.toMC(), this.fillColor, 2, false);
+            Render3D.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
         });
     }
 

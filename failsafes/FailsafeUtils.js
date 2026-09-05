@@ -1,5 +1,7 @@
 import { V5ConfigFile } from '../utils/Constants';
-import { finiteNumber } from '../utils/NumberUtils';
+import { finiteNumber } from '../utils/Math';
+import { getConfigFile } from '../utils/Utils';
+import { Webhook } from '../utils/Webhooks';
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,
@@ -19,7 +21,6 @@ class FailsafeUtils {
             config: {},
             normalized: null,
         };
-        this._utils = null;
     }
 
     _getConfig() {
@@ -30,8 +31,7 @@ class FailsafeUtils {
             return this._cache.config;
         }
 
-        if (!this._utils) this._utils = require('../utils/Utils').Utils;
-        const config = this._utils.getConfigFile('config.json');
+        const config = getConfigFile('config.json');
 
         this._cache.expiresAt = now + 250;
         this._cache.lastModified = lastModified;
@@ -117,12 +117,11 @@ class FailsafeUtils {
     }
 
     sendFailsafeEmbed(type, severity, description, color) {
-        const { Webhook } = require('../utils/Webhooks');
-
         const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
 
         if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
-            Webhook.sendFailsafeEmbed(
+            if (!Webhook.sendFailsafeEmbeds) return;
+            Webhook.publish(
                 [
                     {
                         title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
@@ -135,14 +134,17 @@ class FailsafeUtils {
                 pingOnCheckValue === 'Ping'
             );
         } else if (pingOnCheckValue === 'Ping & Screenshot' || pingOnCheckValue === 'Screenshot Only') {
-            Client.scheduleTask(5, () =>
-                Webhook.sendFailsafeScreenshot(
-                    `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
-                    description,
-                    color,
-                    `V5 Failsafes`,
-                    pingOnCheckValue === 'Ping & Screenshot'
-                )
+            Client.scheduleTask(
+                5,
+                () =>
+                    Webhook.sendFailsafeEmbeds &&
+                    Webhook.takeScreenshot(
+                        `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
+                        description,
+                        color,
+                        `V5 Failsafes`,
+                        pingOnCheckValue === 'Ping & Screenshot'
+                    )
             );
         }
     }

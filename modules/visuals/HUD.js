@@ -1,9 +1,11 @@
-import { BORDER_WIDTH, CORNER_RADIUS, FontSizes, THEME, colorWithAlpha, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../../gui/Utils';
+import { drawInventoryHudBackground, drawStatsHud, getInventoryHudBounds, getStatsHudBounds, getStatsHudLines } from '../../gui/OverlayRenderers';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
-import { ServerInfo } from '../../utils/player/ServerInfo';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { GuiState } from '../../gui/core/GuiState';
+import { SkijaPIP } from '../../utils/Constants';
+
+const DrawContextHolder = com.chattriggers.ctjs.api.render.DrawContextHolder;
 
 class HUD extends ModuleBase {
     constructor() {
@@ -22,21 +24,35 @@ class HUD extends ModuleBase {
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
 
-        this.positionConfig = Utils.getConfigFile('OverlayPositions/hud_positions.json') || {};
+        this.positionConfig = getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
-        this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
+        this.inventory = this.loadOverlayState('inventory', {
+            x: 50,
+            y: 100,
+            scale: 1.0,
+        });
 
         this.when(
             () => this.INVENTORY_HUD,
             'renderOverlay',
             () => this.renderOverlay()
         );
-        NVG.registerV5PreRender(() => this.renderInventoryBackgroundOverlay());
-        NVG.registerV5Render(() => this.renderStatsOverlay());
+        this.when(
+            () => this.INVENTORY_HUD,
+            'postGuiRender',
+            () => this.renderOverlay()
+        );
+        this.inventoryBackgroundCallback = () => drawInventoryHudBackground(this.inventory);
+        this.statsCallback = () => this.renderStatsOverlay();
+        this.statsRegistration = null;
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
-        register('tick', () => (this.worldLoaded = World.isLoaded()));
+        register('tick', () => {
+            this.worldLoaded = World.isLoaded();
+            this.updateRenderRegistrations();
+        });
+        this.updateRenderRegistrations();
     }
 
     onDisable() {
@@ -54,6 +70,7 @@ class HUD extends ModuleBase {
             x,
             y,
             scale,
+            enabled: saved.enabled !== false,
 
             width: 0,
             height: 0,
@@ -65,6 +82,7 @@ class HUD extends ModuleBase {
             x: overlay.x,
             y: overlay.y,
             scale: overlay.scale,
+            enabled: overlay.enabled !== false,
         };
     }
 
@@ -72,10 +90,11 @@ class HUD extends ModuleBase {
         if (typeof saved.x === 'number') overlay.x = saved.x;
         if (typeof saved.y === 'number') overlay.y = saved.y;
         if (typeof saved.scale === 'number') overlay.scale = this.clamp(saved.scale, 0.5, 3.0);
+        if (typeof saved.enabled === 'boolean') overlay.enabled = saved.enabled;
     }
 
     syncFromOverlayEditor() {
-        const latest = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const latest = OverlayManager?.hudSettings;
         if (!latest || typeof latest !== 'object') return;
 
         if (latest.stats && typeof latest.stats === 'object') {
@@ -95,7 +114,7 @@ class HUD extends ModuleBase {
             stats: this.getSaveData(this.stats),
             inventory: this.getSaveData(this.inventory),
         };
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
     }
 
     clamp(v, min, max) {
@@ -103,61 +122,26 @@ class HUD extends ModuleBase {
     }
 
     clampOverlayToScreen(overlay) {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw <= 0 || sh <= 0) return;
 
         const maxX = Math.max(0, sw - overlay.width);
         const maxY = Math.max(0, sh - overlay.height);
-        overlay.x = this.clamp(overlay.x, 0, maxX);
-        overlay.y = this.clamp(overlay.y, 0, maxY);
-    }
-
-    getStatsLines() {
-        const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
-
-        return [
-            { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        ];
+        overlay.x = Math.max(0, Math.min(maxX, overlay.x));
+        overlay.y = Math.max(0, Math.min(maxY, overlay.y));
     }
 
     recalcStatsBounds() {
         const o = this.stats;
-        const s = o.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-
-        const lines = this.getStatsLines();
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-        const totalWidth = slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1);
-
-        o.width = pad * 2 + totalWidth;
-        o.height = pad * 2 + fontSize;
+        Object.assign(o, getStatsHudBounds(o.scale));
 
         this.clampOverlayToScreen(o);
     }
 
     recalcInventoryBounds() {
         const o = this.inventory;
-        const s = o.scale;
-
-        const cols = 9;
-        const mainRows = 3;
-
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-
-        o.width = pad * 2 + cols * slot;
-        o.height = pad * 2 + mainRows * slot + gap + slot;
+        Object.assign(o, getInventoryHudBounds(o.scale));
 
         this.clampOverlayToScreen(o);
     }
@@ -165,182 +149,69 @@ class HUD extends ModuleBase {
     prepareOverlay(enabled, recalc) {
         if (GuiState.myGui.isOpen() || OverlayManager.drawingGUI || !enabled || !this.worldLoaded) return false;
 
-        this.syncFromOverlayEditor();
-
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
-        if (sw <= 0 || sh <= 0) return false;
+        if (Render2D.screen.getWidth() <= 0 || Render2D.screen.getHeight() <= 0) return false;
 
         recalc.call(this);
-        return { sw, sh };
+        return true;
     }
 
-    drawInFrame(sw, sh, draw) {
-        try {
-            NVG.beginFrame(sw, sh);
-            draw.call(this);
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
+    updateRenderRegistrations() {
+        this.syncFromOverlayEditor();
+        const visible = this.worldLoaded && !GuiState.myGui.isOpen() && !OverlayManager.drawingGUI;
+        if (visible && this.STATS_HUD && this.stats.enabled !== false && !this.statsRegistration) {
+            this.statsRegistration = Render2D.registerV5Render(this.statsCallback);
+        } else if ((!visible || !this.STATS_HUD || this.stats.enabled === false) && this.statsRegistration) {
+            Render2D.unregisterV5Render(this.statsRegistration);
+            this.statsRegistration = null;
         }
     }
 
-    drawStatsHud() {
-        const o = this.stats;
-        const s = o.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: o.x,
-            y: o.y,
-            width: o.width,
-            height: o.height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const labelColor = THEME.TEXT_MUTED;
-        const separatorColor = colorWithAlpha(THEME.TEXT_MUTED, 0.6);
-        const lines = this.getStatsLines();
-
-        const centerY = o.y + o.height / 2;
-        let x = o.x + pad;
-
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-
-        lines.forEach((l, index) => {
-            const label = `${l.label}:`;
-            const value = String(l.value);
-
-            drawText(label, x, centerY, fontSize, labelColor, 17);
-            drawText(value, x + getTextWidth(label, fontSize) + gaps[index], centerY, fontSize, l.color, 17);
-
-            x += slotWidths[index];
-
-            if (index < lines.length - 1) {
-                drawText(separator, x, centerY, fontSize, separatorColor, 17);
-                x += separatorWidth;
-            }
-        });
-    }
-
-    drawInventoryHudBackground() {
-        const o = this.inventory;
-        const s = o.scale;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: o.x,
-            y: o.y,
-            width: o.width,
-            height: o.height,
-            radius: CORNER_RADIUS * 0.55 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const cols = 9;
-        const mainRows = 3;
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const separatorThickness = Math.max(1, 1 * s);
-
-        const gridStartX = o.x + pad;
-        const mainStartY = o.y + pad;
-        const rowWidth = cols * slot;
-
-        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
-        const halfWidth = rowWidth / 2;
-        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
-        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
-
-        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
-        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
-    }
-
     drawInventoryHudItems() {
-        const inv = Player.getInventory();
-        if (!inv) return;
+        const inventory = Player.getPlayer()?.getInventory();
+        const context = DrawContextHolder.currentContext;
+        if (!inventory || !context) return;
 
-        const items = inv.getItems();
-        if (!items) return;
+        const { x, y, scale } = this.inventory;
+        const pose = context.pose();
 
-        const o = this.inventory;
-        const s = o.scale;
+        pose.pushMatrix();
+        pose.translate(x + 7 * scale, y + 7 * scale);
+        pose.scale(scale, scale);
 
-        const cols = 9;
-        const mainRows = 3;
+        try {
+            for (let i = 0; i < 27; i++) {
+                const stack = inventory.getItem(i + 9);
+                if (!stack.isEmpty()) context.item(stack, (i % 9) * 18, Math.floor(i / 9) * 18);
+            }
 
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const iconPad = 1 * s;
-
-        const hotbar = items.slice(0, 9);
-        const main = items.slice(9, 36);
-
-        const mainStartX = o.x + pad;
-        const mainStartY = o.y + pad;
-        const hotbarStartY = mainStartY + mainRows * slot + gap;
-
-        main.forEach((item, i) => {
-            if (!item) return;
-            const row = Math.floor(i / cols);
-            if (row >= mainRows) return;
-            const col = i % cols;
-            const x = mainStartX + col * slot + iconPad;
-            const y = mainStartY + row * slot + iconPad;
-            item.draw(x, y, s);
-        });
-
-        hotbar.forEach((item, i) => {
-            if (!item) return;
-            const x = mainStartX + i * slot + iconPad;
-            const y = hotbarStartY + iconPad;
-            item.draw(x, y, s);
-        });
-    }
-
-    renderInventoryBackgroundOverlay() {
-        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
-        if (!frame) return;
-        this.drawInFrame(frame.sw, frame.sh, this.drawInventoryHudBackground);
+            for (let i = 0; i < 9; i++) {
+                const stack = inventory.getItem(i);
+                if (!stack.isEmpty()) context.item(stack, i * 18, 58);
+            }
+        } finally {
+            pose.popMatrix();
+        }
     }
 
     renderOverlay() {
-        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
-        if (!frame) return;
+        if (!this.prepareOverlay(this.INVENTORY_HUD && this.inventory.enabled !== false, this.recalcInventoryBounds)) return;
 
         try {
+            // ponytail: queue directly until Render2D exposes ordered callbacks.
+            SkijaPIP.draw(DrawContextHolder.currentContext, this.inventoryBackgroundCallback, false);
             this.drawInventoryHudItems();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 
     renderStatsOverlay() {
-        const frame = this.prepareOverlay(this.STATS_HUD, this.recalcStatsBounds);
-        if (!frame) return;
-        this.drawInFrame(frame.sw, frame.sh, this.drawStatsHud);
+        if (!this.prepareOverlay(this.STATS_HUD && this.stats.enabled !== false, this.recalcStatsBounds)) return;
+        try {
+            drawStatsHud(this.stats, getStatsHudLines());
+        } catch (e) {
+            console.error(e);
+        }
     }
 }
 

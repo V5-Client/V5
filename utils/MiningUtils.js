@@ -1,13 +1,12 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { Blocks, BP } from './Constants';
-import { Flowstate } from './Flowstate';
-import { Executor } from './ThreadExecutor';
-import { Utils } from './Utils';
+import { getCurrentFlowstate } from './Flowstate';
+import { executeAsync } from './ThreadExecutor';
+import { area as getArea, convertToVector, getConfigFile, writeConfigFile } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
-import { Guis } from './player/Inventory';
+import { clickItems, clickSlot, closeInventory, findFirstItem, getGuiName, setItemSlot } from './player/Inventory';
 import { Rotations } from './player/Rotations';
-import { TabListUtils } from './TabListUtils';
 
 const BLOCK_HARDNESS_DATA = {
     'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
@@ -71,7 +70,7 @@ const TOOL_PRIORITY_LIST = [
 
 class MiningStatsCollector {
     constructor() {
-        this.stats = Utils.getConfigFile('miningstats.json') || {};
+        this.stats = getConfigFile('miningstats.json') || {};
         this.isCollecting = false;
         this.checkedThisSession = false;
         this.statsFile = 'miningstats.json';
@@ -80,19 +79,19 @@ class MiningStatsCollector {
 
     beginCollection() {
         if (this.isCollecting) {
-            Chat.message('Already collecting stats. Wait a moment.');
+            chat('Already collecting stats. Wait a moment.');
             return false;
         }
 
         let toolData = ToolFinder.findBest();
         if (!toolData) {
-            Chat.message('No mining tool found!');
+            chat('No mining tool found!');
             return false;
         }
 
         this.isCollecting = true;
         try {
-            Guis.setItemSlot(toolData.slot);
+            setItemSlot(toolData.slot);
             Thread.sleep(500);
 
             ChatLib.command('stats');
@@ -108,7 +107,7 @@ class MiningStatsCollector {
             let hotmPage = this.waitForItem(['Tier 5', 'Tier 10']);
             if (!hotmPage) return this.timeout();
             if (hotmPage === 'Tier 10') {
-                Guis.clickSlot(53, false, 'RIGHT');
+                clickSlot(53, false, 'RIGHT');
                 if (!this.waitForItem('Tier 5')) return this.timeout();
             }
             Thread.sleep(100);
@@ -122,7 +121,7 @@ class MiningStatsCollector {
             if (this.checkSlotForBlock(container, 29, activeMarker)) ability = 'SpeedBoost';
             else if (this.checkSlotForBlock(container, 33, activeMarker)) ability = 'Pickobulus';
 
-            Guis.clickSlot(8, false, 'RIGHT');
+            clickSlot(8, false, 'RIGHT');
             if (!this.waitForItem('Tier 10')) return this.timeout();
             if (ability === 'None') {
                 container = Player.getContainer();
@@ -137,13 +136,13 @@ class MiningStatsCollector {
             this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
 
             let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
-            this.collectedData.maxge = Number.parseInt(explorerLevel) >= 96;
+            this.collectedData.maxge = Number(explorerLevel) >= 96;
 
-            Guis.closeInv();
+            closeInventory();
             this.finishCollection();
             return true;
         } catch (e) {
-            Chat.message('Error collecting stats: ' + e);
+            chat('Error collecting stats: ' + e);
             console.error('V5 Caught error' + e + e.stack);
             return false;
         } finally {
@@ -154,7 +153,7 @@ class MiningStatsCollector {
     waitForGui(name, timeoutMs = 4000) {
         let waited = 0;
         while (waited < timeoutMs) {
-            let current = Guis.guiName();
+            let current = getGuiName();
             if (current && current.includes(name)) return true;
             Thread.sleep(50);
             waited += 50;
@@ -167,7 +166,7 @@ class MiningStatsCollector {
         let waited = 0;
         while (waited < timeoutMs) {
             let inventory = Player.getContainer();
-            let found = itemNames.find((name) => Guis.findFirst(inventory, name) != -1);
+            let found = itemNames.find((name) => findFirstItem(inventory, name) != -1);
             if (found) return found;
             Thread.sleep(50);
             waited += 50;
@@ -176,8 +175,8 @@ class MiningStatsCollector {
     }
 
     timeout() {
-        Chat.message('Failed to get mining stats.');
-        Guis.closeInv();
+        chat('Failed to get mining stats.');
+        closeInventory();
         return false;
     }
 
@@ -229,19 +228,19 @@ class MiningStatsCollector {
             maxge: this.collectedData.maxge || false,
         };
 
-        Utils.writeConfigFile(this.statsFile, finalStats);
+        writeConfigFile(this.statsFile, finalStats);
         this.stats = finalStats;
         this.checkedThisSession = true;
 
-        Chat.message('Drill: &e' + (finalStats.drill || 'Unknown'));
-        Chat.message('Speed: &6' + finalStats.speed + ' Mining Speed');
-        Chat.message('Lapidary: &6+' + finalStats.lapidary + ' Mining Speed');
-        Chat.message('Professional: &6+' + finalStats.professional + ' Mining Speed');
-        Chat.message('Strong Arm: &6+' + finalStats.strongarm + ' Mining Speed');
-        Chat.message('Ability: &e' + finalStats.ability);
-        Chat.message('Cold Resistance: &b' + finalStats.coldres);
-        Chat.message('COTM Level: &e' + finalStats.cotm);
-        Chat.message('Max Great Explorer: ' + (finalStats.maxge ? '&aYes' : '&cNo'));
+        chat('Drill: &e' + (finalStats.drill || 'Unknown'));
+        chat('Speed: &6' + finalStats.speed + ' Mining Speed');
+        chat('Lapidary: &6+' + finalStats.lapidary + ' Mining Speed');
+        chat('Professional: &6+' + finalStats.professional + ' Mining Speed');
+        chat('Strong Arm: &6+' + finalStats.strongarm + ' Mining Speed');
+        chat('Ability: &e' + finalStats.ability);
+        chat('Cold Resistance: &b' + finalStats.coldres);
+        chat('COTM Level: &e' + finalStats.cotm);
+        chat('Max Great Explorer: ' + (finalStats.maxge ? '&aYes' : '&cNo'));
     }
 
     extractNumericFromSlot(slot, pattern) {
@@ -291,7 +290,7 @@ class MiningStatsCollector {
 
 const miningStatsCollector = new MiningStatsCollector();
 
-v5Command('mining stats', () => Executor.execute(() => miningStatsCollector.beginCollection()));
+v5Command('mining stats', () => executeAsync(() => miningStatsCollector.beginCollection()));
 
 class ToolFinder {
     static findBest() {
@@ -362,14 +361,14 @@ class SpeedCalculations {
             return null;
         }
 
-        let targetArea = area || Utils.area();
+        let targetArea = area || getArea();
         let base = stats.speed;
 
         if (targetArea === 'Crystal Hollows' && stats.professional) {
             base = base + stats.professional;
         }
 
-        const flowBonus = Flowstate.CurrentFlowstate();
+        const flowBonus = getCurrentFlowstate();
         this.lastCalculated = base + flowBonus;
 
         return this.lastCalculated;
@@ -401,7 +400,7 @@ class MineTimeCalculations {
             return this.clamp(100);
         }
 
-        const vec = Utils.convertToVector(position);
+        const vec = convertToVector(position);
         const x = vec?.x();
         const y = vec?.y();
         const z = vec?.z();
@@ -422,7 +421,7 @@ class MineTimeCalculations {
         let data = BLOCK_HARDNESS_DATA[blockName];
         let hardness = data ? data.hardness : 20000;
 
-        let effectiveSpeed = speed + Flowstate.CurrentFlowstate();
+        let effectiveSpeed = speed + getCurrentFlowstate();
 
         if (boosted) {
             let stats = this.collector.getStoredStats();
@@ -488,7 +487,7 @@ class RefuelService {
         this.state = this.STATES.IDLE;
         this.waitTicks = 0;
         this.timeoutTicks = null;
-        this.callback = null;
+        this.callbacks = [];
         this.contactSlot = -1;
         this.npcRotationToken = 0;
         this.npcRotationPending = false;
@@ -508,13 +507,12 @@ class RefuelService {
     }
 
     refuel(callback, { allowNpc = true } = {}) {
+        if (typeof callback === 'function') this.callbacks.push(callback);
         if (this.state !== this.STATES.IDLE) {
-            Chat.message('Refuel already running!');
-            if (callback) callback(false);
+            this.allowNpc = this.allowNpc && allowNpc;
             return;
         }
 
-        this.callback = callback;
         this.allowNpc = allowNpc;
         this.setState(this.STATES.FIND_ABIPHONE);
     }
@@ -540,7 +538,7 @@ class RefuelService {
                 }
 
                 if (hotbarSlot !== -1) {
-                    Guis.setItemSlot(hotbarSlot);
+                    setItemSlot(hotbarSlot);
                     this.setState(this.STATES.OPEN_ABIPHONE, 5);
                     return;
                 }
@@ -595,13 +593,13 @@ class RefuelService {
                     this.setState(this.STATES.OPEN_PLAYER_INV_SWAP, 0);
                 } else {
                     if (!this.allowNpc) return this.fail('Abiphone not found; NPC refueling is disabled.');
-                    Chat.message('Abiphone not found. Walking to Drill Mechanic...');
+                    chat('Abiphone not found. Walking to Drill Mechanic...');
                     this.setState(this.STATES.WALK_TO_MECHANIC);
                 }
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_SWAP:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
+                Client.setCurrentScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 // someone fix this fucking shit. i forgot how to open inventory so this is bandaid
                 this.setState(this.STATES.WAIT_PLAYER_INV_SWAP, 5);
                 break;
@@ -615,23 +613,23 @@ class RefuelService {
                 break;
 
             case this.STATES.SWAP_ABIPHONE_1:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.SWAP_ABIPHONE_2, 5);
                 break;
 
             case this.STATES.SWAP_ABIPHONE_2:
-                Guis.clickSlot(36 + this.targetHotbarSlot);
+                clickSlot(36 + this.targetHotbarSlot);
                 this.setState(this.STATES.SWAP_ABIPHONE_3, 5);
                 break;
 
             case this.STATES.SWAP_ABIPHONE_3:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.CLOSE_PLAYER_INV_SWAP, 5);
                 break;
 
             case this.STATES.CLOSE_PLAYER_INV_SWAP:
-                Guis.closeInv();
-                Guis.setItemSlot(this.targetHotbarSlot);
+                closeInventory();
+                setItemSlot(this.targetHotbarSlot);
                 this.setState(this.STATES.OPEN_ABIPHONE, 10);
                 break;
 
@@ -641,12 +639,12 @@ class RefuelService {
                 break;
 
             case this.STATES.SELECT_CONTACT:
-                if (!Guis.guiName()?.includes('Abiphone')) {
+                if (!getGuiName()?.includes('Abiphone')) {
                     this.handleTimeout('Abiphone never opened!');
                     break;
                 }
 
-                this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                this.contactSlot = findFirstItem(Player.getContainer(), 'Jotraeline Greatforge');
                 if (this.contactSlot === -1 || !Player.getContainer()?.getStackInSlot(this.contactSlot)) {
                     this.handleTimeout('No jotraeline contact detected!');
                     break;
@@ -656,12 +654,12 @@ class RefuelService {
                 break;
 
             case this.STATES.CLICK_CONTACT:
-                Guis.clickSlot(this.contactSlot, false, 'LEFT');
+                clickSlot(this.contactSlot, false, 'LEFT');
                 this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
                 break;
 
             case this.STATES.WAIT_FOR_ANVIL:
-                if (Guis.guiName() === 'Drill Anvil') {
+                if (getGuiName() === 'Drill Anvil') {
                     this.setState(this.STATES.WAIT_ANVIL_READY, 20);
                     break;
                 }
@@ -672,13 +670,13 @@ class RefuelService {
                 let tool = ToolFinder.findBest();
                 if (!tool) return this.fail('No drill found!');
 
-                Guis.clickSlot(tool.slot + 81, true);
+                clickSlot(tool.slot + 81, true);
                 this.setState(this.STATES.ADD_FUEL, 10);
                 break;
 
             case this.STATES.ADD_FUEL:
-                if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
-                    Chat.message('No fuel detected!');
+                if (!clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
+                    chat('No fuel detected!');
                     this.setState(this.STATES.FAIL_CLEANUP, 10);
                     return;
                 }
@@ -686,22 +684,22 @@ class RefuelService {
                 break;
 
             case this.STATES.CONFIRM_FUEL:
-                Guis.clickSlot(22, false);
+                clickSlot(22, false);
                 this.setState(this.STATES.TAKE_TOOL, 10);
                 break;
 
             case this.STATES.TAKE_TOOL:
-                Guis.clickSlot(13, true);
+                clickSlot(13, true);
                 this.setState(this.STATES.CLOSE, 10);
                 break;
 
             case this.STATES.CLOSE:
-                Guis.closeInv();
+                closeInventory();
                 this.finish(true);
                 break;
 
             case this.STATES.FAIL_CLEANUP:
-                Guis.closeInv();
+                closeInventory();
                 this.finish(false);
                 break;
 
@@ -746,7 +744,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_RESTORE:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
+                Client.setCurrentScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 this.setState(this.STATES.WAIT_PLAYER_INV_RESTORE, 5);
                 break;
 
@@ -759,22 +757,22 @@ class RefuelService {
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_1:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.RESTORE_ABIPHONE_2, 5);
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_2:
-                Guis.clickSlot(36 + this.targetHotbarSlot);
+                clickSlot(36 + this.targetHotbarSlot);
                 this.setState(this.STATES.RESTORE_ABIPHONE_3, 5);
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_3:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.CLOSE_PLAYER_INV_RESTORE, 5);
                 break;
 
             case this.STATES.CLOSE_PLAYER_INV_RESTORE:
-                Guis.closeInv();
+                closeInventory();
                 this.finalCallback(this.finalSuccess);
                 break;
         }
@@ -790,12 +788,12 @@ class RefuelService {
     }
 
     fail(message) {
-        if (message) Chat.message(message);
+        if (message) chat(message);
         this.finish(false);
     }
 
     finish(success) {
-        Guis.closeInv();
+        closeInventory();
         if (this.originalAbiphoneSlot !== -1) {
             this.finalSuccess = success;
             this.setState(this.STATES.OPEN_PLAYER_INV_RESTORE, 10);
@@ -805,18 +803,24 @@ class RefuelService {
     }
 
     finalCallback(success) {
-        const cb = this.callback;
+        const callbacks = this.callbacks.slice();
         if (this.isPathing) Pathfinder.resetPath();
         if (this.npcRotationPending) Rotations.stop();
         this.reset();
-        if (cb) cb(success);
+        callbacks.forEach((callback) => {
+            try {
+                callback(success);
+            } catch (error) {
+                console.error('V5 refuel callback error:', error);
+            }
+        });
     }
 
     abort(message) {
         if (this.state === this.STATES.IDLE) return;
-        Chat.message(message);
+        chat(message);
         try {
-            Guis.closeInv();
+            closeInventory();
         } finally {
             this.finalCallback(false);
         }
@@ -835,12 +839,12 @@ class ExplorerUpgrade {
             let stats = self.collector.getStoredStats();
 
             if (stats?.maxge) {
-                Chat.message('Great Explorer already maxed!');
+                chat('Great Explorer already maxed!');
                 return callback(true);
             }
 
             if (stats?.maxge === undefined) {
-                Chat.message('Run /getminingstats first!');
+                chat('Run /getminingstats first!');
                 return callback(false);
             }
 
@@ -851,8 +855,8 @@ class ExplorerUpgrade {
                 if (msg.includes('You must first unlock')) {
                     failed = true;
                     Thread.sleep(300);
-                    Chat.message("great explorer can't be unlocked!");
-                    Guis.closeInv();
+                    chat("great explorer can't be unlocked!");
+                    closeInventory();
                     chatWatcher.unregister();
                     return callback(false);
                 }
@@ -860,8 +864,8 @@ class ExplorerUpgrade {
                 if (msg.includes("You don't have enough Gemstone Powder!")) {
                     failed = true;
                     Thread.sleep(300);
-                    Chat.message('insufficient powder!');
-                    Guis.closeInv();
+                    chat('insufficient powder!');
+                    closeInventory();
                     chatWatcher.unregister();
                     return callback(false);
                 }
@@ -870,16 +874,16 @@ class ExplorerUpgrade {
             ChatLib.command('hotm');
             Thread.sleep(1000);
 
-            if (Guis.guiName() !== 'Heart of the Mountain') {
-                Chat.message('HOTM failed to open!');
+            if (getGuiName() !== 'Heart of the Mountain') {
+                chat('HOTM failed to open!');
                 chatWatcher.unregister();
                 return callback(false);
             }
 
-            Guis.clickSlot(8, false, 'RIGHT');
+            clickSlot(8, false, 'RIGHT');
             Thread.sleep(1000);
 
-            while (!failed && Guis.guiName() === 'Heart of the Mountain') {
+            while (!failed && getGuiName() === 'Heart of the Mountain') {
                 Thread.sleep(500);
 
                 let slot = Player.getContainer()?.getStackInSlot(42);
@@ -888,9 +892,9 @@ class ExplorerUpgrade {
                 let nbtString = slot.getNBT().toString();
 
                 if (nbtString.includes('item.minecraft.coal')) {
-                    Guis.clickSlot(42, false);
+                    clickSlot(42, false);
                 } else if (nbtString.includes('item.minecraft.emerald')) {
-                    Guis.clickSlot(42, true);
+                    clickSlot(42, true);
                 } else {
                     break;
                 }
@@ -934,10 +938,6 @@ class ScoreboardDebuffReader {
 }
 
 class CommissionParser {
-    static parseTab() {
-        return TabListUtils.readCommissions();
-    }
-
     static parseGui(container, isKnownCommission) {
         try {
             if (!container) return [];
@@ -1004,7 +1004,7 @@ class BlockUtils {
     static setToAir(pos) {
         if (!pos) return;
         try {
-            const vec = Utils.convertToVector(pos);
+            const vec = convertToVector(pos);
             const x = vec?.x();
             const y = vec?.y();
             const z = vec?.z();
@@ -1014,7 +1014,7 @@ class BlockUtils {
             let blockPos = new BP(x, y, z);
             Client.getMinecraft().level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
         } catch (e) {
-            Chat.message('error setting ghost block');
+            chat('error setting ghost block');
             console.error('V5 Caught error' + e + e.stack);
         }
     }
@@ -1028,71 +1028,37 @@ const explorer = new ExplorerUpgrade(miningStatsCollector);
 v5Command('mining refuel', () => {
     refueler.refuel((success) => {
         if (success) {
-            Chat.message('Refueling completed');
+            chat('Refueling completed');
         } else {
-            Chat.message('Refueling failed');
+            chat('Refueling failed');
         }
     });
 });
 
-export const MiningUtils = {
-    getMiningSpeed: function (area) {
-        return speedCalc.getBaseSpeed(area);
-    },
-    getSpeedWithCold: function () {
-        return speedCalc.getSpeedWithColdPenalty();
-    },
-    getMineTime: function (pos, speed, boost) {
-        return timeCalc.calculateTicks(pos, speed, boost);
-    },
-    getBlockInfo: function (registryName) {
-        return lookupBlock(registryName);
-    },
-    refreshMiningStatsIfNeeded: function (callback = null) {
-        Executor.execute(() => {
-            const refreshed = miningStatsCollector.refreshIfNeeded();
-            if (callback) Client.scheduleTask(0, () => callback(refreshed));
-        });
-    },
-    getDrills: function () {
-        let bestTool = ToolFinder.findBest();
-        if (!bestTool) {
-            return { blueCheese: null, drill: null };
-        }
-        return {
-            blueCheese: bestTool.blueCheese ? bestTool : null,
-            drill: bestTool,
-        };
-    },
-    doRefueling: function (isComm, callback, options = {}) {
-        refueler.refuel(callback, options);
-    },
-    MaxGreatExplorer: function (callback) {
-        explorer.upgrade(callback);
-    },
-    inCamp: function () {
-        return Player.getZ() > 185 && Utils.area() === 'Dwarven Mines';
-    },
-    getDebuff: function (type) {
-        return type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat();
-    },
-    GhostBlock: function (pos) {
-        BlockUtils.setToAir(pos);
-    },
-    readCommissions: function () {
-        return CommissionParser.parseTab();
-    },
-    readCommissionsFromGui: function (container, isKnownCommission) {
-        return CommissionParser.parseGui(container, isKnownCommission);
-    },
+export const getMiningSpeed = (area) => speedCalc.getBaseSpeed(area);
+export const getSpeedWithCold = () => speedCalc.getSpeedWithColdPenalty();
+export const getMineTime = (pos, speed, boost) => timeCalc.calculateTicks(pos, speed, boost);
+export const getBlockInfo = lookupBlock;
+export const refreshMiningStatsIfNeeded = (callback = null) =>
+    executeAsync(() => {
+        const refreshed = miningStatsCollector.refreshIfNeeded();
+        if (callback) Client.scheduleTask(0, () => callback(refreshed));
+    });
+export const getDrills = () => {
+    const drill = ToolFinder.findBest();
+    return { blueCheese: drill?.blueCheese ? drill : null, drill: drill || null };
 };
+export const refuel = (callback, options) => refueler.refuel(callback, options);
+export const getDebuff = (type) => (type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat());
+export const setGhostBlock = (pos) => BlockUtils.setToAir(pos);
+export const readCommissionsFromGui = (container, isKnownCommission) => CommissionParser.parseGui(container, isKnownCommission);
 
 v5Command('mining maxge', () => {
-    MiningUtils.MaxGreatExplorer((success) => {
+    explorer.upgrade((success) => {
         if (success) {
-            Chat.message('Great Explorer upgrade completed');
+            chat('Great Explorer upgrade completed');
         } else {
-            Chat.message('Great Explorer upgrade failed');
+            chat('Great Explorer upgrade failed');
         }
     });
 });

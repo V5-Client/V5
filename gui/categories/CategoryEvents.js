@@ -10,10 +10,19 @@ import {
 import { GuiRectangles } from '../core/GuiState';
 import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
-import { getCategoryContentY, getCategoryRect, getDiscordPfpRect, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './CategoryRenderer';
+import {
+    getCategoryContentY,
+    getCategoryRect,
+    getDiscordPfpRect,
+    getModuleNavButtonRect,
+    getModuleNavRect,
+    getModuleNavScrollX,
+    getVersionButtonRect,
+} from './CategoryRenderer';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 
 const ANIMATION_DURATION = 300;
+const BACK_TEXT_WIDTH = getTextWidth('Back', FontSizes.SMALL);
 const getEditButtonRect = () => {
     const leftPanel = GuiRectangles.LeftPanel;
     const pfpRect = getDiscordPfpRect();
@@ -34,27 +43,30 @@ const getCategorySelectionRect = (name) => {
         return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
     }
     if (name === 'Edit') return { ...getEditButtonRect(), radius: 8 };
+    if (name === 'Changelog') return { ...getVersionButtonRect(), radius: 8 };
     const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
-    if (visibleIndex === -1) return getEditButtonRect();
+    if (visibleIndex === -1) return { ...getEditButtonRect(), radius: 8 };
     const rect = getCategoryRect(visibleIndex);
     return { ...rect, radius: 8 };
 };
 
-export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
+const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
     const directCat = Categories.categories.find((c) => c.name === categoryName);
     if (!directCat || !directCat.directComponents) return false;
     const contentTop = directCat.subcategories.length > 0 ? getCategoryContentY(directCat, panel) : panel.y;
     if (!isInside(mouseX, mouseY, panel) || mouseY < contentTop) return false;
 
-    for (const row of layoutDirectComponents(getVisibleDirectComponents(categoryName), getCategoryContentY(directCat, panel) - scrollY).rows) {
+    const layout = layoutDirectComponents(getVisibleDirectComponents(categoryName), getCategoryContentY(directCat, panel));
+    for (const row of layout.rows) {
         const component = row.component;
+        const componentY = layout.baseY + row.y - scrollY;
 
         if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
-            const clickableArea = getComponentHitRect(panel, row.y, row.height, PADDING);
+            const clickableArea = getComponentHitRect(panel, componentY, row.height, PADDING);
 
             if (isInside(mouseX, mouseY, clickableArea)) {
                 component.x = getDirectComponentX(panel);
-                component.y = row.y;
+                component.y = componentY;
                 component.optionPanelWidth = getDirectComponentPanelWidth(panel);
                 component.optionPanelHeight = panel.height;
 
@@ -70,11 +82,11 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
             continue;
         }
 
-        const clickableArea = getComponentHitRect(panel, row.y, row.height, PADDING);
+        const clickableArea = getComponentHitRect(panel, componentY, row.height, PADDING);
 
         if (isInside(mouseX, mouseY, clickableArea)) {
             component.x = getDirectComponentX(panel);
-            component.y = row.y;
+            component.y = componentY;
             component.optionPanelWidth = getDirectComponentPanelWidth(panel);
             component.optionPanelHeight = panel.height;
 
@@ -110,6 +122,7 @@ export const handleCategoryClick = (
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
         if (directCat?.directComponents && isInsidePanel) {
             if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
+                Categories.dataRevision++;
                 return;
             }
         }
@@ -126,8 +139,7 @@ export const handleCategoryClick = (
         const optionY = panel.y + PADDING;
         const sY = Categories.optionsScrollY;
 
-        const backButtonText = 'Back';
-        const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
+        const backButtonWidth = BACK_TEXT_WIDTH;
         const drawnBackY = optionY + 12 - sY;
         const backButtonRect = {
             x: optionX,
@@ -190,7 +202,10 @@ export const handleCategoryClick = (
                     }
                 }
 
-                if (handled) return;
+                if (handled) {
+                    Categories.dataRevision++;
+                    return;
+                }
 
                 currentDrawnCompY += componentHeight;
                 continue;
@@ -225,7 +240,10 @@ export const handleCategoryClick = (
                 }
             }
 
-            if (handled) return;
+            if (handled) {
+                Categories.dataRevision++;
+                return;
+            }
 
             currentDrawnCompY += getComponentLayoutHeight(component, true);
         }
@@ -246,6 +264,9 @@ export const handleCategoryClick = (
             clickedCategoryName = clickedCategory?.name || null;
             if (!clickedCategoryName && isInside(mouseX, mouseY, pfpButtonRect)) {
                 clickedCategoryName = 'Discord';
+            }
+            if (!clickedCategoryName && isInside(mouseX, mouseY, getVersionButtonRect())) {
+                clickedCategoryName = 'Changelog';
             }
         }
 
@@ -446,10 +467,12 @@ export const handleCategoryScroll = (
             }
 
             let scrollHandled = false;
-            layoutDirectComponents(components, getCategoryContentY(directCat, panel)).rows.forEach(({ component, y: componentY, height: compHeight }) => {
+            const layout = layoutDirectComponents(components, getCategoryContentY(directCat, panel));
+            layout.rows.forEach(({ component, y: baseY, height: compHeight }) => {
+                const componentY = layout.baseY + baseY - rightPanelScrollY;
                 const compRect = {
                     x: getDirectComponentX(panel),
-                    y: componentY - rightPanelScrollY,
+                    y: componentY,
                     width: getDirectComponentPanelWidth(panel) - PADDING * 2,
                     height: compHeight,
                 };

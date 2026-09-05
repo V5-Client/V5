@@ -1,12 +1,14 @@
 import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
-import { Chat } from './Chat';
-import { MacroState } from './MacroState';
-import { Mixin } from './MixinManager';
+import { chat } from './Chat';
+import { getModule, isMacroRunning, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
-import { manager } from './SkyblockEvents';
-import { Utils } from './Utils';
+import { registerSkyblockEvent } from './SkyblockEvents';
+import { InputConstants } from './Constants';
+import { getConfigFile, writeConfigFile } from './Utils';
+
+const KeyMapping = net.minecraft.client.KeyMapping;
 
 export class ModuleBase {
     static conditions = [];
@@ -50,7 +52,7 @@ export class ModuleBase {
 
         this.ignoreFailsafes = opts.ignoreFailsafes === true;
 
-        MacroState.registerModule(this);
+        registerModule(this);
 
         this._registers = [];
 
@@ -65,17 +67,17 @@ export class ModuleBase {
         }
 
         if (opts.isMacro) {
-            manager.subscribe('limbo', () => {
+            registerSkyblockEvent('limbo', () => {
                 if (!this.enabled) return;
                 this.toggle(false);
-                Chat.message('&cYou were spawned in limbo! Attempting to recover...');
+                chat('&cYou were spawned in limbo! Attempting to recover...');
                 ChatLib.command('leave');
                 ScheduleTask(20, () => {
                     ChatLib.command('play skyblock');
                 });
                 ScheduleTask(60, () => {
                     this.toggle(true);
-                    Chat.message('&aRecovered from limbo?');
+                    chat('&aRecovered from limbo?');
                 });
             });
         }
@@ -146,13 +148,14 @@ export class ModuleBase {
         }
 
         this.enabled = newVal;
+        markEnabledModulesChanged();
 
         if (newVal) {
             this.isParentManaged = parentManaged;
 
             if (this.isMacro) {
-                Mixin.set('macroEnabled', true);
-                MacroState.onModuleEnabled(this.name, toggleContext);
+                Client.setMacroEnabled(true);
+                onModuleEnabled(this.name);
             }
 
             if (this.oid && !this.isParentManaged) {
@@ -169,8 +172,8 @@ export class ModuleBase {
             this._registers.forEach((h) => h.register());
         } else {
             if (this.isMacro) {
-                MacroState.onModuleDisabled(this.name, toggleContext);
-                Mixin.set('macroEnabled', MacroState.isMacroRunning());
+                onModuleDisabled(this.name, toggleContext);
+                Client.setMacroEnabled(isMacroRunning());
             }
 
             if (this.oid) {
@@ -209,43 +212,19 @@ export class ModuleBase {
     }
 
     message(message) {
-        if (!this.name) return Chat.message('&cModule message error!');
+        if (!this.name) return chat('&cModule message error!');
         const theme = this.hexCode || `&${ModuleBase.getDefaultTheme(this.subcategory)}`;
         if (theme.startsWith('&#')) {
-            return Chat.message(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
+            return chat(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
         }
         if (theme.startsWith('#')) {
-            return Chat.message(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
+            return chat(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
         }
-        Chat.message(`${theme}${this.name}: &f${message}`);
-    }
-
-    /**
-     * Check if any macro is currently running
-     * @returns {boolean}
-     */
-    isAnyMacroRunning() {
-        return MacroState.isMacroRunning();
-    }
-
-    /**
-     * Get the name of the currently active macro
-     * @returns {string|null}
-     */
-    getActiveMacroName() {
-        return MacroState.getActiveMacro();
-    }
-
-    /**
-     * Get the start time of the current macro session
-     * @returns {number}
-     */
-    getMacroStartTime() {
-        return MacroState.getStartTime();
+        chat(`${theme}${this.name}: &f${message}`);
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const existingKeybinds = getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
         this._wrappedKeyTitle = title;
         this._wrappedKey = new KeyBind(title, savedKeycode, `v5_${this.subcategory.toLowerCase()}`);
@@ -260,6 +239,23 @@ export class ModuleBase {
         return this;
     }
 
+    getToggleKeyName() {
+        const keyCode = this._wrappedKey?.getKeyCode?.();
+        return keyCode === undefined || keyCode === null || keyCode <= 0
+            ? 'Unbound'
+            : InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
+    }
+
+    setToggleKey(keyCode) {
+        const mapping = Client.getMinecraft().options.keyMappings.find((entry) => entry.getName() === this._wrappedKeyTitle);
+        if (!mapping) return;
+
+        const unbound = keyCode === 256;
+        mapping.setKey(unbound ? InputConstants.getKey('key.keyboard.unknown') : InputConstants.Type.KEYSYM.getOrCreate(keyCode));
+        KeyMapping.resetMapping();
+        this._saveKey(this._wrappedKeyTitle, unbound ? Keyboard.KEY_NONE : keyCode);
+    }
+
     /**
      * Toggle initiated by user input (keybind/gui button).
      * Preserves scheduler cancel and parent-managed safeguards.
@@ -267,14 +263,14 @@ export class ModuleBase {
      */
     requestToggleFromUser() {
         if (this.isMacro && !this.enabled) {
-            const scheduler = MacroState.getModule('Scheduler');
+            const scheduler = getModule('Scheduler');
             if (scheduler && typeof scheduler.cancelScheduledMacro === 'function') {
                 if (scheduler.cancelScheduledMacro(this.name)) return false;
             }
         }
 
         if (this.enabled && this.isParentManaged) {
-            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
+            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', 5000);
             return false;
         }
 
@@ -409,18 +405,6 @@ export class ModuleBase {
     }
 
     /**
-     * Add a color picker directly to the Settings page
-     * @param {string} title - The title of the color picker
-     * @param {object} defaultColor - Default color (java.awt.Color)
-     * @param {function} callback - Callback function when color changes
-     * @param {string} [description=null] - Description/tooltip for the color picker
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectColorPicker(title, defaultColor, callback, description = null, sectionName = null) {
-        return Categories.addSettingsColorPicker(title, defaultColor, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a text input to the module's GUI
      * @param {string} title - The title of the text input
      * @param {string} defaultValue - Default text
@@ -429,18 +413,6 @@ export class ModuleBase {
      */
     addTextInput(title, defaultValue, callback, description = null) {
         return Categories.addTextInput('Modules', this.name, title, defaultValue, callback, description);
-    }
-
-    /**
-     * Add a text input directly to the Settings page
-     * @param {string} title - The title of the text input
-     * @param {string} defaultValue - Default text
-     * @param {function} callback - Callback function when text changes
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectTextInput(title, defaultValue, callback, description = null, sectionName = null) {
-        return Categories.addSettingsTextInput(title, defaultValue, callback, description, sectionName, 'Settings');
     }
 
     /**
@@ -454,17 +426,6 @@ export class ModuleBase {
     }
 
     /**
-     * Add a button directly to the Settings page
-     * @param {string} title - The title of the button
-     * @param {function} callback - Callback function when button is pressed
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectButton(title, callback, description = null, sectionName = null) {
-        return Categories.addSettingsButton(title, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a popup to the module's GUI
      * @param {string} title - The title of the popup
      * @param {function} callback - Callback function when popup opens/closes
@@ -475,31 +436,12 @@ export class ModuleBase {
     }
 
     /**
-     * Add a popup directly to the Settings page
-     * @param {string} title - The title of the popup
-     * @param {function} callback - Callback function when popup opens/closes
-     * @param {string} [description=null] - Description/tooltip
-     * @param {string} [sectionName=null] - Optional: Section header within Settings
-     */
-    addDirectPopup(title, callback, description = null, sectionName = null) {
-        return Categories.addSettingsPopup(title, callback, description, sectionName, 'Settings');
-    }
-
-    /**
      * Add a separator to the module's GUI
      * @param {string} title - The title of the separator
      * @param {boolean} [fullWidth=false] - Whether the separator spans the full panel width
      */
     addSeparator(title, fullWidth = false) {
         return Categories.addSeparator('Modules', this.name, title, fullWidth);
-    }
-
-    /**
-     * Add a separator directly to the Settings page
-     * @param {string} title - The title of the separator
-     */
-    addDirectSeparator(title) {
-        return Categories.addSettingsSeparator(title, 'Settings');
     }
 
     // Allow for overriding onEnable and onDisable if you need more control
@@ -512,8 +454,8 @@ export class ModuleBase {
      * Saves a specific keybind description and keycode.
      */
     _saveKey(description, keycode) {
-        let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        let allKeybinds = getConfigFile('keybinds.json') || {};
         allKeybinds[description] = keycode;
-        Utils.writeConfigFile('keybinds.json', allKeybinds);
+        writeConfigFile('keybinds.json', allKeybinds);
     }
 }

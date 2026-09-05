@@ -1,7 +1,7 @@
-import { Chat } from '../../utils/Chat';
+import { chat } from '../../utils/Chat';
 import { File } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 
 const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/Gifs');
 if (!GIF_SOURCE_DIR.exists()) GIF_SOURCE_DIR.mkdirs();
@@ -41,8 +41,8 @@ class GifInstance {
 
             if (this.loaded) {
                 const paddingPx = 20;
-                const screenW = Renderer.screen.getWidth();
-                const screenH = Renderer.screen.getHeight();
+                const screenW = Render2D.screen.getWidth();
+                const screenH = Render2D.screen.getHeight();
                 const availableW = Math.max(1, screenW - paddingPx * 2);
                 const availableH = Math.max(1, screenH - paddingPx * 2);
 
@@ -56,10 +56,10 @@ class GifInstance {
     }
 
     load() {
-        const gifData = NVG.loadGif(this.absPath);
+        const gifData = Render2D.loadGif(this.absPath);
 
         if (!gifData) {
-            Chat.message(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
+            chat(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
             return;
         }
 
@@ -71,6 +71,7 @@ class GifInstance {
     }
 
     unload() {
+        if (this.loaded) Render2D.unloadGif(this.absPath);
         this.loaded = false;
     }
 
@@ -93,7 +94,7 @@ class GifInstance {
         const drawW = this.baseWidth * this.scale;
         const drawH = this.baseHeight * this.scale;
 
-        NVG.drawGif(this.absPath, this.x, this.y, drawW, drawH, this.frameIndex);
+        Render2D.drawGif(this.absPath, this.x, this.y, drawW, drawH, this.frameIndex);
 
         if (isChatOpen) {
             this.drawMoveUI(this.x, this.y, drawW, drawH);
@@ -111,25 +112,25 @@ class GifInstance {
         const cornerSize = Math.max(minHandlePx * 0.5, 6 * this.scale);
         const lineThick = Math.max(minLinePx, 2 * this.scale);
 
-        NVG.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
-        NVG.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
-        NVG.drawRect(x - lineThick, y, lineThick, height, borderColor); // Left
-        NVG.drawRect(x + width, y, lineThick, height, borderColor); // Right
+        Render2D.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
+        Render2D.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
+        Render2D.drawRect(x - lineThick, y, lineThick, height, borderColor); // Left
+        Render2D.drawRect(x + width, y, lineThick, height, borderColor); // Right
 
-        NVG.drawRect(x - lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y + height, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x - lineThick, y + height, cornerSize, lineThick, cornerColor);
+        Render2D.drawRect(x - lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
+        Render2D.drawRect(x + width - cornerSize + lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
+        Render2D.drawRect(x + width - cornerSize + lineThick, y + height, cornerSize, lineThick, cornerColor);
+        Render2D.drawRect(x - lineThick, y + height, cornerSize, lineThick, cornerColor);
 
         const hx = x + width - handleSize;
         const hy = y + height - handleSize;
 
-        NVG.drawRect(hx, hy, handleSize, handleSize, handleColor);
+        Render2D.drawRect(hx, hy, handleSize, handleSize, handleColor);
 
         const innerPadding = handleSize * (4 / 14);
         const innerSize = handleSize - innerPadding * 2;
         if (innerSize > 0) {
-            NVG.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
+            Render2D.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
         }
     }
 
@@ -168,8 +169,8 @@ class GifInstance {
         if (this.dragging) {
             const drawW = this.baseWidth * this.scale;
             const drawH = this.baseHeight * this.scale;
-            const screenW = Renderer.screen.getWidth();
-            const screenH = Renderer.screen.getHeight();
+            const screenW = Render2D.screen.getWidth();
+            const screenH = Render2D.screen.getHeight();
 
             const newX = mx - this.dragOffsetX;
             const newY = my - this.dragOffsetY;
@@ -178,8 +179,8 @@ class GifInstance {
             this.y = Math.max(0, Math.min(newY, screenH - drawH));
             return true;
         } else if (this.scaling) {
-            const screenW = Renderer.screen.getWidth();
-            const screenH = Renderer.screen.getHeight();
+            const screenW = Render2D.screen.getWidth();
+            const screenH = Render2D.screen.getHeight();
 
             const initialDrawW = this.baseWidth * this.initialScale;
             const newDrawW = initialDrawW + (mx - this.initialMouseX);
@@ -217,7 +218,7 @@ class GIFOverlay extends ModuleBase {
         });
 
         this.instances = [];
-        this.positionConfig = Utils.getConfigFile('Gifs/gif_positions.json') || {};
+        this.positionConfig = getConfigFile('Gifs/gif_positions.json') || {};
         this.renderOverEverything = true;
 
         const gifFiles = this.getGifFiles();
@@ -231,7 +232,7 @@ class GIFOverlay extends ModuleBase {
 
         this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
 
-        NVG.registerV5Render(() => {
+        Render2D.registerV5Render(() => {
             if (!this.renderOverEverything || !this.enabled) return;
             this.render();
         });
@@ -292,9 +293,7 @@ class GIFOverlay extends ModuleBase {
 
         const chatOpen = this.isChatOpen();
 
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         this.instances.forEach((inst) => inst.render(chatOpen));
-        NVG.endFrame();
     }
 
     handleClick(x, y, button, isPressed) {
@@ -335,7 +334,7 @@ class GIFOverlay extends ModuleBase {
         const merged = { ...this.positionConfig, ...data };
         this.positionConfig = merged;
 
-        Utils.writeConfigFile('Gifs/gif_positions.json', merged);
+        writeConfigFile('Gifs/gif_positions.json', merged);
     }
 
     resetAll() {

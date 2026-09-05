@@ -1,16 +1,15 @@
-import { Chat } from '../../Chat';
+import { chatPathfinder } from '../../Chat';
 import { BP, SnowBlock } from '../../Constants';
-import { MathUtils } from '../../Math';
-import { Utils } from '../../Utils';
-import { Guis } from '../../player/Inventory';
+import { wrapTo180 } from '../../Math';
+import { getCurrentMana } from '../../Utils';
+import { findItemInHotbar, setItemSlot } from '../../player/Inventory';
 import PathConfig from '../PathConfig';
 import { Jump } from './PathJumps';
-import { Movement } from './PathMovement';
+import { isRecovering } from './PathMovement';
 
 class PathAote {
     constructor() {
         this.cooldownTicks = 0;
-        this.lastUsedPathPosition = null;
         this.MAX_AIM_YAW_ERROR = 12;
         this.FINAL_POINT_NO_AOTE_RADIUS = 18;
 
@@ -19,9 +18,7 @@ class PathAote {
         this.hasSwappedToAote = false;
 
         this.lastSkipReason = '';
-        this.lastSkipAt = 0;
         this.lastMissingItemAt = 0;
-        this.AOTE_RANGE = 14;
         this.AOTE_MIN_GAIN = 10;
         this.AOTE_STRAIGHTNESS_THRESHOLD = 25;
         this.MINIMUM_MANA_TO_USE = 100;
@@ -56,7 +53,7 @@ class PathAote {
             const now = Date.now();
             if (PathConfig.PATHFINDING_DEBUG && now - this.lastMissingItemAt > 1500) {
                 this.lastMissingItemAt = now;
-                Chat.messagePathfinder('§7AOTE: item missing');
+                chatPathfinder('§7AOTE: item missing');
             }
             return;
         }
@@ -71,7 +68,7 @@ class PathAote {
             minGain -= this.MIN_GAIN_RELAX_IN_FLUID_DISTANCE;
         }
 
-        if (Movement.isRecovering()) {
+        if (isRecovering()) {
             return this.debug('recovery');
         }
 
@@ -100,20 +97,20 @@ class PathAote {
 
         Client.rightClick();
         Jump.suppressJump(5);
+        Jump.invalidateNearestIndex();
         rotations.onTeleportTriggered(candidate.targetPathPosition);
         this.cooldownTicks = 10;
-        this.lastUsedPathPosition = rotations.currentPathPosition;
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            Chat.messagePathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
+            chatPathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
         }
     }
 
     findAoteSlot() {
-        const aotv = Guis.findItemInHotbar('Aspect of the Void');
+        const aotv = findItemInHotbar('Aspect of the Void');
         if (aotv !== -1) return aotv;
 
-        const aote = Guis.findItemInHotbar('Aspect of the End');
+        const aote = findItemInHotbar('Aspect of the End');
         return aote !== -1 ? aote : null;
     }
 
@@ -135,11 +132,11 @@ class PathAote {
         if (!this.hasSwappedToAote) {
             this.hasSwappedToAote = true;
             this.activeAoteSlot = slot;
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§7AOTE: swapped to slot ${slot + 1}`);
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder(`§7AOTE: swapped to slot ${slot + 1}`);
         }
 
         if (Player.getHeldItemIndex() !== slot) {
-            Guis.setItemSlot(slot);
+            setItemSlot(slot);
             this.debug('waiting for slot swap');
             return false;
         }
@@ -182,8 +179,7 @@ class PathAote {
     }
 
     hasEnoughMana() {
-        const mana = Utils.getCurrentMana();
-
+        const mana = getCurrentMana();
         if (mana === null) {
             this.debug('mana unavailable');
             //return false;
@@ -250,7 +246,7 @@ class PathAote {
         if (horiz < 0.001) return true;
 
         const targetYaw = -(Math.atan2(dx, dz) * (180 / Math.PI));
-        const yawError = Math.abs(this.wrapAngle(targetYaw - MathUtils.wrapTo180(player.getYRot())));
+        const yawError = Math.abs(this.wrapAngle(targetYaw - wrapTo180(player.getYRot())));
         return yawError <= this.MAX_AIM_YAW_ERROR;
     }
 
@@ -262,7 +258,7 @@ class PathAote {
     }
 
     getLookDirection(player) {
-        const yawRad = (-MathUtils.wrapTo180(player.getYRot()) * Math.PI) / 180;
+        const yawRad = (-wrapTo180(player.getYRot()) * Math.PI) / 180;
         const pitchRad = (-player.getXRot() * Math.PI) / 180;
         const cosPitch = Math.cos(pitchRad);
         return {
@@ -434,16 +430,16 @@ class PathAote {
         if (!PathConfig.PATHFINDING_DEBUG) return;
         if (reason === this.lastSkipReason) return;
         this.lastSkipReason = reason;
-        Chat.messagePathfinder(`§7AOTE: skipped (${reason})`);
+        chatPathfinder(`§7AOTE: skipped (${reason})`);
     }
 
     restoreOriginalSlot() {
         if (this.originalSlot >= 0 && this.originalSlot <= 8) {
             if (Player.getHeldItemIndex() !== this.originalSlot) {
-                Guis.setItemSlot(this.originalSlot);
+                setItemSlot(this.originalSlot);
             }
             if (PathConfig.PATHFINDING_DEBUG) {
-                Chat.messagePathfinder(`§7AOTE: restored original slot (${this.originalSlot + 1})`);
+                chatPathfinder(`§7AOTE: restored original slot (${this.originalSlot + 1})`);
             }
         }
 
@@ -456,9 +452,7 @@ class PathAote {
         if (restoreSlot) this.restoreOriginalSlot();
 
         this.cooldownTicks = 0;
-        this.lastUsedPathPosition = null;
         this.lastSkipReason = '';
-        this.lastSkipAt = 0;
         this.lastMissingItemAt = 0;
     }
 }

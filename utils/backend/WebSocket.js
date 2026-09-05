@@ -1,5 +1,5 @@
 import WebSocket from 'WebSocket';
-import { Chat } from '../Chat';
+import { chatIrc } from '../Chat';
 import { Links } from '../Constants';
 import { returnDiscord } from '../NetworkUtils';
 import { ServerboundChatPacket } from '../Packets';
@@ -41,9 +41,9 @@ function handleSocketDisconnect({ code, reason, exception }) {
 
     if (exception) {
         console.error('WebSocket error:', exception);
-        Chat.messageIrc('Connection error: ' + exception);
+        chatIrc('Connection error: ' + exception);
     } else {
-        Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+        console.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
     }
     attemptReconnect();
 }
@@ -74,18 +74,18 @@ function handleIncomingMessage(raw) {
             sendChatMessage(meows[Math.floor(Math.random() * meows.length)]);
         }
     } catch (e) {
-        Chat.messageIrc('An error occurred parsing message:');
-        console.error('V5 Caught error' + e + e.stack);
+        chatIrc('An error occurred parsing message:');
+        console.error(e);
     }
 }
 
-export function sendChatMessage(content) {
+function sendChatMessage(content) {
     if (!isConnected || !ws) return;
     try {
         ws.send(content);
     } catch (e) {
-        Chat.messageIrc('Failed to send message: ');
-        console.error('V5 Caught error' + e + e.stack);
+        chatIrc('Failed to send message: ');
+        console.error(e);
     }
 }
 
@@ -99,7 +99,7 @@ function connectWebSocket() {
         try {
             previousSocket.close();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 
@@ -107,7 +107,7 @@ function connectWebSocket() {
 
     if (!token) {
         isConnected = false;
-        return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
+        return chatIrc('&cLoader has not authenticated. IRC is unavailable.');
     }
     returnDiscord(token);
     const socket = new WebSocket(Links.WEBSOCKET_URL);
@@ -153,7 +153,7 @@ function connectWebSocket() {
 
 function attemptReconnect() {
     if (gameUnload) return;
-    if (isConnected) return Chat.messageIrc('Already connected to irc!');
+    if (isConnected) return chatIrc('Already connected to irc!');
     if (reconnectScheduled) return;
 
     reconnectAttempts++;
@@ -165,7 +165,7 @@ function attemptReconnect() {
     ScheduleTask(delay, () => {
         reconnectScheduled = false;
         if (gameUnload) return;
-        if (isConnected) return Chat.messageIrc('Already connected to irc!');
+        if (isConnected) return chatIrc('Already connected to irc!');
         connectWebSocket();
     });
 }
@@ -182,7 +182,7 @@ register('packetSent', (packet, event) => {
     try {
         message = packet.message();
     } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
+        console.error(e);
     }
     if (!message || !message.startsWith('#')) return;
 

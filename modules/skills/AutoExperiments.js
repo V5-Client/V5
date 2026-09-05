@@ -1,10 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
-
-/**
- * @typedef {com.chattriggers.ctjs.api.inventory.Item} item
- * @typedef {Array<com.chattriggers.ctjs.api.inventory.Item | null | undefined>} items
- */
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 const SLOTS = {
     CHRONOMATRON: 29,
@@ -34,13 +29,15 @@ class AutoExperiments extends ModuleBase {
         super({
             name: 'Auto Experiments',
             subcategory: 'Skills',
-            description: 'Automatically do Chronomatron, Ultrasequencer, and Superpairs (soon) experiments.',
+            description: 'Automatically do Chronomatron, Ultrasequencer, and Superpairs experiments.',
             tooltip: 'Automatically does the experiments',
         });
 
         this.actionDelay = 500;
         this.serumCountValue = 0;
         this.getMaxXpEnabled = false;
+        this.automaticSuperpairs = true;
+        this.ignoreEnchantingXp = false;
         this.maxEnchanting = false;
 
         this.ultrasequencerOrder = new Map();
@@ -54,6 +51,9 @@ class AutoExperiments extends ModuleBase {
         this.boughtXP = false;
         this.state = STATES.WAITING;
         this.superpairsRewardsClaimed = false;
+        this.superpairsCards = new Map();
+        this.superpairsPendingSlot = null;
+        this.superpairsCurrentKey = null;
 
         this.on('tick', () => this.onTick());
 
@@ -67,6 +67,21 @@ class AutoExperiments extends ModuleBase {
         );
         this.addSlider('Serum Count', 0, 3, 0, (v) => (this.serumCountValue = Math.floor(v)), 'Consumed Metaphysical Serum count.');
         this.addToggle('Get Max XP', (v) => (this.getMaxXpEnabled = v), 'Solve Chronomatron to 15 and Ultrasequencer to 20 for max XP.');
+        let ignoreEnchantingXpToggle;
+        this.addToggle(
+            'Automatic Superpairs',
+            (v) => {
+                this.automaticSuperpairs = v;
+                ignoreEnchantingXpToggle.visible = v;
+            },
+            'Automatically play and claim Superpairs.',
+            true
+        );
+        ignoreEnchantingXpToggle = this.addToggle(
+            'Ignore Enchanting XP',
+            (v) => (this.ignoreEnchantingXp = v),
+            'Do not intentionally match Enchanting XP cards in Superpairs.'
+        );
     }
 
     onTick() {
@@ -75,7 +90,7 @@ class AutoExperiments extends ModuleBase {
         const container = Player.getContainer();
         if (!container) return;
 
-        const containerName = ChatLib.removeFormatting(container.getName());
+        const containerName = ChatLib.removeFormatting(String(container.getName()));
         if (!containerName) return;
 
         this.detectState(containerName);
@@ -102,10 +117,10 @@ class AutoExperiments extends ModuleBase {
                 this.handleBuyingXp(items);
                 break;
             case STATES.SUPERPAIRS:
-                this.handleSuperpairs(items);
+                if (this.automaticSuperpairs) this.handleSuperpairs(items);
                 break;
             case STATES.SUPERPAIRS_REWARDS:
-                this.handleSuperpairsRewards(items);
+                if (this.automaticSuperpairs) this.handleSuperpairsRewards(items);
                 break;
         }
     }
@@ -137,43 +152,47 @@ class AutoExperiments extends ModuleBase {
                 this.clicks = 0;
                 this.lastSlot49Item = null;
                 break;
+            case STATES.SUPERPAIRS:
+                this.superpairsCards.clear();
+                this.superpairsPendingSlot = null;
+                this.superpairsCurrentKey = null;
+                break;
             case STATES.DECIDING:
                 this.lastSlot49Item = null;
                 break;
         }
     }
 
-    /**
-     * @param {items} items
-     * @param {string} containerName
-     */
     handleDeciding(items, containerName) {
         if (!this.canClick()) return;
 
         if (this.renewRequired(items)) return this.renewExperiments(items);
 
-        if (this.buyXpTargetLevel > 0) return this.clickSlot(SLOTS.BOTTLE_MENU);
+        if (this.buyXpTargetLevel > 0) return this._clickSlot(SLOTS.BOTTLE_MENU);
 
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
-            Guis.closeInv();
+            closeInventory();
             this.reset();
             return this.message('Experiments complete');
         }
 
         if (this.isStakeSelection('Chronomatron', containerName)) return this.selectHighestStake(items, [24, 23, 22, 21, 20]);
         if (this.isStakeSelection('Ultrasequencer', containerName)) return this.selectHighestStake(items, [23, 22, 21]);
-        if (this.isStakeSelection('Superpairs', containerName)) return this.selectSuperpairsStake(items);
+        if (this.isStakeSelection('Superpairs', containerName)) return this.automaticSuperpairs && this.selectSuperpairsStake(items);
 
-        if (!this.isCompleted(items[21])) return this.clickSlot(SLOTS.CHRONOMATRON);
-        if (!this.isCompleted(items[23])) return this.clickSlot(SLOTS.ULTRASEQUENCER);
+        if (!this.isCompleted(items[21])) return this._clickSlot(SLOTS.CHRONOMATRON);
+        if (!this.isCompleted(items[23])) return this._clickSlot(SLOTS.ULTRASEQUENCER);
 
-        this.clickSlot(SLOTS.SUPERPAIRS);
+        if (!this.automaticSuperpairs) {
+            closeInventory();
+            this.reset();
+            return this.message('Experiments complete');
+        }
+
+        this._clickSlot(SLOTS.SUPERPAIRS);
         this.message('Superpairs ready');
     }
 
-    /**
-     * @param {items} items
-     */
     handleUltrasequencer(items) {
         const maxDepth = this.getMaxDepth(7, 9, 20);
         const control = this.getControlState(items);
@@ -183,11 +202,11 @@ class AutoExperiments extends ModuleBase {
             this.captureUltrasequencerOrder(items);
             this.ultraPatternCaptured = true;
             this.clicks = 0;
-            if (this.ultrasequencerOrder.size > maxDepth) Guis.closeInv();
+            if (this.ultrasequencerOrder.size > maxDepth) closeInventory();
         }
 
         if (control.isClock && this.ultraPatternCaptured && this.canClick() && this.ultrasequencerOrder.has(this.clicks)) {
-            if (this.clickSlot(this.ultrasequencerOrder.get(this.clicks))) this.clicks++;
+            if (this._clickSlot(this.ultrasequencerOrder.get(this.clicks))) this.clicks++;
         }
 
         if (control.isGlow && control.wasClockLastFrame) this.ultraPatternCaptured = false;
@@ -195,9 +214,6 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = control.name;
     }
 
-    /**
-     * @param {items} items
-     */
     handleChronomatron(items) {
         const maxDepth = this.getMaxDepth(9, 12, 15);
         const control = this.getControlState(items);
@@ -206,7 +222,7 @@ class AutoExperiments extends ModuleBase {
         const guiRound = this.getChronomatronRound(items);
         const expectedLen = Math.min(maxDepth, guiRound || this.chronomatronOrder.length + 1);
 
-        if (guiRound && guiRound - 1 === maxDepth) Guis.closeInv();
+        if (guiRound && guiRound - 1 === maxDepth) closeInventory();
 
         if (control.isClock && this.chronomatronOrder.length < expectedLen) {
             this.clicks = 0;
@@ -221,7 +237,7 @@ class AutoExperiments extends ModuleBase {
                 }
             }
         } else if (control.isClock && this.chronomatronOrder.length > this.clicks && this.canClick()) {
-            if (this.clickSlot(this.chronomatronOrder[this.clicks], 'LEFT')) this.clicks++;
+            if (this._clickSlot(this.chronomatronOrder[this.clicks], 'LEFT')) this.clicks++;
         }
 
         if (control.isGlow && this.clicks >= this.chronomatronOrder.length && this.chronomatronOrder.length > 0) {
@@ -231,11 +247,66 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = control.name;
     }
 
-    /**
-     * @param {items} items
-     */
     handleSuperpairs(items) {
-        // idk pls help
+        // Read the backing inventory: SkyHanni replaces getItem() results with remembered cards.
+        const slots = Client.getMinecraft().player.containerMenu.slots;
+        items = items.slice();
+        for (let slot = 9; slot <= 44; slot++) {
+            const inventorySlot = slots.get(slot);
+            items[slot] = Item.fromMC(inventorySlot.container.getItems().get(inventorySlot.getContainerSlot()));
+        }
+
+        const proceedSlot = items.findIndex(
+            (item, slot) => slot >= 9 && slot <= 44 && this.getLoreLines(item).some((line) => line.includes('Click any to proceed!'))
+        );
+        if (proceedSlot !== -1) {
+            if (Date.now() - this.lastClickTime >= Math.max(this.actionDelay, 1000)) this._clickSlot(proceedSlot);
+            return;
+        }
+
+        if (this.superpairsPendingSlot !== null) {
+            const item = items[this.superpairsPendingSlot];
+            if (!item || this.isSuperpairsHidden(item)) {
+                if (item && ChatLib.removeFormatting(item.getName()) !== '?' && Date.now() - this.lastClickTime >= Math.max(this.actionDelay, 1000)) {
+                    this._clickSlot(this.superpairsPendingSlot);
+                }
+                return;
+            }
+
+            const powerup = this.isSuperpairsPowerup(item);
+            const ignored = powerup || (this.ignoreEnchantingXp && ChatLib.removeFormatting(item.getName()).includes('Enchanting Exp'));
+            const key = ignored ? null : this.getSuperpairsKey(item);
+            if (!powerup) this.superpairsCurrentKey = key;
+            this.superpairsCards.set(this.superpairsPendingSlot, key);
+            this.superpairsPendingSlot = null;
+        }
+
+        if (!this.canClick() || items.slice(9, 45).some((item) => ChatLib.removeFormatting(item?.getName() ?? '') === '?')) return;
+
+        const hiddenSlots = [];
+        const knownByKey = new Map();
+        let knownPairSlot = null;
+
+        for (let slot = 9; slot <= 44; slot++) {
+            if (slot === this.superpairsPendingSlot || !this.isSuperpairsHidden(items[slot])) continue;
+            hiddenSlots.push(slot);
+
+            const key = this.superpairsCards.get(slot);
+            if (!key) continue;
+            if (knownByKey.has(key) && knownPairSlot === null) knownPairSlot = slot;
+            else knownByKey.set(key, slot);
+        }
+
+        const choosingSecondCard = hiddenSlots.some((slot) => ChatLib.removeFormatting(items[slot].getName()) === 'Click a second button!');
+        let nextSlot = choosingSecondCard ? null : knownPairSlot;
+        if (choosingSecondCard && this.superpairsCurrentKey && knownByKey.has(this.superpairsCurrentKey)) {
+            nextSlot = knownByKey.get(this.superpairsCurrentKey);
+        }
+
+        if (nextSlot === null) nextSlot = hiddenSlots.find((slot) => !this.superpairsCards.has(slot));
+        if (nextSlot === undefined || nextSlot === null) nextSlot = hiddenSlots[0];
+
+        if (nextSlot !== undefined && this._clickSlot(nextSlot)) this.superpairsPendingSlot = nextSlot;
     }
 
     getMaxDepth(normalDepth, maxEnchantingDepth, maxXpDepth) {
@@ -243,9 +314,6 @@ class AutoExperiments extends ModuleBase {
         return (this.maxEnchanting ? maxEnchantingDepth : normalDepth) - this.serumCountValue;
     }
 
-    /**
-     * @param {items} items
-     */
     handleSuperpairsRewards(items) {
         if (this.superpairsRewardsClaimed) {
             this.superpairsRewardsClaimed = false;
@@ -259,14 +327,11 @@ class AutoExperiments extends ModuleBase {
         const lore = rewardItem.getLore();
         if (this.canClick() && lore && lore.join(' ').includes('Click to claim rewards')) {
             this.message('&a[Superpairs] Claiming rewards...');
-            this.clickSlot(13, 'LEFT');
+            this._clickSlot(13, 'LEFT');
             this.superpairsRewardsClaimed = true;
         }
     }
 
-    /**
-     * @param {items} items
-     */
     handleBuyingXp(items) {
         if (this.buyXpTargetLevel === 0) return;
 
@@ -277,12 +342,12 @@ class AutoExperiments extends ModuleBase {
                 this.boughtXP = false;
                 return this.startReopenSequence();
             }
-            Guis.closeInv();
+            closeInventory();
             return this.message('Not enough bits!');
         }
 
         const slot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
-        if (items[slot] && this.canClick() && this.clickSlot(slot)) this.boughtXP = true;
+        if (items[slot] && this.canClick() && this._clickSlot(slot)) this.boughtXP = true;
     }
 
     startReopenSequence() {
@@ -295,7 +360,7 @@ class AutoExperiments extends ModuleBase {
         if (!this.canClick()) return;
 
         if (!this.reopeningStarted) {
-            Guis.closeInv();
+            closeInventory();
             this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
@@ -306,14 +371,14 @@ class AutoExperiments extends ModuleBase {
             this.ultraPatternCaptured = false;
             this.clicks = 0;
             this.lastSlot49Item = null;
+            this.superpairsCards.clear();
+            this.superpairsPendingSlot = null;
+            this.superpairsCurrentKey = null;
             this.lastClickTime = Date.now();
             this.state = STATES.WAITING;
         }
     }
 
-    /**
-     * @param {items} items
-     */
     getControlState(items) {
         const item = items[SLOTS.CONTROL];
         if (!item) return null;
@@ -327,9 +392,6 @@ class AutoExperiments extends ModuleBase {
         };
     }
 
-    /**
-     * @param {items} items
-     */
     captureUltrasequencerOrder(items) {
         this.ultrasequencerOrder.clear();
         for (let i = 9; i <= 44; i++) {
@@ -339,23 +401,16 @@ class AutoExperiments extends ModuleBase {
         }
     }
 
-    /**
-     * @param {items} items
-     * @param {number[]} slots
-     */
     selectHighestStake(items, slots) {
         for (const slot of slots) {
             if (items[slot] && !this.isLocked(items[slot])) {
                 if (slot === 24) this.maxEnchanting = true;
-                return this.clickSlot(slot);
+                return this._clickSlot(slot);
             }
         }
         return false;
     }
 
-    /**
-     * @param {items} items
-     */
     selectSuperpairsStake(items) {
         const stakeSlots = [32, 31, 30, 23, 22, 21];
 
@@ -367,7 +422,7 @@ class AutoExperiments extends ModuleBase {
             const lastLine = loreLines[loreLines.length - 1];
 
             if (lastLine && lastLine.includes('Click to play!')) {
-                return this.clickSlot(slot);
+                return this._clickSlot(slot);
             }
 
             if (lastLine && lastLine.includes('Not enough experience!')) {
@@ -383,9 +438,6 @@ class AutoExperiments extends ModuleBase {
         return false;
     }
 
-    /**
-     * @param {item} item
-     */
     extractStakeCost(item) {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
@@ -395,9 +447,6 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
-    /**
-     * @param {items} items
-     */
     renewRequired(items) {
         const item = items[SLOTS.RENEW];
         if (!item) return false;
@@ -405,22 +454,19 @@ class AutoExperiments extends ModuleBase {
         return name?.includes('Renew Experiments') ?? false;
     }
 
-    /**
-     * @param {items} items
-     */
     renewExperiments(items) {
         for (const line of this.getLoreLines(items[SLOTS.RENEW])) {
             const lower = line.toLowerCase();
-            if (lower.includes('click to purchase')) return this.clickSlot(SLOTS.RENEW);
+            if (lower.includes('click to purchase')) return this._clickSlot(SLOTS.RENEW);
             if (lower.includes('cannot afford this!')) {
                 this.buyXpTargetLevel = this.extractRenewCost(items[SLOTS.RENEW]);
-                return this.clickSlot(SLOTS.BOTTLE_MENU);
+                return this._clickSlot(SLOTS.BOTTLE_MENU);
             }
         }
     }
 
-    clickSlot(slot, clickType = 'MIDDLE') {
-        if (Guis.clickSlot(slot, false, clickType)) {
+    _clickSlot(slot, clickType = 'MIDDLE') {
+        if (clickSlot(slot, false, clickType)) {
             this.lastClickTime = Date.now();
             return true;
         }
@@ -437,9 +483,6 @@ class AutoExperiments extends ModuleBase {
         return hasGameName && hasStakes;
     }
 
-    /**
-     * @param {item} item
-     */
     extractRenewCost(item) {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
@@ -449,9 +492,6 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
-    /**
-     * @param {item} item
-     */
     extractXpLevel(item) {
         for (const line of this.getLoreLines(item)) {
             const match = line.match(/Your\s+Exp\s+Level:\s*(\d+)/i);
@@ -460,9 +500,6 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
-    /**
-     * @param {items} items
-     */
     getChronomatronRound(items) {
         const item = items[4];
         if (!item) return null;
@@ -472,9 +509,6 @@ class AutoExperiments extends ModuleBase {
         return match ? Number.parseInt(match[1], 10) : null;
     }
 
-    /**
-     * @param {item} item
-     */
     getLoreLines(item) {
         return item?.getLore()?.map((line) => ChatLib.removeFormatting(line)) ?? [];
     }
@@ -491,20 +525,30 @@ class AutoExperiments extends ModuleBase {
         this.state = STATES.WAITING;
         this.maxEnchanting = false;
         this.superpairsRewardsClaimed = false;
+        this.superpairsCards.clear();
+        this.superpairsPendingSlot = null;
+        this.superpairsCurrentKey = null;
     }
 
-    /**
-     * @param {item} item
-     */
+    isSuperpairsHidden(item) {
+        const name = ChatLib.removeFormatting(item?.getName() ?? '');
+        return name === '?' || name === 'Click any button!' || name === 'Click a second button!' || name === 'Next button is instantly rewarded!';
+    }
+
+    isSuperpairsPowerup(item) {
+        return this.getLoreLines(item).some((line) => line.toLowerCase().includes('powerup'));
+    }
+
+    getSuperpairsKey(item) {
+        return `${item.getType().getRegistryName()}|${item.getDamage()}|${item.getStackSize()}|${item.getNBT().toString()}`;
+    }
+
     isDye(item) {
         if (!item) return false;
         const name = ChatLib.removeFormatting(item.getName());
         return name && /^\d+$/.test(name);
     }
 
-    /**
-     * @param {item} item
-     */
     isLocked(item) {
         if (!item) return true;
         const lore = item.getLore();
@@ -512,18 +556,12 @@ class AutoExperiments extends ModuleBase {
         return lore.join(' ').includes('Enchanting level too low!');
     }
 
-    /**
-     * @param {item} item
-     */
     isCompleted(item) {
         if (!item) return true;
         const lore = item.getLore()?.join(' ') ?? '';
         return lore.includes('Experiment completed') || lore.includes('Add-on locked!');
     }
 
-    /**
-     * @param {item} item
-     */
     onCooldown(item) {
         if (!item) return true;
         const lore = item.getLore();

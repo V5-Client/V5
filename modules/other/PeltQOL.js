@@ -1,8 +1,8 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { area } from '../../utils/Utils';
+import { clickSlot, findFirstItem, getGuiName, setItemSlot } from '../../utils/player/Inventory';
 
 const NAMES = new Set(['Cow', 'Pig', 'Sheep', 'Chicken', 'Rabbit', 'Horse', 'Mooshroom', 'Dinnerbone']);
 const HP = new Set([100, 200, 500, 1000, 2000, 5000, 10000, 1024, 20000, 30000, 60000]);
@@ -85,7 +85,7 @@ class PeltQOL extends ModuleBase {
         });
         this.on('worldUnload', () => this.reset());
         this.when(
-            () => this.enabled && this.renderESP && Utils.area() === 'The Farming Islands' && this.animals.length,
+            () => this.enabled && this.renderESP && area() === 'The Farming Islands' && this.animals.length,
             'postRenderWorld',
             () => this.render()
         );
@@ -170,7 +170,7 @@ class PeltQOL extends ModuleBase {
                     }
                 }
                 if (this.abiphoneSlot !== -1) {
-                    Guis.setItemSlot(this.abiphoneSlot);
+                    setItemSlot(this.abiphoneSlot);
                     this.abiphoneWait = 5;
                     this.abiphoneState = ABIPHONE.RIGHT_CLICK;
                     return;
@@ -186,8 +186,8 @@ class PeltQOL extends ModuleBase {
                 break;
             }
             case ABIPHONE.FIND_TREVOR: {
-                if (Guis.guiName()?.includes('Abiphone')) {
-                    this.trevorSlot = Guis.findFirst(Player.getContainer(), 'Trevor');
+                if (getGuiName()?.includes('Abiphone')) {
+                    this.trevorSlot = findFirstItem(Player.getContainer(), 'Trevor');
                     if (this.trevorSlot !== -1) {
                         this.abiphoneWait = 5;
                         this.abiphoneState = ABIPHONE.CLICK_TREVOR;
@@ -198,7 +198,7 @@ class PeltQOL extends ModuleBase {
                 break;
             }
             case ABIPHONE.CLICK_TREVOR: {
-                Guis.clickSlot(this.trevorSlot, false, 'LEFT');
+                clickSlot(this.trevorSlot, false, 'LEFT');
                 this.abiphoneWait = 5;
                 this.abiphoneState = ABIPHONE.DONE;
                 break;
@@ -211,7 +211,7 @@ class PeltQOL extends ModuleBase {
     }
 
     handleChat(message) {
-        if (!this.enabled || Utils.area() !== 'The Farming Islands') return;
+        if (!this.enabled || area() !== 'The Farming Islands') return;
 
         const formatted = message.getFormattedText();
         const lower = ChatLib.removeFormatting(message.getUnformattedText()).trim().toLowerCase();
@@ -245,7 +245,7 @@ class PeltQOL extends ModuleBase {
     }
 
     scan() {
-        if (!this.enabled || Utils.area() !== 'The Farming Islands' || this.huntCompleted) return (this.animals = []);
+        if (!this.enabled || area() !== 'The Farming Islands' || this.huntCompleted) return (this.animals = []);
         this.animals = World.getAllEntities().filter((e) => {
             if (!NAMES.has(e.getName()) || e.isDead()) return false;
             const maxHp = e.getMaxHP();
@@ -264,8 +264,8 @@ class PeltQOL extends ModuleBase {
             const x = e.getX();
             const y = e.getY();
             const z = e.getZ();
-            RenderUtils.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
-            RenderUtils.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
+            Render3D.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
+            Render3D.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
         });
     }
 }

@@ -127,8 +127,8 @@ export class TextInput {
             this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
         }
 
-        NVG.save();
-        NVG.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
+        Render2D.save();
+        Render2D.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
 
         const textDrawX = boxX + valuePadding - this.scrollX;
         const textDrawY = boxY + boxHeight / 2;
@@ -154,7 +154,7 @@ export class TextInput {
             }
         }
 
-        NVG.restore();
+        Render2D.restore();
 
         const componentRect = {
             x: this.x,
@@ -232,7 +232,7 @@ export class TextInput {
                     }
                 }
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
             return true;
         }

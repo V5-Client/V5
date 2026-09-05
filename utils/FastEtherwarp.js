@@ -1,12 +1,13 @@
-import { Chat } from './Chat';
+import { chatPathfinder } from './Chat';
 import { MCHand, Vec3d } from './Constants';
-import { EtherwarpPathState, getEtherwarpBlockShape, isAtEtherwarpLanding } from './Etherwarp';
-import { finiteNumber } from './NumberUtils';
+import { getEtherwarpBlockShape, isAtEtherwarpLanding, setEtherwarpPathHandler } from './Etherwarp';
+import { finiteNumber } from './Math';
 import { ServerboundUseItemPacket } from './Packets';
-import { Guis } from './player/Inventory';
-import { RotationGCD } from './player/RotationGCD';
-import { ServerInfo } from './player/ServerInfo';
+import { findItemInHotbar, setItemSlot } from './player/Inventory';
+import { applyToPlayer } from './player/RotationGCD';
+import { getPing } from './player/ServerInfo';
 import { ScheduleTask } from './ScheduleTask';
+import { getCurrentMana } from './Utils';
 import { v5Command } from './V5Commands';
 
 const SEARCH_OPTIONS = {
@@ -25,6 +26,8 @@ const PATH_COLORS = {
     start: new RenderColor(80, 255, 140, 180),
     end: new RenderColor(255, 90, 90, 180),
 };
+
+const MINIMUM_MANA = 100;
 
 const readPathPoints = (pathArr) => {
     if (!pathArr || typeof pathArr.length !== 'number') return [];
@@ -56,14 +59,11 @@ const readAngles = (angleArr) => {
 class EtherwarpPathHandler {
     constructor() {
         this.resetState();
-        EtherwarpPathState.handler = this;
+        setEtherwarpPathHandler(this);
 
         v5Command('etherwarp', (x, y, z) => this.test(x, y, z), ['greedyString']);
 
-        register('step', () => {
-            this.pollSearch();
-            this.pollExecutionWait();
-        }).setFps(100);
+        register('tick', () => this.evaluateHopArrival(this.executionToken));
         register('renderWorld', () => this.render());
         register('actionBar', (text) => {
             if (!this.executionActive || !ChatLib.removeFormatting(text).includes('NOT ENOUGH MANA')) return;
@@ -78,7 +78,7 @@ class EtherwarpPathHandler {
         this.executionToken = 0;
         this.stateVersion = 0;
         this.originalSlot = -1;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -96,7 +96,7 @@ class EtherwarpPathHandler {
         const y = Math.floor(Number(yArg));
         const z = Math.floor(Number(zArg));
         if (![x, y, z].every(Number.isFinite)) {
-            Chat.messagePathfinder('&cUsage: /v5 etherwarp <x> <y> <z>');
+            chatPathfinder('&cUsage: /v5 etherwarp <x> <y> <z>');
             return;
         }
         const goal = { x, y, z };
@@ -134,7 +134,7 @@ class EtherwarpPathHandler {
     findPath(goal, options = {}) {
         goal = this.resolveClosestGoal(goal, Math.max(0, Math.floor(finiteNumber(options.goalRadius))));
         if (!goal || ![goal.x, goal.y, goal.z].every(Number.isFinite)) {
-            Chat.messagePathfinder('&cInvalid etherwarp coordinates.');
+            chatPathfinder('&cInvalid etherwarp coordinates.');
             return false;
         }
         if (this.isAtNode(goal)) {
@@ -144,13 +144,13 @@ class EtherwarpPathHandler {
         }
         const slot = this.getEtherwarpSlot();
         if (slot < 0) {
-            Chat.messagePathfinder('&cNo Aspect of the Void/End found in your hotbar.');
+            chatPathfinder('&cNo Aspect of the Void/End found in your hotbar.');
             return false;
         }
 
         this.cancel(false);
 
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = goal;
         this.currentRun = {
@@ -181,7 +181,7 @@ class EtherwarpPathHandler {
         PathManager.clear();
 
         this.stopExecution(restoreSlot);
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -220,7 +220,7 @@ class EtherwarpPathHandler {
     }
 
     getPingDelayTicks() {
-        const pingMs = ServerInfo.getPing() || 0;
+        const pingMs = getPing() || 0;
         return Math.ceil(pingMs / 50) + 2;
     }
 
@@ -245,6 +245,27 @@ class EtherwarpPathHandler {
         return true;
     }
 
+    setPath(path) {
+        this.path = path;
+        this.renderGeometry = path.map((point, index) => {
+            const shape = getEtherwarpBlockShape(point);
+            const shapeBoxes = shape?.toAabbs?.();
+            const boxes = [];
+            const bounds = shape?.bounds?.();
+
+            for (let i = 0; i < (shapeBoxes?.size?.() || 0); i++) boxes.push(shapeBoxes.get(i).move(point.x, point.y, point.z));
+
+            return {
+                boxes,
+                position: new Vec3d(point.x, point.y, point.z),
+                center: bounds
+                    ? new Vec3d(point.x + (bounds.minX + bounds.maxX) / 2, point.y + (bounds.minY + bounds.maxY) / 2, point.z + (bounds.minZ + bounds.maxZ) / 2)
+                    : new Vec3d(point.x + 0.5, point.y + 0.5, point.z + 0.5),
+                color: index === 0 ? PATH_COLORS.start : index === path.length - 1 ? PATH_COLORS.end : PATH_COLORS.pending,
+            };
+        });
+    }
+
     startSearch(goal, isRetry = false) {
         const slot = this.getEtherwarpSlot();
         if (slot < 0) {
@@ -252,7 +273,7 @@ class EtherwarpPathHandler {
             return false;
         }
 
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.preparePlayer(slot);
 
@@ -268,7 +289,8 @@ class EtherwarpPathHandler {
             SEARCH_OPTIONS.heuristicWeight,
             SEARCH_OPTIONS.rayLength,
             SEARCH_OPTIONS.rewireEpsilon,
-            this.getEyeHeight()
+            this.getEyeHeight(),
+            () => this.handleSearchComplete()
         );
 
         if (!started) {
@@ -287,7 +309,7 @@ class EtherwarpPathHandler {
         this.searchActive = false;
         PathManager.cancelSearch();
         PathManager.clear();
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.stopExecution(false, true);
     }
@@ -321,24 +343,23 @@ class EtherwarpPathHandler {
         this.stateVersion++;
         Client.stopMovement();
         Client.setKey('shift', true);
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
     }
 
-    pollSearch() {
+    handleSearchComplete() {
         if (!this.searchActive) return;
-        if (PathManager.isSearching()) return;
 
         this.searchActive = false;
 
         if (!PathManager.hasEtherwarpPath()) {
             const reason = PathManager.getLastError() || 'No etherpath found';
-            this.path = [];
+            this.setPath([]);
             this.angles = [];
             this.retryPath(reason);
             return;
         }
 
-        this.path = readPathPoints(PathManager.getEtherwarpPathArray());
+        this.setPath(readPathPoints(PathManager.getEtherwarpPathArray()));
         this.angles = readAngles(PathManager.getEtherwarpAnglesArray());
         const timeMs = Number(PathManager.getEtherwarpLastTimeMs());
         const nodeCount = this.path.length;
@@ -409,6 +430,12 @@ class EtherwarpPathHandler {
             return;
         }
 
+        const mana = getCurrentMana();
+        if (mana !== null && mana < MINIMUM_MANA) {
+            this.finishFailure('Not enough mana to continue etherwarping.', !this.currentRun || this.currentRun.restoreSlot !== false);
+            return;
+        }
+
         const angles = this.angles[index];
         if (!angles || !Number.isFinite(angles.yaw) || !Number.isFinite(angles.pitch)) {
             this.finishFailure('Etherpath execution encountered invalid hop angles.', !this.currentRun || this.currentRun.restoreSlot !== false);
@@ -416,7 +443,7 @@ class EtherwarpPathHandler {
         }
         if (!this.ensureEtherwarpHeld(token, () => this.executeHop(token, index))) return;
 
-        RotationGCD.applyToPlayer(angles.yaw, angles.pitch);
+        applyToPlayer(angles.yaw, angles.pitch);
         this.sendEtherwarpClick();
         if (index >= this.path.length - 1) {
             this.startAwaitingHop(token, index);
@@ -435,11 +462,6 @@ class EtherwarpPathHandler {
         this.hopHardDeadlineAt = Math.max(now + 1500, now + estimatedTickDelayMs + 1000);
 
         this.evaluateHopArrival(token);
-    }
-
-    pollExecutionWait() {
-        if (!this.hopAwaiting || !this.executionActive) return;
-        this.evaluateHopArrival(this.executionToken);
     }
 
     evaluateHopArrival(token) {
@@ -465,8 +487,8 @@ class EtherwarpPathHandler {
     }
 
     sendEtherwarpClick() {
-        const yaw = Number.parseFloat(Player.getYaw());
-        const pitch = Number.parseFloat(Player.getPitch());
+        const yaw = Player.getYaw();
+        const pitch = Player.getPitch();
         Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
     }
 
@@ -489,13 +511,14 @@ class EtherwarpPathHandler {
             Client.setKey('shift', false);
             Client.stopMovement();
 
-            if (slotToRestore !== -1) Guis.setItemSlot(slotToRestore);
+            if (slotToRestore !== -1) setItemSlot(slotToRestore);
         });
     }
 
     getEtherwarpSlot() {
-        const aotv = Guis.findItemInHotbar('Aspect of the Void');
-        return aotv !== -1 ? aotv : Guis.findItemInHotbar('Aspect of the End');
+        const aotv = findItemInHotbar('Aspect of the Void');
+        if (aotv !== -1) return aotv;
+        return findItemInHotbar('Aspect of the End');
     }
 
     ensureEtherwarpHeld(token, resumeTask) {
@@ -508,47 +531,29 @@ class EtherwarpPathHandler {
 
         if (Player.getHeldItemIndex() === slot) return true;
 
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         ScheduleTask(1, continuation);
         return false;
     }
 
     render() {
         if (!World.isLoaded()) return;
-        if (!this.path.length) return;
+        if (!this.renderGeometry.length) return;
 
-        for (let i = 0; i < this.path.length; i++) {
-            const point = this.path[i];
-            const boxColor = i === 0 ? PATH_COLORS.start : i === this.path.length - 1 ? PATH_COLORS.end : PATH_COLORS.pending;
-            const shape = getEtherwarpBlockShape(point);
-            const boxes = shape?.toAabbs?.();
-            const bounds = shape?.bounds?.();
-            const centerVec = bounds
-                ? new Vec3d(point.x + (bounds.minX + bounds.maxX) / 2, point.y + (bounds.minY + bounds.maxY) / 2, point.z + (bounds.minZ + bounds.maxZ) / 2)
-                : new Vec3d(point.x + 0.5, point.y + 0.5, point.z + 0.5);
+        for (let i = 0; i < this.renderGeometry.length; i++) {
+            const geometry = this.renderGeometry[i];
 
-            if (boxes?.size?.()) {
-                for (let boxIndex = 0; boxIndex < boxes.size(); boxIndex++) {
-                    const box = boxes.get(boxIndex).move(point.x, point.y, point.z);
-                    RenderUtils.drawFilledBox(box, boxColor, false);
-                    RenderUtils.drawWireFrameBox(box, boxColor, 3, false);
+            if (geometry.boxes.length) {
+                for (const box of geometry.boxes) {
+                    Render3D.drawFilledBox(box, geometry.color, false);
+                    Render3D.drawWireFrameBox(box, geometry.color, 3, false);
                 }
             } else {
-                RenderUtils.drawStyledBox(new Vec3d(point.x, point.y, point.z), boxColor, boxColor, 3, false);
+                Render3D.drawStyledBox(geometry.position, geometry.color, geometry.color, 3, false);
             }
 
-            if (i >= this.path.length - 1) continue;
-
-            const next = this.path[i + 1];
-            const nextBounds = getEtherwarpBlockShape(next)?.bounds?.();
-            const nextCenter = nextBounds
-                ? new Vec3d(
-                      next.x + (nextBounds.minX + nextBounds.maxX) / 2,
-                      next.y + (nextBounds.minY + nextBounds.maxY) / 2,
-                      next.z + (nextBounds.minZ + nextBounds.maxZ) / 2
-                  )
-                : new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5);
-            RenderUtils.drawLine(centerVec, nextCenter, PATH_COLORS.pending, 3, false);
+            const next = this.renderGeometry[i + 1];
+            if (next) Render3D.drawLine(geometry.center, next.center, PATH_COLORS.pending, 3, false);
         }
     }
 
@@ -568,7 +573,7 @@ class EtherwarpPathHandler {
 
         PathManager.clear();
         this.searchActive = false;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
@@ -587,13 +592,13 @@ class EtherwarpPathHandler {
         PathManager.cancelSearch();
         PathManager.clear();
         this.searchActive = false;
-        this.path = [];
+        this.setPath([]);
         this.angles = [];
         this.currentGoal = null;
         this.currentRun = null;
         this.stopExecution(restoreSlot);
         if (!silent) {
-            Chat.messagePathfinder('&c' + failureReason);
+            chatPathfinder('&c' + failureReason);
         }
 
         if (typeof onFail !== 'function') return;
@@ -603,9 +608,8 @@ class EtherwarpPathHandler {
     messagePathfinder(message) {
         const run = this.currentRun;
         if (run && run.silent === true) return;
-        Chat.messagePathfinder(message);
+        chatPathfinder(message);
     }
 }
 
 export const FastEtherwarp = new EtherwarpPathHandler();
-export const EtherwarpPathfinder = FastEtherwarp;

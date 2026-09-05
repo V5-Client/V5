@@ -1,17 +1,17 @@
 import { BP, ClipContext, CritParticle, HappyVillagerParticle, MCHand, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { calculateAngles, getDistanceToPlayerEyes } from '../../utils/Math';
+import { getDrills, getMineTime, getMiningSpeed, getSpeedWithCold, refuel, refreshMiningStatsIfNeeded } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { NukerUtils } from '../../utils/NukerUtils';
+import { queueNuke } from '../../utils/NukerUtils';
 import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
-import { Raytrace, visibilityChecker } from '../../utils/Raytrace';
-import { manager } from '../../utils/SkyblockEvents';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { isLineClear, testPointNative, testPointVisibility } from '../../utils/Raytrace';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { getConfigFile } from '../../utils/Utils';
+import { setItemSlot } from '../../utils/player/Inventory';
 import { OreRotations } from '../../utils/player/OreRotations';
-import { ServerInfo } from '../../utils/player/ServerInfo';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Mouse } from '../../utils/Ungrab';
+import { getTPS } from '../../utils/player/ServerInfo';
+import { getPickaxeAbilityStatus } from '../../utils/TabListUtils';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 const ORTHO_FACE_AXES = {
     x: ['y', 'z'],
@@ -263,15 +263,15 @@ class Bot extends ModuleBase {
             }
         });
 
-        manager.subscribe('abilityready', () => {
-            if (!this.enabled || this.refreshingMiningStats) return;
+        registerSkyblockEvent('abilityready', () => {
+            if (!this.enabled || this.refreshingMiningStats || this.state === this.STATES.REFUEL) return;
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
             if (this.DEBUG_MODE) this.message(`&a[DEBUG] abilityready → state=ABILITY, abilityFromChat=true`);
         });
 
-        manager.subscribe('abilityused', () => {
+        registerSkyblockEvent('abilityused', () => {
             if (!this.enabled) return;
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
             this.abilityFromChat = false;
@@ -280,7 +280,7 @@ class Bot extends ModuleBase {
             if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilityused → abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
-        manager.subscribe('abilitygone', () => {
+        registerSkyblockEvent('abilitygone', () => {
             if (!this.enabled) return;
             this.speedBoost = false;
             this.abilityFromChat = false;
@@ -289,11 +289,53 @@ class Bot extends ModuleBase {
             if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilitygone → abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
-        manager.subscribe('abilitycooldown', () => {
-            if (!this.enabled) return;
+        registerSkyblockEvent('abilitycooldown', () => {
+            if (!this.enabled || this.state === this.STATES.REFUEL) return;
             this.lastUse = Date.now();
             this.state = this.STATES.MINING;
             if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown → lastUse=${this.lastUse}, state=MINING`);
+        });
+
+        registerSkyblockEvent('emptydrill', () => {
+            if (!this.enabled || this.isParentManaged || this.state === this.STATES.REFUEL) return;
+            this.onDrillEmpty();
+        });
+    }
+
+    onDrillEmpty() {
+        this.message('&eDrill empty! Refueling...');
+        this.stopMiningControls(true);
+        this.setSneak(false, true);
+        OreRotations.stop();
+        this.state = this.STATES.REFUEL;
+        this._pendingAbilityActivation = false;
+        this.currentTarget = null;
+        this.foundLocations = [];
+        this.lastBlockPos = null;
+        this.lastBlockType = null;
+        this.lowestCostBlockIndex = 0;
+        this.allowScan = true;
+        this.resetTickCounters();
+
+        refuel((success) => {
+            if (!this.enabled || this.state !== this.STATES.REFUEL) return;
+            if (!success) {
+                this.message('&cRefueling failed! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.drill = getDrills()?.drill;
+            if (!this.drill) {
+                this.message('&cNo drill found after refueling! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.ensureDrillEquipped(this.drill);
+            this.nukedBlock = false;
+            this.state = this.STATES.ABILITY;
+            this.message('&aRefueling successful!');
         });
     }
 
@@ -494,14 +536,14 @@ class Bot extends ModuleBase {
     ensureDrillEquipped(drill) {
         if (!drill || drill.slot === undefined || drill.slot === null) return false;
         if (Player.getHeldItemIndex() !== drill.slot) {
-            Guis.setItemSlot(drill.slot);
+            setItemSlot(drill.slot);
             return true;
         }
         return false;
     }
 
     loadAbilitySetting() {
-        const file = Utils.getConfigFile('miningstats.json');
+        const file = getConfigFile('miningstats.json');
         this.ability = file?.ability || null;
     }
 
@@ -603,8 +645,8 @@ class Bot extends ModuleBase {
                 const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
                 if (fakeLookMode === 'Instant') {
                     // Instant nuker might be bad dont use it
-                    //NukerUtils.nuke(pos, this.totalTicks);
-                } else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
+                    //nuke(pos, this.totalTicks);
+                } else if (fakeLookMode === 'Queued') queueNuke(pos, this.totalTicks);
                 this.nukedBlock = true;
             }
         }
@@ -651,11 +693,11 @@ class Bot extends ModuleBase {
         OreRotations.stop();
 
         const now = Date.now();
-        const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
+        const abilityStatus = getPickaxeAbilityStatus();
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().swinging}`
             );
         }
 
@@ -674,7 +716,7 @@ class Bot extends ModuleBase {
 
             Client.setKey('leftclick', false);
             this._pendingAbilityActivation = true;
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().swinging})`);
             return;
         }
 
@@ -766,8 +808,8 @@ class Bot extends ModuleBase {
 
         const tunnelMode = this.isTunnelMode();
         const precisionMinerAim = this.getPrecisionMinerAim();
-        this.miningspeed = ((tunnelMode ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed()) || 1) * (precisionMinerAim?.boosted ? 1.3 : 1);
-        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
+        this.miningspeed = ((tunnelMode ? getSpeedWithCold() : getMiningSpeed()) || 1) * (precisionMinerAim?.boosted ? 1.3 : 1);
+        this.totalTicks = getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         this.handleBreaking(blockName, fakeLookMode);
 
@@ -1214,11 +1256,7 @@ class Bot extends ModuleBase {
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (
-                        !isExcludedAim(fx, fy, fz) &&
-                        Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) &&
-                        visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)
-                    ) {
+                    if (!isExcludedAim(fx, fy, fz) && isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1259,11 +1297,7 @@ class Bot extends ModuleBase {
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (
-                        !isExcludedAim(fx, fy, fz) &&
-                        Raytrace.isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) &&
-                        visibilityChecker.testPointNative(x, y, z, [fx, fy, fz], rayEye)
-                    ) {
+                    if (!isExcludedAim(fx, fy, fz) && isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1332,7 +1366,7 @@ class Bot extends ModuleBase {
                 point[faceAxis] = origin[faceAxis] + faceOffset;
                 point[sampleAxes[0]] = origin[sampleAxes[0]] + firstOffset;
                 point[sampleAxes[1]] = origin[sampleAxes[1]] + secondOffset;
-                if (visibilityChecker.testPointCustom(block.x, block.y, block.z, point, eye) && ++visibleRays >= stopAt) return visibleRays;
+                if (testPointVisibility(block.x, block.y, block.z, point, eye) && ++visibleRays >= stopAt) return visibleRays;
             }
         }
         return visibleRays;
@@ -1399,8 +1433,8 @@ class Bot extends ModuleBase {
             z: this.currentTarget.aimZ ?? this.currentTarget.z + 0.5,
         };
 
-        const values = MathUtils.getDistanceToPlayerEyes(targetPoint);
-        const aligned = Math.abs(MathUtils.calculateAngles(targetPoint).yaw) <= 18;
+        const values = getDistanceToPlayerEyes(targetPoint);
+        const aligned = Math.abs(calculateAngles(targetPoint).yaw) <= 18;
 
         if (!this.isApproachTarget()) {
             Client.stopMovement();
@@ -1486,7 +1520,7 @@ class Bot extends ModuleBase {
         const dz = target.aimZ - eyePos.z();
         if (dx * dx + dy * dy + dz * dz > this.faceReach * this.faceReach) return false;
 
-        return visibilityChecker.testPointNative(target.x, target.y, target.z, [target.aimX, target.aimY, target.aimZ], {
+        return testPointNative(target.x, target.y, target.z, [target.aimX, target.aimY, target.aimZ], {
             x: eyePos.x(),
             y: eyePos.y(),
             z: eyePos.z(),
@@ -1575,11 +1609,11 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS()));
+        return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(getTPS()));
     }
 
     onEnable() {
-        this.drill = MiningUtils.getDrills()?.drill;
+        this.drill = getDrills()?.drill;
         if (!this.drill) {
             this.message('&cNo drill detected!');
             this.toggle(false);
@@ -1596,12 +1630,12 @@ class Bot extends ModuleBase {
         this.setCost();
         if (!this.isParentManaged) {
             this.message('&aEnabled');
-            Mouse.ungrab();
+            ungrab();
             this.manualScan = false;
         }
         this.allowScan = true;
         this.FOVPenalty = true;
-        MiningUtils.refreshMiningStatsIfNeeded(() => {
+        refreshMiningStatsIfNeeded(() => {
             if (!this.enabled || refreshToken !== this.miningStatsRefreshToken) return;
             this.loadAbilitySetting();
             this.refreshingMiningStats = false;
@@ -1613,7 +1647,7 @@ class Bot extends ModuleBase {
     onDisable() {
         if (!this.isParentManaged) {
             this.message('&cDisabled');
-            Mouse.regrab();
+            regrab();
         }
 
         this.state = this.STATES.WAITING;
@@ -1751,24 +1785,18 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
         const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        RenderUtils.drawStyledBox(
-            new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z),
-            palette.currentFill,
-            palette.currentWire,
-            6,
-            false
-        );
+        Render3D.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
 
         if (this.lastAimPos) {
             const d = 0.08;
             const { x, y, z } = this.lastAimPos;
-            RenderUtils.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), palette.aimColor, 2, false);
-            RenderUtils.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), palette.aimColor, 2, false);
-            RenderUtils.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), palette.aimColor, 2, false);
         }
 
         if (this.lastNextPos) {
-            RenderUtils.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), palette.nextFill, palette.nextWire, 6, false);
+            Render3D.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), palette.nextFill, palette.nextWire, 6, false);
         }
     }
 
@@ -1783,14 +1811,14 @@ class Bot extends ModuleBase {
                     g = i === 0 ? 1 : 1 - t,
                     b = i === 0 ? 1 : 0;
 
-                RenderUtils.drawWireFrameBox(new Vec3d(loc.x, loc.y, loc.z), new RenderColor(r * 255, g * 255, b * 255, 255));
+                Render3D.drawWireFrameBox(new Vec3d(loc.x, loc.y, loc.z), new RenderColor(r * 255, g * 255, b * 255, 255));
 
                 if (loc.aimX !== undefined) {
                     const d = 0.1;
                     const color = new RenderColor(r * 255, g * 255, b * 255, 230);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
                 }
             }
         }

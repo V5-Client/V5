@@ -1,8 +1,8 @@
-import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
-import { MacroState } from '../utils/MacroState';
-import { TimeUtils } from '../utils/TimeUtils';
-import { Utils } from '../utils/Utils';
-import { ServerInfo } from '../utils/player/ServerInfo';
+import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, isInside } from './Utils';
+import { getEnabledModulesRevision, modules as registeredModules } from '../utils/MacroState';
+import { formatUptime } from '../utils/TimeUtils';
+import { area, subArea } from '../utils/Utils';
+import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
 
 const clientStartedAt = Date.now();
 
@@ -16,6 +16,8 @@ const HEADER_TO_FIRST_ROW = 24;
 const CARD_BOTTOM_PADDING = 4;
 
 let lastModuleLayouts = [];
+let activeModules = [];
+let activeModulesRevision = -1;
 
 const normalizeLocation = (value) => {
     if (!value || String(value).trim().length === 0) return 'Unknown';
@@ -23,36 +25,41 @@ const normalizeLocation = (value) => {
 };
 
 const getActiveModules = () => {
-    const modules = [];
+    const revision = getEnabledModulesRevision();
+    if (revision === activeModulesRevision) return activeModules;
 
-    MacroState.modules.forEach((module, name) => {
+    activeModules = [];
+
+    registeredModules.forEach((module, name) => {
         if (!module?.enabled) return;
-        modules.push({
+        activeModules.push({
             name,
             subcategory: module.subcategory || 'Other',
             isMacro: module.isMacro === true,
         });
     });
 
-    return modules.sort((a, b) => {
+    activeModules.sort((a, b) => {
         const categorySort = a.subcategory.localeCompare(b.subcategory);
         if (categorySort !== 0) return categorySort;
         return a.name.localeCompare(b.name);
     });
+    activeModulesRevision = revision;
+    return activeModules;
 };
 
 const getDebugRows = () => {
     const fps = Client.getFPS();
-    const ping = ServerInfo.getPing();
-    const tps = ServerInfo.getTPS();
+    const ping = getPing();
+    const tps = getTPS();
 
     return [
         { label: 'FPS', value: String(fps), color: getFpsColor(fps) },
-        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        { label: 'Client Uptime', value: TimeUtils.formatUptime(clientStartedAt) },
-        { label: 'Area', value: normalizeLocation(Utils.area()) },
-        { label: 'Subarea', value: normalizeLocation(Utils.subArea()) },
+        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
+        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
+        { label: 'Client Uptime', value: formatUptime(clientStartedAt) },
+        { label: 'Area', value: normalizeLocation(area()) },
+        { label: 'Subarea', value: normalizeLocation(subArea()) },
     ];
 };
 
@@ -93,14 +100,14 @@ const drawDebugCard = (x, y, width) => {
     rows.forEach((row) => {
         const value = String(row.value);
         drawText(row.label, labelX, rowY, FontSizes.REGULAR, THEME.TEXT_MUTED);
-        drawText(value, valueRightX - getTextWidth(value, FontSizes.REGULAR), rowY, FontSizes.REGULAR, row.color || THEME.TEXT);
+        drawText(value, valueRightX, rowY, FontSizes.REGULAR, row.color || THEME.TEXT, 20);
         rowY += ROW_HEIGHT;
     });
 
     return height;
 };
 
-const drawModulesCard = (x, y, width, mouseX, mouseY) => {
+const drawModulesCard = (panel, x, y, width, mouseX, mouseY) => {
     const modules = getActiveModules();
     const rowCount = modules.length > 0 ? modules.length : 1;
     const height = getCardHeight(rowCount, modules.length > 0 ? MODULE_ROW_HEIGHT : EMPTY_STATE_HEIGHT);
@@ -115,24 +122,26 @@ const drawModulesCard = (x, y, width, mouseX, mouseY) => {
     }
 
     modules.forEach((module) => {
-        const meta = module.isMacro ? `${module.subcategory} macro` : module.subcategory;
+        const textY = rowY;
         const rowHitPaddingY = 1;
         const rowRect = {
             x: x + CARD_PADDING - 4,
-            y: rowY - MODULE_ROW_HEIGHT / 2 + rowHitPaddingY,
+            y: textY - MODULE_ROW_HEIGHT / 2 + rowHitPaddingY,
             width: width - CARD_PADDING * 2 + 8,
             height: MODULE_ROW_HEIGHT - rowHitPaddingY * 2,
         };
-        const isHovered = isInside(mouseX, mouseY, rowRect);
         lastModuleLayouts.push({ name: module.name, rect: rowRect });
+        rowY += MODULE_ROW_HEIGHT;
+        if (rowRect.y + rowRect.height < panel.y || rowRect.y > panel.y + panel.height) return;
 
+        const meta = module.isMacro ? `${module.subcategory} macro` : module.subcategory;
+        const isHovered = isInside(mouseX, mouseY, rowRect);
         if (isHovered) {
             drawRoundedRectangle({ ...rowRect, radius: 6, color: colorWithAlpha(THEME.BG_INSET, 0.7) });
         }
 
-        drawText(module.name, x + CARD_PADDING, rowY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
-        drawText(meta, x + width - CARD_PADDING - getTextWidth(meta, FontSizes.SMALL), rowY, FontSizes.SMALL, THEME.TEXT_MUTED);
-        rowY += MODULE_ROW_HEIGHT;
+        drawText(module.name, x + CARD_PADDING, textY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
+        drawText(meta, x + width - CARD_PADDING, textY, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
     });
 
     return height;
@@ -152,7 +161,7 @@ export const drawDashboard = (panel, panelX, yOffset, mouseX, mouseY, scrollY) =
 
     const debugHeight = drawDebugCard(x, y, width);
     y += debugHeight + CARD_GAP;
-    drawModulesCard(x, y, width, mouseX, mouseY);
+    drawModulesCard(panel, x, y, width, mouseX, mouseY);
 };
 
 export const getDashboardModuleAt = (mouseX, mouseY) => {

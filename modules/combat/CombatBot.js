@@ -1,10 +1,10 @@
-import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { ArmorStandEntity, DataComponents, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Movement } from '../../utils/player/Movement';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
+import { isLookingAtEntity } from '../../utils/Raytrace';
 
 const STATES = {
     IDLE: 'IDLE',
@@ -222,7 +222,7 @@ class Combat extends ModuleBase {
             const position = this.getTargetPosition(this.target);
             if (!position) this.setState(STATES.IDLE);
             else {
-                const distance = this.getDistanceToPlayer(position);
+                const distance = this._getDistanceToPlayer(position);
                 if (distance.distance <= this.attackRange && this.canSeeTarget(this.target)) this.engage(position, distance);
                 else this.startPath(position);
             }
@@ -235,7 +235,7 @@ class Combat extends ModuleBase {
             return;
         }
 
-        const distance = this.getDistanceToPlayer(position);
+        const distance = this._getDistanceToPlayer(position);
 
         if (this.state === STATES.PATHING) {
             if (
@@ -288,7 +288,7 @@ class Combat extends ModuleBase {
         this.trackTarget();
 
         if (distance.distanceFlat > 2.8) {
-            Movement.setKeysForStraightLineCoords(position.x, position.y, position.z, true, true);
+            setKeysForStraightLineCoords(position.x, position.y, position.z, true, true);
             Client.setKey('sprint', true);
         } else {
             Client.stopMovement();
@@ -301,7 +301,7 @@ class Combat extends ModuleBase {
     tryAttack(distance) {
         const now = Date.now();
         if (distance > this.attackRange + 0.35 || now < this.nextAttackAt) return;
-        if (!Raytrace.isLookingAtEntity(this.target, this.attackRange + 0.5)) return;
+        if (!isLookingAtEntity(this.target, this.attackRange + 0.5)) return;
 
         if (this.attackButton === 'Right Click') Client.rightClick();
         else Client.leftClick();
@@ -421,8 +421,8 @@ class Combat extends ModuleBase {
             const position = this.getTargetPosition(target);
             if (!position) return;
 
-            const distance = this.getDistanceToPlayer(position).distance;
-            const turn = MathUtils.angleToPlayer([position.x, position.y, position.z]).distance;
+            const distance = this._getDistanceToPlayer(position).distance;
+            const turn = angleToPlayer([position.x, position.y, position.z]).distance;
             const score = distance + turn * 0.025;
             if (score < bestScore) {
                 best = target;
@@ -478,12 +478,12 @@ class Combat extends ModuleBase {
         }
     }
 
-    getDistanceToPlayer(position) {
-        return MathUtils.getDistanceToPlayer(position.x, position.y, position.z);
+    _getDistanceToPlayer(position) {
+        return getDistanceToPlayer(position.x, position.y, position.z);
     }
 
     getDistanceBetween(first, second) {
-        return MathUtils.getDistance(first.x, first.y, first.z, second.x, second.y, second.z);
+        return getDistance(first.x, first.y, first.z, second.x, second.y, second.z);
     }
 
     canSeeTarget(target) {
@@ -520,7 +520,7 @@ class Combat extends ModuleBase {
                 const uuid = entity.getUUID();
                 if (whitelist?.has(uuid)) return false;
                 if (names && !names.some((candidate) => this.getCleanEntityName(entity).includes(candidate))) return false;
-                if (entity.isSpectator?.() || entity.isInvisible?.() || entity.isDead?.()) return false;
+                if (entity.toMC().isSpectator() || entity.isInvisible?.() || entity.isDead?.()) return false;
                 if (config.boundaryCheck && !config.boundaryCheck(entity.getX(), entity.getY(), entity.getZ())) return false;
 
                 return this.isVisibleOrRecent(entity, config.checkVisibility);
@@ -605,7 +605,7 @@ class Combat extends ModuleBase {
     isBlackholeHead(item) {
         try {
             const stack = item?.toMC ? item.toMC() : item;
-            const profile = stack?.get(net.minecraft.core.component.DataComponents.PROFILE)?.partialProfile?.()?.toString() || '';
+            const profile = stack?.get(DataComponents.PROFILE)?.partialProfile?.()?.toString() || '';
             if (!profile) return false;
 
             for (const texture of BLACKHOLE_TEXTURES) {
@@ -629,11 +629,11 @@ class Combat extends ModuleBase {
             const entity = target.toMC ? target.toMC() : target;
             const selected = this.sameTarget(target, this.target);
             const color = blacklisted ? new RenderColor(0, 0, 0, 150) : selected ? new RenderColor(255, 0, 0, 100) : new RenderColor(0, 70, 200, 100);
-            RenderUtils.drawHitbox(entity, color, selected ? 7 : 3, false);
+            Render3D.drawHitbox(entity, color, selected ? 7 : 3, false);
         });
 
         this.activeBlackholes.forEach((blackhole) => {
-            RenderUtils.drawFilledBox(new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5), new RenderColor(0, 0, 0, 150), false);
+            Render3D.drawFilledBox(new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5), new RenderColor(0, 0, 0, 150), false);
         });
     }
 

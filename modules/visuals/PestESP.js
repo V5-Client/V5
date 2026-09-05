@@ -1,9 +1,11 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 const PEST_NAMES = ['Silverfish', 'Bat'];
 const PEST_KILL_RADIUS_SQ = 12 ** 2;
+const PEST_BOX_COLOR = new RenderColor(255, 0, 0, 100);
+const PEST_TRACER_COLOR = new RenderColor(255, 0, 0, 255);
 
 export function getLoadedPests() {
     return World.getAllEntities().filter((entity) => !!entity && !entity.isDead() && PEST_NAMES.some((name) => entity.getName()?.includes(name)));
@@ -38,18 +40,24 @@ class PestESP extends ModuleBase {
 
         this.persistentPests = new Map();
         this.on('tick', () => {
-            if (Utils.area() !== 'Garden') return;
+            if (area() !== 'Garden') return;
 
             const now = Date.now();
 
             getLoadedPests().forEach((entity) => {
-                this.persistentPests.set(entity.getUUID().toString(), {
-                    x: entity.getX(),
-                    y: entity.getY(),
-                    z: entity.getZ(),
-                    entity,
-                    lastSeen: now,
-                });
+                const key = entity.getUUID().toString();
+                const data = this.persistentPests.get(key);
+                const x = entity.getX();
+                const y = entity.getY();
+                const z = entity.getZ();
+                if (data) {
+                    data.x = x;
+                    data.y = y;
+                    data.z = z;
+                    data.entity = entity;
+                    data.lastSeen = now;
+                    if (data.position && (data.position.x !== x || data.position.y !== y || data.position.z !== z)) data.position = null;
+                } else this.persistentPests.set(key, { x, y, z, entity, lastSeen: now });
             });
 
             this.persistentPests.forEach((data, uuid) => {
@@ -58,14 +66,15 @@ class PestESP extends ModuleBase {
         });
 
         this.when(
-            () => this.enabled && Utils.area() === 'Garden',
+            () => this.enabled && area() === 'Garden',
             'postRenderWorld',
             () => {
                 this.persistentPests.forEach((data) => {
                     if (!data.entity || data.entity.isDead()) return;
-                    RenderUtils.drawHitbox(data.entity.toMC(), new RenderColor(255, 0, 0, 100), 5, false);
+                    Render3D.drawHitbox(data.entity.toMC(), PEST_BOX_COLOR, 5, false);
 
-                    RenderUtils.drawTracer(new Vec3d(data.x, data.y, data.z), new RenderColor(255, 0, 0, 255), 2, false);
+                    data.position ||= new Vec3d(data.x, data.y, data.z);
+                    Render3D.drawTracer(data.position, PEST_TRACER_COLOR, 2, false);
                 });
             }
         );

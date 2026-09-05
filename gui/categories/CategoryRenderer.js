@@ -4,7 +4,6 @@ import {
     FontSizes,
     ITEM_SPACING,
     PADDING,
-    SUBCATEGORY_BUTTON_HEIGHT,
     SUBCATEGORY_BUTTON_SPACING,
     THEME,
     colorWithAlpha,
@@ -25,12 +24,19 @@ import {
 } from '../Utils';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
-import { getComponentLayoutHeight, getDirectComponentPanelWidth, getDirectComponentX, isComponentVisible, layoutDirectComponents } from '../components/layout';
+import {
+    getComponentLayoutHeight,
+    getDirectComponentPanelWidth,
+    getDirectComponentX,
+    getVisibleRowRange,
+    isComponentVisible,
+    layoutDirectComponents,
+} from '../components/layout';
 import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
-import { globalAssetsDir } from '../../utils/Constants';
+import { CLIENT_VERSION, globalAssetsDir } from '../../utils/Constants';
 import { getDiscordPfpPath } from '../../utils/NetworkUtils';
 
 const ASSETS_PATH = globalAssetsDir.getPath() + '/';
@@ -39,7 +45,10 @@ const THEME_ICON_PATH = ASSETS_PATH + 'colorpalette.svg';
 const SETTINGS_ICON_PATH = ASSETS_PATH + 'settings.svg';
 const DASHBOARD_ICON_PATH = ASSETS_PATH + 'dashboard.svg';
 const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
-const SCRIPT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
+const moduleNavLayouts = new WeakMap();
+const titleLayouts = new WeakMap();
+const BACK_TEXT = 'Back';
+const BACK_TEXT_WIDTH = getTextWidth(BACK_TEXT, FontSizes.SMALL);
 
 export const getModuleBorderColor = (moduleType) =>
     moduleType === 'developer' ? colorWithAlpha(THEME.NOTIF_WARNING, 0.75) : moduleType === 'user' ? colorWithAlpha(THEME.NOTIF_ERROR, 0.75) : null;
@@ -61,9 +70,21 @@ export const getDiscordPfpRect = () => {
     const pfpSize = 20;
     return {
         x: leftPanel.x + (leftPanel.width - pfpSize) / 2,
-        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2,
+        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2 - 2,
         width: pfpSize,
         height: pfpSize,
+    };
+};
+
+export const getVersionButtonRect = () => {
+    const leftPanel = GuiRectangles.LeftPanel;
+    const width = getTextWidth(`V${CLIENT_VERSION}`, FontSizes.TINY) + 8;
+    return {
+        x: leftPanel.x + (leftPanel.width - width) / 2,
+        y: leftPanel.y + leftPanel.height - 15,
+        width,
+        height: 12,
+        radius: 4,
     };
 };
 
@@ -87,10 +108,23 @@ export const getCategoryContentY = (catObj, panel) =>
 
 export const getModuleNavButtonRect = (catObj, index, xOffset = 0) => {
     const navRect = getModuleNavRect(xOffset);
-    const subcategories = ['All', ...catObj.subcategories];
-    let x = navRect.x + 4;
-    for (let i = 0; i < index; i++) x += getTextWidth(subcategories[i], FontSizes.MEDIUM) + 16 + SUBCATEGORY_BUTTON_SPACING;
-    return { x, y: navRect.y + 1, width: getTextWidth(subcategories[index], FontSizes.MEDIUM) + 16, height: navRect.height - 2 };
+    let layout = moduleNavLayouts.get(catObj);
+    if (!layout || layout.revision !== Categories.dataRevision || layout.subcategories !== catObj.subcategories) {
+        let x = 4;
+        layout = {
+            revision: Categories.dataRevision,
+            subcategories: catObj.subcategories,
+            buttons: ['All', ...catObj.subcategories].map((label) => {
+                const width = getTextWidth(label, FontSizes.MEDIUM) + 16;
+                const button = { x, width };
+                x += width + SUBCATEGORY_BUTTON_SPACING;
+                return button;
+            }),
+        };
+        moduleNavLayouts.set(catObj, layout);
+    }
+    const button = layout.buttons[index];
+    return { x: navRect.x + button.x, y: navRect.y + 1, width: button.width, height: navRect.height - 2 };
 };
 
 const getModuleNavScrollTarget = (catObj, state = Categories) => {
@@ -185,13 +219,7 @@ export const drawSubcategoryButtons = (catObj, mouseX, mouseY, xOffset = 0, draw
         }
 
         const textColor = isSelected ? THEME.TEXT : THEME.TEXT_MUTED;
-        drawText(
-            subcat,
-            buttonRect.x + (buttonRect.width - getTextWidth(subcat, FontSizes.MEDIUM)) / 2,
-            buttonRect.y + buttonRect.height / 2,
-            FontSizes.MEDIUM,
-            textColor
-        );
+        drawText(subcat, buttonRect.x + buttonRect.width / 2, buttonRect.y + buttonRect.height / 2, FontSizes.MEDIUM, textColor, 18);
     });
 };
 
@@ -203,7 +231,7 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     const panelWidth = panel.width;
     let currentY = yOffset - scrollY;
 
-    const layout = layoutDirectComponents(components, yOffset - scrollY);
+    const layout = layoutDirectComponents(components, yOffset);
 
     const shouldShowSearchEmptyState = categoryName === 'Settings' || categoryName === 'Theme';
     if (shouldShowSearchEmptyState && SearchBar.query.trim().length > 0) {
@@ -231,19 +259,29 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
         }
     }
 
-    layout.sections.forEach((section) => {
-        const separator = new Separator(section.name, true);
+    const viewportTop = panel.y + scrollY - layout.baseY;
+    const viewportBottom = panel.y + panel.height + scrollY - layout.baseY;
+    const [firstSection, lastSection] = getVisibleRowRange(layout.sections, viewportTop, viewportBottom);
+    for (let i = firstSection; i <= lastSection; i++) {
+        const section = layout.sections[i];
+        const sectionY = layout.baseY + section.y - scrollY;
+
+        const separator = section.separator || (section.separator = new Separator(section.name, true));
         separator.x = panelX + PADDING;
-        separator.y = section.y;
+        separator.y = sectionY;
         separator.optionPanelWidth = panelWidth;
         separator.draw(mouseX, mouseY);
-    });
+    }
 
-    layout.rows.forEach(({ component, y }) => {
+    const [firstRow, lastRow] = getVisibleRowRange(layout.rows, viewportTop, viewportBottom);
+
+    for (let i = firstRow; i <= lastRow; i++) {
+        const { component, y } = layout.rows[i];
+        const componentY = layout.baseY + y - scrollY;
         const isPopup = component instanceof Popup;
         if (typeof component.draw === 'function' || isPopup) {
             component.x = getDirectComponentX(panel, panelX);
-            component.y = y;
+            component.y = componentY;
             component.optionPanelWidth = getDirectComponentPanelWidth(panel);
             component.optionPanelHeight = panel.height;
             if (isPopup && typeof component.drawButton === 'function') {
@@ -252,12 +290,12 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
                 component.draw(mouseX, mouseY);
             }
         }
-    });
+    }
 
     return layout.rows.length > 0 ? yOffset + layout.height : currentY + scrollY;
 };
 
-export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null) => {
+export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null, keybindButton = null, documentationButton = null) => {
     const selectedItem = Categories.selectedItem;
     if (!selectedItem) return;
 
@@ -269,11 +307,11 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
     const optionY = panel.y + PADDING;
     const scrollY = Categories.optionsScrollY;
 
-    const backButtonText = 'Back';
+    const backButtonText = BACK_TEXT;
     const backButtonX = optionX;
     const backButtonY = optionY + 12;
     const drawnBackY = backButtonY - scrollY;
-    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, FontSizes.SMALL), height: 10 });
+    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: BACK_TEXT_WIDTH, height: 10 });
 
     drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? THEME.TEXT : THEME.TEXT_LINK);
     const drawnTitleY = optionY + 36 - scrollY;
@@ -281,17 +319,19 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
     const drawnDescY = optionY + 52 - scrollY;
     drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, THEME.TEXT_MUTED);
 
-    if (macroToggleButton) {
-        const buttonTextWidth = getTextWidth(macroToggleButton.buttonText || 'Enable', FontSizes.REGULAR);
+    let buttonRight = optionPanelX + panel.width - PADDING - 10;
+    [macroToggleButton, keybindButton, documentationButton].filter(Boolean).forEach((button) => {
+        const buttonTextWidth = getTextWidth(button.buttonText, FontSizes.REGULAR);
         const buttonWidth = Math.max(64, buttonTextWidth + 20);
         const titleCenterY = drawnTitleY + 7;
 
-        macroToggleButton.x = optionPanelX + panel.width - PADDING - buttonWidth - 10;
-        macroToggleButton.y = titleCenterY - 11;
-        macroToggleButton.optionPanelWidth = buttonWidth;
-        macroToggleButton.optionPanelHeight = panel.height;
-        macroToggleButton.draw(mouseX, mouseY);
-    }
+        button.x = buttonRight - buttonWidth;
+        button.y = titleCenterY - 11;
+        button.optionPanelWidth = buttonWidth;
+        button.optionPanelHeight = panel.height;
+        button.draw(mouseX, mouseY);
+        buttonRight = button.x - 6;
+    });
 
     const dividerY = optionY + 66 - scrollY;
     drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2, height: 1, radius: 1, color: THEME.BG_INSET });
@@ -301,6 +341,13 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
         if (!isComponentVisible(component)) return;
         const isPopup = component instanceof Popup;
         if (!isPopup && typeof component.draw !== 'function') return;
+        const componentHeight = getComponentLayoutHeight(component);
+
+        if (drawnCompY + componentHeight < panel.y || drawnCompY > panel.y + panel.height) {
+            component.updateAnimation?.();
+            drawnCompY += componentHeight;
+            return;
+        }
 
         component.x = optionX;
         component.y = drawnCompY;
@@ -311,7 +358,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
         } else {
             component.draw(mouseX, mouseY);
         }
-        drawnCompY += getComponentLayoutHeight(component);
+        drawnCompY += componentHeight;
     });
 };
 
@@ -327,6 +374,15 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         Categories.transitionType === 'page' && Categories.transitionDirection === -1 && Categories.optionsReturnCategory
             ? Categories.optionsReturnCategory
             : Categories.selected;
+    const versionRect = getVersionButtonRect();
+    const isVersionHovered = isInside(mouseX, mouseY, versionRect);
+
+    drawRoundedRectangleWithBorder({
+        ...versionRect,
+        color: isVersionHovered ? colorWithAlpha(THEME.ACCENT, 0.12) : THEME.BG_INSET,
+        borderWidth: 1,
+        borderColor: colorWithAlpha(THEME.ACCENT, 0.45),
+    });
 
     if (Categories.catAnimationRect) {
         const elapsed = Date.now() - Categories.catTransitionStart;
@@ -420,8 +476,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         if (state.progress > 0 && (displaySelectedCategory !== name || Categories.catAnimationRect)) {
             const rect = item.rect;
             const easedProgress = easeOutCubic(state.progress);
-            const finalRect =
-                name === 'Edit' || name === 'Discord' ? { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 } : { ...item.rect, radius: 8 };
+            const finalRect = { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 };
 
             drawHoverHighlight(finalRect, colorWithAlpha(THEME.BG_INSET, easedProgress), name);
         }
@@ -450,6 +505,8 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             });
         } else if (displaySelectedCategory === 'Edit') {
             drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
+        } else if (displaySelectedCategory === 'Changelog') {
+            drawRoundedRectangle({ ...versionRect, color: THEME.ACCENT_DIM });
         }
     }
 };
@@ -481,7 +538,15 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     if (discordPfpPath) {
         drawCircularImage(discordPfpPath, pfpRect.x, pfpRect.y, pfpRect.width);
     }
-    drawCenteredText(`V${SCRIPT_VERSION}`, pfpRect.x, pfpRect.width, FontSizes.TINY, THEME.TEXT_MUTED, leftPanel.y + leftPanel.height - PADDING);
+    const versionRect = getVersionButtonRect();
+    drawCenteredText(
+        `V${CLIENT_VERSION}`,
+        versionRect.x,
+        versionRect.width,
+        FontSizes.TINY,
+        isInside(mouseX, mouseY, versionRect) ? THEME.TEXT_LINK : THEME.TEXT,
+        versionRect.y + versionRect.height / 2
+    );
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
@@ -523,21 +588,26 @@ const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, 
             drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
         }
     } else {
-        const words = item.title.split(' ');
-        const lines = words.reduce(
-            (lines, word) => {
-                const line = lines[lines.length - 1];
-                if (line && getTextWidth(`${line} ${word}`, FontSizes.REGULAR) > itemWidth - 16) lines.push(word);
-                else lines[lines.length - 1] = line ? `${line} ${word}` : word;
-                return lines;
-            },
-            ['']
-        );
+        const maxWidth = itemWidth - 16;
+        let layout = titleLayouts.get(item);
+        if (!layout || layout.title !== item.title || layout.maxWidth !== maxWidth) {
+            const lines = item.title.split(' ').reduce(
+                (lines, word) => {
+                    const line = lines[lines.length - 1];
+                    if (line && getTextWidth(`${line} ${word}`, FontSizes.REGULAR) > maxWidth) lines.push(word);
+                    else lines[lines.length - 1] = line ? `${line} ${word}` : word;
+                    return lines;
+                },
+                ['']
+            );
+            layout = { title: item.title, maxWidth, lines };
+            titleLayouts.set(item, layout);
+        }
+        const lines = layout.lines;
         const lineHeight = 12;
         const textY = itemY + itemHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
         lines.forEach((line, index) => {
-            const textX = centerText ? itemX + (itemWidth - getTextWidth(line, FontSizes.REGULAR)) / 2 : itemX + 12;
-            drawText(line, textX, textY + index * lineHeight, FontSizes.REGULAR, THEME.TEXT);
+            drawText(line, centerText ? itemX + itemWidth / 2 : itemX + 12, textY + index * lineHeight, FontSizes.REGULAR, THEME.TEXT, centerText ? 18 : 17);
         });
     }
 };
@@ -569,6 +639,26 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
         return;
     }
 
+    if (!items.some((item) => item.type === 'separator')) {
+        const firstRow = Math.max(0, Math.ceil((panel.y - itemHeight - yOffset) / rowHeight));
+        const lastRow = Math.min(Math.ceil(items.length / columns) - 1, Math.floor((panel.y + panel.height - yOffset) / rowHeight));
+        for (let i = firstRow * columns; i < Math.min(items.length, (lastRow + 1) * columns); i++) {
+            drawItemBox(
+                items[i],
+                panelX + PADDING + (i % columns) * (iw + ITEM_SPACING),
+                yOffset + Math.floor(i / columns) * rowHeight,
+                iw,
+                itemHeight,
+                mouseX,
+                mouseY,
+                layouts,
+                valid,
+                false
+            );
+        }
+        return;
+    }
+
     items.forEach((g, i) => {
         if (g.type === 'separator') {
             if (i > 0) yOffset += 12;
@@ -576,22 +666,24 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             g.x = panelX + PADDING;
             g.y = yOffset;
             g.optionPanelWidth = panel.width;
-            if (typeof g.draw === 'function') g.draw(mouseX, mouseY);
+            if (yOffset + 16 >= panel.y && yOffset <= panel.y + panel.height && typeof g.draw === 'function') g.draw(mouseX, mouseY);
 
             yOffset += 22;
-            let subIdx = 0;
-
-            g.items.forEach((item) => {
-                if (subIdx % columns === 0 && subIdx > 0) yOffset += rowHeight;
-                drawItemBox(item, panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
-                subIdx++;
-            });
+            const firstRow = Math.max(0, Math.ceil((panel.y - itemHeight - yOffset) / rowHeight));
+            const lastRow = Math.min(Math.ceil(g.items.length / columns) - 1, Math.floor((panel.y + panel.height - yOffset) / rowHeight));
+            for (let subIdx = firstRow * columns; subIdx < Math.min(g.items.length, (lastRow + 1) * columns); subIdx++) {
+                const itemY = yOffset + Math.floor(subIdx / columns) * rowHeight;
+                const itemX = panelX + PADDING + (subIdx % columns) * (iw + ITEM_SPACING);
+                drawItemBox(g.items[subIdx], itemX, itemY, iw, itemHeight, mouseX, mouseY, layouts, valid, true);
+            }
             if (g.items.length > 0) {
-                yOffset += itemHeight;
+                yOffset += Math.floor((g.items.length - 1) / columns) * rowHeight + itemHeight;
             }
         } else {
             if (rowIdx % columns === 0 && rowIdx > 0) yOffset += rowHeight;
-            drawItemBox(g, panelX + PADDING + (rowIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, false);
+            if (yOffset + itemHeight >= panel.y && yOffset <= panel.y + panel.height) {
+                drawItemBox(g, panelX + PADDING + (rowIdx % columns) * (iw + ITEM_SPACING), yOffset, iw, itemHeight, mouseX, mouseY, layouts, valid, false);
+            }
             rowIdx++;
         }
     });

@@ -1,6 +1,6 @@
 import { ZombieEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 const RAT_WIDTH = 0.49;
 const RAT_HEIGHT = 0.99;
@@ -9,11 +9,11 @@ const WORLD_TICK_MS = 50;
 
 const approxEqual = (a, b, epsilon = EPSILON) => Math.abs(a - b) <= epsilon;
 
-export function isRatEntity(entity) {
+function isRatEntity(entity) {
     return !!entity && !entity.isDead() && isRawRatEntity(entity);
 }
 
-export function isRawRatEntity(entity) {
+function isRawRatEntity(entity) {
     return !!entity && approxEqual(entity.getWidth(), RAT_WIDTH) && approxEqual(entity.getHeight(), RAT_HEIGHT);
 }
 
@@ -22,12 +22,12 @@ export function getRatId(entity) {
 }
 
 export function getHubRats() {
-    if (!World.isLoaded() || Utils.area() !== 'Hub') return [];
+    if (!World.isLoaded() || area() !== 'Hub') return [];
     return getRawHubRats().filter((entity) => isRatEntity(entity));
 }
 
 export function getRawHubRats() {
-    if (!World.isLoaded() || Utils.area() !== 'Hub') return [];
+    if (!World.isLoaded() || area() !== 'Hub') return [];
     return World.getAllEntitiesOfType(ZombieEntity).filter((entity) => isRawRatEntity(entity));
 }
 
@@ -51,7 +51,7 @@ class RatESP extends ModuleBase {
         });
 
         this.when(
-            () => this.enabled && World.isLoaded() && Utils.area() === 'Hub' && this.rats.length > 0,
+            () => this.enabled && World.isLoaded() && area() === 'Hub' && this.rats.length > 0,
             'postRenderWorld',
             () => this.renderRats()
         );
@@ -63,7 +63,7 @@ class RatESP extends ModuleBase {
     }
 
     scanRats() {
-        if (!this.enabled || !World.isLoaded() || Utils.area() !== 'Hub') {
+        if (!this.enabled || !World.isLoaded() || area() !== 'Hub') {
             this.rats = [];
             return;
         }
@@ -81,8 +81,8 @@ class RatESP extends ModuleBase {
             const cubeSize = 0.7;
             const cubePos = new Vec3d(position.x, position.y, position.z);
 
-            RenderUtils.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
-            RenderUtils.drawTracer(cubePos, this.tracerColor, 2, false);
+            Render3D.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
+            Render3D.drawTracer(cubePos, this.tracerColor, 2, false);
         });
     }
 

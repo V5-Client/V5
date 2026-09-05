@@ -1,15 +1,16 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { angleToPlayer, getDistanceToPlayerEyes } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
+import { getPointOnBlock } from '../../utils/Raytrace';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const MAX_SCAN = 500;
 const MAX_DISTANCE = 30;
 const IGNORE_RADIUS = 1;
+const DEBUG_BLOCK_COLOR = new RenderColor(205, 133, 63, 255);
 
 // todo
 // better targetting
@@ -288,7 +289,7 @@ class ForagingBot extends ModuleBase {
     addHitPoints(list) {
         return list.map((block) => ({
             ...block,
-            hitPoint: Raytrace.getPointOnBlock(block, false),
+            hitPoint: getPointOnBlock(block, false),
         }));
     }
 
@@ -299,7 +300,7 @@ class ForagingBot extends ModuleBase {
     filterInRange(list) {
         return list.filter((block) => {
             const point = block.hitPoint || [block.x + 0.5, block.y + 0.5, block.z + 0.5];
-            const distData = MathUtils.getDistanceToPlayerEyes(point[0], point[1], point[2]);
+            const distData = getDistanceToPlayerEyes(point[0], point[1], point[2]);
             return (distData?.distance ?? Infinity) <= MAX_DISTANCE;
         });
     }
@@ -310,8 +311,8 @@ class ForagingBot extends ModuleBase {
 
         const scoredBlocks = blocksToScore.map((block) => {
             const point = block.hitPoint || [block.x + 0.5, block.y + 0.5, block.z + 0.5];
-            const angleData = MathUtils.angleToPlayer(point);
-            const distanceData = MathUtils.getDistanceToPlayerEyes(point[0], point[1], point[2]);
+            const angleData = angleToPlayer(point);
+            const distanceData = getDistanceToPlayerEyes(point[0], point[1], point[2]);
 
             return {
                 ...block,
@@ -345,10 +346,10 @@ class ForagingBot extends ModuleBase {
         if (!this.debug || this.connectedBlocks.length === 0) return;
 
         this.connectedBlocks.forEach((location) => {
-            const blockVec = new Vec3d(location.x, location.y, location.z);
-            RenderUtils.drawWireFrameBox(blockVec, new RenderColor(205, 133, 63, 255));
+            location.renderPosition ||= new Vec3d(location.x, location.y, location.z);
+            Render3D.drawWireFrameBox(location.renderPosition, DEBUG_BLOCK_COLOR);
         });
     }
 }
 
-export const ForagingB = isDeveloperModeEnabled() ? new ForagingBot() : null;
+if (isDeveloperModeEnabled()) new ForagingBot();

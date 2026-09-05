@@ -1,14 +1,15 @@
 import { ClientboundLevelParticlesPacket } from '../../../utils/Packets';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../../utils/player/Rotations';
-import { TabListUtils } from '../../../utils/TabListUtils';
+import { readPests } from '../../../utils/TabListUtils';
 import { getLoadedPests } from '../../visuals/PestESP';
 import { farmingSettings } from '../FarmingSettings';
-import { MathUtils } from '../../../utils/Math';
-import { Utils } from '../../../utils/Utils';
-import { manager } from '../../../utils/SkyblockEvents';
+import { angleToPlayer } from '../../../utils/Math';
+import { getGardenPestStatus } from '../../../utils/Utils';
+import { registerSkyblockEvent } from '../../../utils/SkyblockEvents';
+import { ParticleTypes } from '../../../utils/Constants';
 
-const ANGRY_VILLAGER = net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER;
+const ANGRY_VILLAGER = ParticleTypes.ANGRY_VILLAGER;
 const PEST_RANGE_SQ = 12.5 ** 2;
 const PEST_ANGLE = 45;
 const PARTICLE_SEARCH_MS = 1_000;
@@ -26,7 +27,7 @@ const STATES = {
 class PestKiller {
     constructor() {
         register('packetReceived', (packet) => this.onParticle(packet)).setFilteredClass(ClientboundLevelParticlesPacket);
-        manager.subscribe('plotteleport', () => this.onTeleport());
+        registerSkyblockEvent('plotteleport', () => this.onTeleport());
     }
 
     start() {
@@ -41,7 +42,7 @@ class PestKiller {
 
     tick() {
         if (!this.running) return true;
-        const { gardenPests, currentPlot, currentPlotPests } = Utils.getGardenPestStatus();
+        const { gardenPests, currentPlot, currentPlotPests } = getGardenPestStatus();
         if (gardenPests === 0 || !gardenPests) {
             this.stop();
             return true;
@@ -105,7 +106,7 @@ class PestKiller {
     }
 
     findNewPlot() {
-        const { infestedPlots } = TabListUtils.readPests();
+        const { infestedPlots } = readPests();
         let plot = infestedPlots.find((candidate) => !this.visitedPlots.has(candidate));
         if (!plot && infestedPlots.length) {
             this.visitedPlots.clear();
@@ -166,7 +167,7 @@ class PestKiller {
         this.state = STATES.KILLING;
         Client.unpressKeys();
         if (!farmingSettings.selectVacuum()) return false;
-        if (MathUtils.angleToPlayer(pest).distance >= PEST_ANGLE) Rotations.lookAtVector(pest, { precision: 5 });
+        if (angleToPlayer(pest).distance >= PEST_ANGLE) Rotations.lookAtVector(pest, { precision: 5 });
         Client.setKey('rightclick', true);
         return false;
     }
