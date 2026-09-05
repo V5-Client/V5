@@ -474,7 +474,13 @@ class RefuelService {
         };
 
         this.reset();
-        register('tick', () => this.tick());
+        register('tick', () => {
+            try {
+                this.tick();
+            } catch (error) {
+                this.abort('Refueling error: ' + error);
+            }
+        });
     }
 
     reset() {
@@ -491,6 +497,7 @@ class RefuelService {
         this.targetHotbarSlot = -1;
         this.swapState = 0;
         this.finalSuccess = false;
+        this.allowNpc = true;
     }
 
     setState(nextState, waitTicks = 0, timeoutTicks = null) {
@@ -499,16 +506,19 @@ class RefuelService {
         this.timeoutTicks = timeoutTicks;
     }
 
-    refuel(callback) {
+    refuel(callback, { allowNpc = true } = {}) {
         if (typeof callback === 'function') this.callbacks.push(callback);
-        if (this.state !== this.STATES.IDLE) return;
+        if (this.state !== this.STATES.IDLE) {
+            this.allowNpc = this.allowNpc && allowNpc;
+            return;
+        }
 
+        this.allowNpc = allowNpc;
         this.setState(this.STATES.FIND_ABIPHONE);
     }
 
     tick() {
         if (this.state === this.STATES.IDLE) return;
-
         if (this.waitTicks > 0) {
             this.waitTicks--;
             return;
@@ -582,6 +592,7 @@ class RefuelService {
                     this.targetHotbarSlot = targetSlot;
                     this.setState(this.STATES.OPEN_PLAYER_INV_SWAP, 0);
                 } else {
+                    if (!this.allowNpc) return this.fail('Abiphone not found; NPC refueling is disabled.');
                     chat('Abiphone not found. Walking to Drill Mechanic...');
                     this.setState(this.STATES.WALK_TO_MECHANIC);
                 }
@@ -782,6 +793,7 @@ class RefuelService {
     }
 
     finish(success) {
+        closeInventory();
         if (this.originalAbiphoneSlot !== -1) {
             this.finalSuccess = success;
             this.setState(this.STATES.OPEN_PLAYER_INV_RESTORE, 10);
@@ -792,6 +804,8 @@ class RefuelService {
 
     finalCallback(success) {
         const callbacks = this.callbacks.slice();
+        if (this.isPathing) Pathfinder.resetPath();
+        if (this.npcRotationPending) Rotations.stop();
         this.reset();
         callbacks.forEach((callback) => {
             try {
@@ -800,6 +814,16 @@ class RefuelService {
                 console.error('V5 refuel callback error:', error);
             }
         });
+    }
+
+    abort(message) {
+        if (this.state === this.STATES.IDLE) return;
+        chat(message);
+        try {
+            closeInventory();
+        } finally {
+            this.finalCallback(false);
+        }
     }
 }
 
@@ -1024,7 +1048,7 @@ export const getDrills = () => {
     const drill = ToolFinder.findBest();
     return { blueCheese: drill?.blueCheese ? drill : null, drill: drill || null };
 };
-export const refuel = (callback) => refueler.refuel(callback);
+export const refuel = (callback, options) => refueler.refuel(callback, options);
 export const getDebuff = (type) => (type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat());
 export const setGhostBlock = (pos) => BlockUtils.setToAir(pos);
 export const readCommissionsFromGui = (container, isKnownCommission) => CommissionParser.parseGui(container, isKnownCommission);

@@ -146,6 +146,6 @@ register('packetReceived', (packet) => {
     if (!packet?.overlay?.()) return;
     const actionBar = packet.content()?.getString();
     if (!actionBar) return;
-    const match = actionBar.replace(/\u00A7[0-9A-FK-OR]/gi, '').match(/([\d,]+)\/([\d,]+)(?:\u270E|\uE003)\s*(?:Mana|([\d,]+)\u02AC)\s*/);
+    const match = actionBar.replace(/\u00A7[0-9A-FK-OR]/gi, '').match(/([\d,]+)\/([\d,]+)(?:\u270E|\uE003)\s*/);
     if (match) currentMana = Number(match[1].replace(/,/g, ''));
 }).setFilteredClass(ClientboundSystemChatPacket);

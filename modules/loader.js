@@ -7,6 +7,7 @@ import './mining/LobbyHopper';
 import './foraging/MudwormMacro';
 import './foraging/LushLilacEtherwarpNuker';
 import './mining/Nuker';
+import './mining/PowderNuker';
 import './mining/OreMacro';
 import './mining/PinglessMining';
 import './mining/GlowingMushroomMacro';
