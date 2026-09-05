@@ -50,7 +50,7 @@ class ESP extends ModuleBase {
             const disableEspWithinDistanceSq = this.disableEspWithinDistance * this.disableEspWithinDistance;
 
             for (const player of players) {
-                if (player.getUUID().equals(Player.getUUID())) continue;
+                if (String(player.getUUID()) === String(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 
                 const entity = player.toMC();
@@ -64,7 +64,7 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= (self.hasLineOfSight(entity) ? 64 * 64 : 32 * 32)) continue;
 
-                const vec = new Vec3d(player.x, player.y + 2.3, player.z);
+                const vec = new Vec3d(player.getX(), player.getY() + 2.3, player.getZ());
                 Render3D.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });

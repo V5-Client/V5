@@ -1,5 +1,6 @@
 import requestV2 from 'requestV2';
 import { chat } from '../../utils/Chat';
+import { DataComponents } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { setSignLine } from '../../utils/Sign';
 import { v5Command } from '../../utils/V5Commands';
@@ -22,10 +23,10 @@ const clean = (value) =>
 const lore = (item) => (item?.getLore?.() || []).map((line) => ChatLib.removeFormatting(String(line)).trim());
 const formatCoins = (value) => {
     const unit = [
-        [1e6, 'M'],
-        [1e3, 'K'],
-    ].find(([minimum]) => Math.abs(value) >= minimum);
-    return unit ? `${(value / unit[0]).toFixed(2)}${unit[1]}` : Math.round(value).toLocaleString();
+        { minimum: 1e6, suffix: 'M' },
+        { minimum: 1e3, suffix: 'K' },
+    ].find(({ minimum }) => Math.abs(value) >= minimum);
+    return unit ? `${(value / unit.minimum).toFixed(2)}${unit.suffix}` : Math.round(value).toLocaleString();
 };
 
 class BazaarNpcMacro extends ModuleBase {
@@ -823,7 +824,7 @@ class BazaarNpcMacro extends ModuleBase {
     skyblockItemId(item) {
         let data = '';
         try {
-            data = String(item?.toMC?.()?.get?.(net.minecraft.core.component.DataComponents.CUSTOM_DATA)?.copyTag?.() || '');
+            data = String(item?.toMC?.()?.get?.(DataComponents.CUSTOM_DATA)?.copyTag?.() || '');
         } catch (error) {}
         if (!data) data = String(item?.getNBT?.() || '');
         return data.match(/\bid\s*[:=]\s*"?([^",}\s]+)/i)?.[1] || null;
@@ -833,7 +834,7 @@ class BazaarNpcMacro extends ModuleBase {
         if (!item) return null;
         let customData = '';
         try {
-            customData = String(item.toMC()?.get?.(net.minecraft.core.component.DataComponents.CUSTOM_DATA)?.copyTag?.() || '');
+            customData = String(item.toMC()?.get?.(DataComponents.CUSTOM_DATA)?.copyTag?.() || '');
         } catch (error) {}
         if (!customData) customData = String(item.getNBT()).match(/\bid\s*[:=]\s*"?([^",}\s]+)/i)?.[1] || '';
         return `${item.getType().getRegistryName()}|${item.getDamage()}|${customData}`;

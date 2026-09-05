@@ -292,7 +292,7 @@ class Music extends ModuleBase {
             this.musicProcess = null;
         }
         try {
-            java.lang.Runtime.getRuntime().exec(`taskkill /F /IM ${this.windowsExePath}`);
+            Runtime.getRuntime().exec(`taskkill /F /IM ${this.windowsExePath}`);
         } catch (e) {}
     }
 }

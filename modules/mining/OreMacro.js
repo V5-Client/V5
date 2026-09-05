@@ -483,6 +483,13 @@ class OreMiner extends ModuleBase {
         return file.exists() && file.isFile() ? { path: String(file.getAbsolutePath()), name } : null;
     }
 
+    getRouteNames() {
+        return Array.from(ORE_ROUTES_DIR.listFiles() || [])
+            .filter((file) => file.isFile() && file.getName().endsWith('.json'))
+            .map((file) => file.getName().slice(0, -5))
+            .sort();
+    }
+
     listRoutes() {
         const files = this.getRouteNames();
         this.message(`&bOre Miner Routes &7(${files.length})`);
@@ -1010,7 +1017,7 @@ class OreMiner extends ModuleBase {
 
             if (this.typeMineEnabled) {
                 return {
-                    vector: MathUtils.blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
+                    vector: blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
                     walkGuide: true,
                 };
             }
@@ -1107,7 +1114,7 @@ class OreMiner extends ModuleBase {
 
         this.ensureShiftHeld();
         if (!Player.isSneaking()) return;
-        const aim = this.getMineAim(block, this.waitTicks % 3 === 0);
+        const aim = this.getMineAim(block);
         if (aim) {
             this.stopMiningStrafe(false);
             this.prepareBlock(block, aim);
@@ -1525,8 +1532,8 @@ class OreMiner extends ModuleBase {
             const high = [...aimPoint];
             low[axis] = Math.max(block[axisName] + 0.02, aimPoint[axis] - halfSpan);
             high[axis] = Math.min(block[axisName] + 0.98, aimPoint[axis] + halfSpan);
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, low, eye)) continue;
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, high, eye)) continue;
+            if (!testPointVisibility(block.x, block.y, block.z, low, eye)) continue;
+            if (!testPointVisibility(block.x, block.y, block.z, high, eye)) continue;
 
             const a = [low[0] - eye.x, low[1] - eye.y, low[2] - eye.z];
             const b = [high[0] - eye.x, high[1] - eye.y, high[2] - eye.z];
@@ -1609,6 +1616,7 @@ class OreMiner extends ModuleBase {
 
     render() {
         if ((!this.enabled && !this.editing) || !this.showOverlay || !this.loadedWaypoints) return;
+        const closestWaypoint = this.editing ? this.selectedWaypoint : this.waypointIndex;
         this.loadedWaypoints.forEach((waypoint, index) => {
             const colors =
                 this.editing && index === this.selectedWaypoint

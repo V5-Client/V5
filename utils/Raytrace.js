@@ -47,7 +47,13 @@ const testPointNative = (targetX, targetY, targetZ, point, eye) => {
         const world = World.getWorld();
         if (!player || !world) return false;
         const result = world.clip(
-            new RaycastContext(new Vec3d(eye.x, eye.y, eye.z), new Vec3d(...point), RaycastContext.Block.OUTLINE, RaycastContext.Fluid.NONE, player)
+            new RaycastContext(
+                new Vec3d(eye.x, eye.y, eye.z),
+                new Vec3d(point[0], point[1], point[2]),
+                RaycastContext.Block.OUTLINE,
+                RaycastContext.Fluid.NONE,
+                player
+            )
         );
         if (!result || String(result.getType?.()) === 'MISS') return false;
         const hit = result.getBlockPos();

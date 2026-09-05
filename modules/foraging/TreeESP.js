@@ -61,7 +61,7 @@ class TreeESP extends ModuleBase {
             const treeType = this.treeType;
             const { block, bounds } = treeType;
             const blocks = World.getBlocksInBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ, [block]);
-            const remaining = new java.util.HashMap();
+            const remaining = new HashMap();
             for (const block of blocks) remaining.put(new BP(block.x, block.y, block.z), block);
 
             const trees = [];

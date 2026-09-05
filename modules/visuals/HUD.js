@@ -3,9 +3,9 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { GuiState } from '../../gui/core/GuiState';
+import { SkijaPIP } from '../../utils/Constants';
 
 const DrawContextHolder = com.chattriggers.ctjs.api.render.DrawContextHolder;
-const SkijaPIP = com.chattriggers.ctjs.api.render.skia.SkijaPIP;
 
 class HUD extends ModuleBase {
     constructor() {

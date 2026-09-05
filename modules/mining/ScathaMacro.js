@@ -237,7 +237,7 @@ class ScathaMacro extends ModuleBase {
 
     isInPane() {
         let player = Player.getPlayer();
-        let currentBlock = World.getBlockAt(player.x, player.y, player.z);
+        let currentBlock = World.getBlockAt(player.getX(), player.getY(), player.getZ());
         let id = currentBlock?.type?.getRegistryName();
 
         return !!(id?.includes('pane') || id?.includes('glass'));

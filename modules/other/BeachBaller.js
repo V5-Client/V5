@@ -1,5 +1,5 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
+import { ArmorStandEntity, DataComponents, Vec3d } from '../../utils/Constants';
 import { calculateDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
@@ -418,7 +418,7 @@ class Beachballer extends ModuleBase {
     isBeachBall(item) {
         try {
             const mcItem = item.toMC();
-            const profileType = net.minecraft.core.component.DataComponents.PROFILE;
+            const profileType = DataComponents.PROFILE;
 
             const profileComponent = mcItem.get(profileType);
             const data = profileComponent.partialProfile().toString();

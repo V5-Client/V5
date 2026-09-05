@@ -268,12 +268,12 @@ class CommissionMacro extends ModuleBase {
 
         this.weapon = this.getWeaponFromSlot();
         if (!this.weapon) {
-            notificationManager.add(`No weapon found in slot ${this.goblinWeaponSlot}`, 'Goblin commissions will be skipped.', 'ERROR', '5000');
+            notificationManager.add(`No weapon found in slot ${this.goblinWeaponSlot}`, 'Goblin commissions will be skipped.', 'ERROR', 5000);
         }
 
         this.miningSpeed = getMiningSpeed('Dwarven Mines');
         if (!this.miningSpeed) {
-            notificationManager.add('No mining speed saved!', "Run '/v5 mining stats' first.", 'ERROR', '5000');
+            notificationManager.add('No mining speed saved!', "Run '/v5 mining stats' first.", 'ERROR', 5000);
             this.toggle(false);
             return;
         }
@@ -492,7 +492,7 @@ class CommissionMacro extends ModuleBase {
     getAvoidanceEntities() {
         if (this.avoidanceRadius <= 0) return [];
         return World.getAllPlayers().filter((entity) => {
-            if (entity.getUUID().equals(Player.getUUID())) return false;
+            if (String(entity.getUUID()) === String(Player.getUUID())) return false;
 
             const isPlayer = entity.getUUID().version() === 4;
             const isCrystalSentry = entity.getName().includes('Crystal Sentry');
@@ -847,7 +847,7 @@ class CommissionMacro extends ModuleBase {
         this.drill = drills.drill;
 
         if (!this.drill) {
-            notificationManager.add('No drill or pickaxe found!', 'What happened?', 'ERROR', '5000');
+            notificationManager.add('No drill or pickaxe found!', 'What happened?', 'ERROR', 5000);
             this.toggle(false);
             return;
         }

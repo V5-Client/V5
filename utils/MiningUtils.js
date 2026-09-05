@@ -136,7 +136,7 @@ class MiningStatsCollector {
             this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
 
             let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
-            this.collectedData.maxge = Number.parseInt(explorerLevel) >= 96;
+            this.collectedData.maxge = Number(explorerLevel) >= 96;
 
             closeInventory();
             this.finishCollection();
@@ -588,7 +588,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_SWAP:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
+                Client.setCurrentScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 // someone fix this fucking shit. i forgot how to open inventory so this is bandaid
                 this.setState(this.STATES.WAIT_PLAYER_INV_SWAP, 5);
                 break;
@@ -733,7 +733,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_RESTORE:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
+                Client.setCurrentScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 this.setState(this.STATES.WAIT_PLAYER_INV_RESTORE, 5);
                 break;
 

@@ -216,7 +216,7 @@ class RouteWalkerer extends ModuleBase {
 
                     const targetBlockPos = new BlockPos(this.point.x, this.point.y, this.point.z);
 
-                    if (Math.abs(player.getMotionX()) + Math.abs(player.getMotionZ()) > 0.1) return;
+                    if (Math.abs(player.getDeltaMovement().x) + Math.abs(player.getDeltaMovement().z) > 0.1) return;
 
                     const point = getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 

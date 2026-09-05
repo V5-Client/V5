@@ -1,9 +1,7 @@
-import { Chat } from './Chat';
-import { File, ProcessBuilder, System, Toolkit, globalAssetsDir } from './Constants';
+import { chatDebug } from './Chat';
+import { File, ProcessBuilder, System, SystemTray, Toolkit, TrayIcon, globalAssetsDir } from './Constants';
 
-const MessageType = java.awt.TrayIcon.MessageType;
-const SystemTray = java.awt.SystemTray;
-const TrayIcon = java.awt.TrayIcon;
+const MessageType = TrayIcon.MessageType;
 
 class AlertManager {
     constructor() {
@@ -34,7 +32,7 @@ class AlertManager {
             this.trayIcon.setToolTip(this.appName);
             tray.add(this.trayIcon);
         } catch (e) {
-            Chat.messageDebug('Desktop tray initialization failed: ' + e);
+            chatDebug('Desktop tray initialization failed: ' + e);
             console.error(e);
         }
     }
@@ -45,7 +43,7 @@ class AlertManager {
         try {
             SystemTray.getSystemTray().remove(this.trayIcon);
         } catch (e) {
-            Chat.messageDebug('Tray cleanup failed: ' + e);
+            chatDebug('Tray cleanup failed: ' + e);
             console.error(e);
         }
         this.trayIcon = null;
@@ -77,7 +75,7 @@ class AlertManager {
         try {
             new ProcessBuilder(args.map(String)).start();
         } catch (e) {
-            Chat.messageDebug('Notification command failed: ' + e);
+            chatDebug('Notification command failed: ' + e);
             console.error(e);
         }
     }

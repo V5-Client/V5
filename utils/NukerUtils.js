@@ -1,6 +1,5 @@
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { ServerboundPlayerActionPacket, ServerboundPlayerActionPacket$Action, ServerboundSwingPacket } from './Packets';
-import { ScheduleTask } from './ScheduleTask';
 
 const MAX_REACH_DISTANCE = 6;
 const MIN_NUKE_INTERVAL = 50;
@@ -51,11 +50,6 @@ export const queueNuke = (blockPos, ticks) => nukeQueue.push([blockPos, ticks]);
 
 const updateDelay = (ticks) => {
     if (Date.now() - lastNukeTime <= MIN_NUKE_INTERVAL + ticks * 50 && ticks !== 1 && delay < MIN_NUKE_INTERVAL) return;
-    if (delay > MIN_NUKE_INTERVAL) {
-        ScheduleTask(1, () => {
-            if (typeof MiningBot !== 'undefined' && MiningBot) MiningBot.ticksMined--;
-        });
-    }
     delay = 0;
 };
 

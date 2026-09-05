@@ -29,6 +29,7 @@ export class Popup {
         this.callback = callback;
 
         this.optionPanelWidth = 0;
+        this.optionPanelHeight = 0;
         this.containerHeight = 24;
         this.description = null;
         this.statusText = null;

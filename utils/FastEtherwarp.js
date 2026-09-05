@@ -487,8 +487,8 @@ class EtherwarpPathHandler {
     }
 
     sendEtherwarpClick() {
-        const yaw = Number.parseFloat(Player.getYaw());
-        const pitch = Number.parseFloat(Player.getPitch());
+        const yaw = Player.getYaw();
+        const pitch = Player.getPitch();
         Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
     }
 

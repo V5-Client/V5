@@ -1,4 +1,4 @@
-import { ClipContext, GLFW, Vec3d } from '../../utils/Constants';
+import { ClipContext, GLFW, InputConstants, Vec3d } from '../../utils/Constants';
 import { clearCameraPosition, setCameraPosition } from '../../utils/Camera';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { wrapTo180 } from '../../utils/Math';
@@ -7,7 +7,6 @@ import { forceGrab, releaseForcedGrab } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
 const Perspective = net.minecraft.client.CameraType;
-const InputConstants = com.mojang.blaze3d.platform.InputConstants;
 class Freecam extends ModuleBase {
     constructor() {
         super({
@@ -41,7 +40,7 @@ class Freecam extends ModuleBase {
         });
         this.on('renderWorld', () => this.onRender());
         this.on('renderEntity', (entity, partialTicks, event) => {
-            if (this.possessedUUID && entity.getUUID().equals(this.possessedUUID)) cancel(event);
+            if (this.possessedUUID && String(entity.getUUID()) === String(this.possessedUUID)) cancel(event);
         });
     }
 
@@ -237,7 +236,7 @@ class Freecam extends ModuleBase {
         let nearestDistanceSq = String(blockHit.getType()) === 'MISS' ? Infinity : this.cameraPos.distanceToSqr(blockHit.getLocation());
 
         for (const player of World.getAllPlayers()) {
-            if (player.getUUID().equals(selfUUID)) continue;
+            if (String(player.getUUID()) === String(selfUUID)) continue;
 
             const hit = player.toMC().getBoundingBox().inflate(0.15).clip(this.cameraPos, end);
             if (!hit.isPresent()) continue;
@@ -257,7 +256,7 @@ class Freecam extends ModuleBase {
     }
 
     isKeyDown(keybind) {
-        return mc.screen == null && InputConstants.isKeyDown(mc.getWindow(), InputConstants.getKey(keybind.saveString()).getValue());
+        return Client.getCurrentScreen() == null && InputConstants.isKeyDown(mc.getWindow(), InputConstants.getKey(keybind.saveString()).getValue());
     }
 
     getInitialCameraPos(player, yaw, pitch) {

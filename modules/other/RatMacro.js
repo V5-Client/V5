@@ -366,8 +366,8 @@ class RatMacro extends ModuleBase {
             Rotations.onComplete(() => {
                 if (!this.enabled || attackToken !== this.pendingAttackToken || !this.pendingAttackAtGoal) return;
 
-                const yaw = Number.parseFloat(Player.getYaw());
-                const pitch = Number.parseFloat(Player.getPitch());
+                const yaw = Player.getYaw();
+                const pitch = Player.getPitch();
                 this.debug(`firing at rat &e${this.formatRatRef()}&f with yaw &e${yaw.toFixed(2)}&f pitch &e${pitch.toFixed(2)}`);
                 Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
                 this.markRatAssumedDead(attackTarget);

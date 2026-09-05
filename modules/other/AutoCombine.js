@@ -41,7 +41,7 @@ class AutoCombine extends ModuleBase {
             false
         );
 
-        this.on('tick', (tick) => this.onTick(tick));
+        this.on('tick', () => this.onTick());
     }
 
     onTick() {
@@ -70,20 +70,20 @@ class AutoCombine extends ModuleBase {
     }
 
     openAnvil() {
-        if (Player.getContainer()?.getName() != '§rAnvil') ChatLib.command('anvil');
+        if (String(Player.getContainer()?.getName()) !== '§rAnvil') ChatLib.command('anvil');
         this.setState(this.STATES.SEARCH_PAIR);
     }
 
     getAnvilItems() {
         const container = Player.getContainer();
-        return container?.getName() == '§rAnvil' ? container.getItems() : null;
+        return String(container?.getName()) === '§rAnvil' ? container.getItems() : null;
     }
 
     searchForNextPair() {
         const container = Player.getContainer();
         if (!container) return this.timeout();
 
-        if (container.getName() != '§rAnvil') {
+        if (String(container.getName()) !== '§rAnvil') {
             this.setState(this.STATES.OPEN_ANVIL);
             return;
         }

@@ -191,7 +191,7 @@ class NukerClass extends ModuleBase {
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
         this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
         this.addToggle('Use Pickaxe Ability', (v) => (this.usePickaxeAbility = v), 'Uses pickaxe ability when available');
-        this.addSlider('Custom Reach', '4.5', 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'Adjust player reach');
+        this.addSlider('Custom Reach', 4.5, 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'Adjust player reach');
         this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
         this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
         this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {

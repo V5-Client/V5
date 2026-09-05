@@ -1,4 +1,16 @@
-import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
+import {
+    Arrays,
+    CLIENT_VERSION,
+    Consumer,
+    FileInputStream,
+    JavaArray,
+    JavaByte,
+    JavaLong,
+    OutputStreamWriter,
+    ScreenshotRecorder,
+    System,
+    URL,
+} from './Constants';
 import { executeAsync } from './ThreadExecutor';
 import { area, getConfigFile, subArea, writeConfigFile } from './Utils';
 
@@ -73,7 +85,7 @@ class DiscordNotifier {
                             const files = screenshotDir.listFiles();
                             if (!files || files.length === 0) return;
 
-                            const latestFile = java.util.Arrays.stream(files)
+                            const latestFile = Arrays.stream(files)
                                 .filter((f) => f.getName().endsWith('.png'))
                                 .max(java.util.Comparator.comparingLong((f) => f.lastModified()))
                                 .orElse(null);
@@ -121,7 +133,7 @@ class DiscordNotifier {
                     body.content = '<@' + this.mentionId + '>';
                 }
 
-                writer = new java.io.OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
+                writer = new OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
                 writer.write(JSON.stringify(body));
                 writer.close();
                 writer = null;
@@ -172,7 +184,7 @@ class DiscordNotifier {
             let response = null;
 
             try {
-                const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
+                const boundary = '----------' + JavaLong.toString(System.currentTimeMillis(), 16);
                 connection = new URL(this.endpoint).openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
@@ -181,7 +193,7 @@ class DiscordNotifier {
                 connection.setRequestProperty('Content-Type', 'multipart/form-data; boundary=' + boundary);
 
                 out = connection.getOutputStream();
-                writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(out, 'UTF-8'), true);
+                writer = new java.io.PrintWriter(new OutputStreamWriter(out, 'UTF-8'), true);
 
                 writer.append('--' + boundary).append('\r\n');
                 writer.append('Content-Disposition: form-data; name="payload_json"').append('\r\n');
@@ -213,8 +225,8 @@ class DiscordNotifier {
                 writer.append('Content-Type: image/png').append('\r\n\r\n');
                 writer.flush();
 
-                fis = new java.io.FileInputStream(file);
-                const buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
+                fis = new FileInputStream(file);
+                const buffer = JavaArray.newInstance(JavaByte.TYPE, 4096);
                 let bytesRead;
                 while ((bytesRead = fis.read(buffer)) !== -1) {
                     out.write(buffer, 0, bytesRead);

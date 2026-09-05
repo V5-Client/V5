@@ -1,4 +1,4 @@
-import { BufferedInputStream, FileOutputStream, URL } from './Constants';
+import { BufferedInputStream, FileOutputStream, JavaArray, JavaByte, URL } from './Constants';
 import { finiteNumber } from './Math';
 
 const DEFAULT_DOWNLOAD_BUFFER_SIZE = 8192;
@@ -51,7 +51,7 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
         output = new FileOutputStream(resolveDestinationPath(destinationFile));
 
         const normalizedBufferSize = resolveBufferSize(bufferSize);
-        const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, normalizedBufferSize);
+        const data = JavaArray.newInstance(JavaByte.TYPE, normalizedBufferSize);
         let total = 0;
         let count;
         let lastReported = -1;

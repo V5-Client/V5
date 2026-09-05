@@ -42,7 +42,7 @@ function canSaveRoute(fileName) {
  * @returns all files in that directory
  */
 export function getFilesInDir(folder) {
-    let mcDir = new File(Client.getMinecraft().gameDirectory);
+    const mcDir = Client.getMinecraft().gameDirectory;
     let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 
     if (!configPath.exists() || !configPath.isDirectory()) {
@@ -72,7 +72,7 @@ export function getFileFromCallback(callback) {
 /**
  * Receives a file from the config directory and gets the files data.
  * @param {*} dir the directory of the file
- * @param {*} file the files name
+ * @param {*} file the file name
  * @returns the data in the file or null if no file
  */
 export function loadRouteFromFile(dir, file) {
@@ -83,8 +83,8 @@ export function loadRouteFromFile(dir, file) {
 
 /**
  * Saves data to a file in the config directory.
- * @param {*} dir the directory of the file
- * @param {*} file the files name
+ * @param {*} fileName the route file path
+ * @param {*} routeData the route data
  */
 export function saveRouteToFile(fileName, routeData) {
     if (!canSaveRoute(fileName)) {

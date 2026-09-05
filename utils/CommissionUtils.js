@@ -5,7 +5,17 @@ import { clickSlot, findItemInHotbar, getGuiName, setItemSlot } from './player/I
 import { Rotations } from './player/Rotations';
 
 export class CommissionClaimer {
-    constructor({ getLocations, ensureToolEquipped, isClaiming, delay, onClaimsExhausted, onPathStart, onPathFailed, canInteract, getTravelMode }) {
+    constructor({
+        getLocations,
+        ensureToolEquipped,
+        isClaiming,
+        delay,
+        onClaimsExhausted,
+        onPathStart = null,
+        onPathFailed = null,
+        canInteract = null,
+        getTravelMode = null,
+    }) {
         this.getLocations = getLocations;
         this.ensureToolEquipped = ensureToolEquipped;
         this.isClaiming = isClaiming;

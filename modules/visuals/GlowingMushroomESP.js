@@ -1,8 +1,8 @@
-import { Vec3d } from '../../utils/Constants';
+import { ParticleTypes, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
 
-const ENTITY_EFFECT = net.minecraft.core.particles.ParticleTypes.ENTITY_EFFECT;
+const ENTITY_EFFECT = ParticleTypes.ENTITY_EFFECT;
 const MUSHROOM_IDS = new Set(['minecraft:red_mushroom', 'minecraft:brown_mushroom']);
 
 class GlowingMushroomESP extends ModuleBase {

@@ -1,13 +1,10 @@
 import { drawRect, drawText } from '../gui/Utils';
 import { chatFailsafe } from '../utils/Chat';
-import { File, globalAssetsDir } from '../utils/Constants';
+import { AudioSystem, File, FloatControl, GLFW, globalAssetsDir } from '../utils/Constants';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
 
 let failsafeSound = 'Tave Check.wav';
-
-const AudioSystem = javax.sound.sampled.AudioSystem;
-const FloatControl = javax.sound.sampled.FloatControl;
 
 // todo
 // touchen up colours rn they ugly
@@ -229,7 +226,6 @@ class AlertUtilsClass {
      */
     _grabWindowOnFailsafe() {
         try {
-            const GLFW = org.lwjgl.glfw.GLFW;
             const windowHandle = Client.getMinecraft().getWindow().handle();
 
             const wasIconified = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_ICONIFIED) === GLFW.GLFW_TRUE;

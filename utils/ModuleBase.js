@@ -5,9 +5,9 @@ import { chat } from './Chat';
 import { getModule, isMacroRunning, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
+import { InputConstants } from './Constants';
 import { getConfigFile, writeConfigFile } from './Utils';
 
-const InputConstants = com.mojang.blaze3d.platform.InputConstants;
 const KeyMapping = net.minecraft.client.KeyMapping;
 
 export class ModuleBase {
@@ -155,7 +155,7 @@ export class ModuleBase {
 
             if (this.isMacro) {
                 Client.setMacroEnabled(true);
-                onModuleEnabled(this.name, toggleContext);
+                onModuleEnabled(this.name);
             }
 
             if (this.oid && !this.isParentManaged) {
@@ -270,7 +270,7 @@ export class ModuleBase {
         }
 
         if (this.enabled && this.isParentManaged) {
-            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
+            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', 5000);
             return false;
         }
 

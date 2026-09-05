@@ -73,7 +73,7 @@ const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue = fals
         iters++;
 
         // Check current block
-        const currentBlock = World.getBlockAt(...currentPos);
+        const currentBlock = World.getBlockAt(currentPos[0], currentPos[1], currentPos[2]);
         if (!currentBlock || !currentBlock.type) {
             return returnWhenTrue ? null : path;
         }

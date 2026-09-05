@@ -59,7 +59,8 @@ class PhilipMacro {
     find() {
         return World.getAllPlayers().find((player) => {
             try {
-                return player.toMC().getSkin().body().texturePath().toString() === SKIN_ID;
+                const mcPlayer = player.toMC();
+                return mcPlayer instanceof net.minecraft.client.player.AbstractClientPlayer && mcPlayer.getSkin().body().texturePath().toString() === SKIN_ID;
             } catch (e) {
                 return false;
             }

@@ -126,7 +126,7 @@ export function getMusicOverlayBounds(scale, songName) {
     };
 }
 
-export function drawMusicOverlay({ overlay, songName, currentTime, totalTime, progress = 0, titleColor = THEME.TEXT_MUTED, drawArtwork }) {
+export function drawMusicOverlay({ overlay, songName, currentTime, totalTime, progress = 0, titleColor = THEME.TEXT_MUTED, drawArtwork = null }) {
     const scale = overlay.scale;
     const padding = 12 * scale;
     const imageSize = 55 * scale;

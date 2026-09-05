@@ -4,7 +4,7 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { getPestCooldown, getTabListNames, stripTabFormatting } from '../../utils/TabListUtils';
 import { regrab, ungrab } from '../../utils/Ungrab';
-import { getConfigFile, getGardenPestStatus, writeConfigFile } from '../../utils/Utils';
+import { getConfigFile, getGardenPestStatus, randomInt, writeConfigFile } from '../../utils/Utils';
 import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
 import { farmingDelays } from './FarmingDelays';
@@ -26,6 +26,13 @@ const RESTORING_PEST = 'Restoring Pest';
 const REWARPING = 'Rewarping';
 
 export class FarmingMacro extends ModuleBase {
+    state = null;
+    lastDirection = null;
+    yaw = 0;
+    leftYaw = 0;
+    laneChanging = false;
+    ignoreTicks = 0;
+
     constructor(options, commandPrefix) {
         super({ subcategory: 'Farming', isMacro: true, ...options, autoDisableOnWorldUnload: true });
 
@@ -166,6 +173,10 @@ export class FarmingMacro extends ModuleBase {
         }
         this.invokeFarmState();
     }
+
+    onFarmStart(player) {}
+    updateFarmState(player) {}
+    invokeFarmState() {}
 
     trySprayonator() {
         const now = Date.now();

@@ -113,7 +113,13 @@ class GemstoneMacro extends ModuleBase {
                     const pos = new Vec3d(current.x, current.y, current.z);
 
                     Render3D.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    Render3D.drawStyledBox(pos, new RenderColor(...amethyst, 80), new RenderColor(...amethyst, 255), 2, false);
+                    Render3D.drawStyledBox(
+                        pos,
+                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 80),
+                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
+                        2,
+                        false
+                    );
 
                     const nextIndex = (i + 1) % this.route.length;
 
@@ -123,7 +129,7 @@ class GemstoneMacro extends ModuleBase {
                             Render3D.drawLine(
                                 new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
                                 new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
-                                new RenderColor(...amethyst, 255),
+                                new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
                                 2
                             );
                         }
@@ -200,8 +206,6 @@ class GemstoneMacro extends ModuleBase {
                         this.attemptedEtherwarp = false;
                         this.etherwarpTicks = 0;
                         this.closestPointIndex = (this.closestPointIndex + 1) % this.route.length;
-                        MiningBot.equipDrill = false;
-
                         this.state = this.STATES.MINING;
                         return;
                     }
@@ -210,7 +214,7 @@ class GemstoneMacro extends ModuleBase {
                         setItemSlot(aotv);
                         Client.setKey('shift', true);
                         const player = Player.getPlayer();
-                        if (!player?.isSneaking()) return;
+                        if (!Player.isSneaking()) return;
 
                         Rotations.lookAtVector(this.closestPoint, { speedMultiplier: 1 });
                         Rotations.onComplete(() => {
@@ -426,7 +430,7 @@ class GemstoneMacro extends ModuleBase {
             dz = targetVec.z - eye.z();
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
-        Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, Number.parseFloat(yaw), Number.parseFloat(pitch)));
+        Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
     }
 
     onEnable() {

@@ -19,7 +19,7 @@ const applyRegrab = () => {
     Client.setUngrabbed(false);
     Client.setInputLocked(false);
     const mc = Client.getMinecraft();
-    if (mc.screen != null) return;
+    if (Client.getCurrentScreen() != null) return;
     mc.mouseHandler.grabMouse();
     GLFW.glfwSetInputMode(mc.getWindow().handle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
 };

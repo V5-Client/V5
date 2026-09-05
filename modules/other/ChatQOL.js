@@ -65,7 +65,8 @@ class ChatQOL extends ModuleBase {
                 ChatLib.deleteChat(deleteRegex);
 
                 const newText = event.message.copy().append(McText.literal(` §7(x${this.lastCounter})`));
-                const chatHud = Client.getMinecraft().gui.getChat();
+                const chatHud = Client.getChatGui();
+                if (!chatHud) return;
                 chatHud.addClientSystemMessage(newText);
                 return;
             }

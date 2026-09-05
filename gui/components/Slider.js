@@ -37,8 +37,8 @@ export class Slider {
         this.height = height;
         this.isRange = isRange;
 
-        this.min = Number.parseFloat(min);
-        this.max = Number.parseFloat(max);
+        this.min = Number(min);
+        this.max = Number(max);
         if (Number.isNaN(this.min)) this.min = 0;
         if (Number.isNaN(this.max)) this.max = this.min;
         if (this.max < this.min) {
@@ -49,8 +49,8 @@ export class Slider {
 
         if (this.isRange) {
             const rawRange = value && typeof value === 'object' ? value : { low: this.min, high: value };
-            const parsedLow = Number.parseFloat(rawRange.low);
-            const parsedHigh = Number.parseFloat(rawRange.high);
+            const parsedLow = Number(rawRange.low);
+            const parsedHigh = Number(rawRange.high);
             const safeLow = Number.isNaN(parsedLow) ? this.min : parsedLow;
             const safeHigh = Number.isNaN(parsedHigh) ? this.max : parsedHigh;
             const clampedLow = clamp(safeLow, this.min, this.max);
@@ -60,7 +60,7 @@ export class Slider {
                 high: Math.max(clampedLow, clampedHigh),
             };
         } else {
-            const parsedValue = Number.parseFloat(value);
+            const parsedValue = Number(value);
             this.value = Number.isNaN(parsedValue) ? this.min : clamp(parsedValue, this.min, this.max);
         }
 

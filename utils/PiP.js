@@ -1,5 +1,5 @@
 import { chat } from './Chat';
-import { GLFW } from './Constants';
+import { BufferUtils, GLFW } from './Constants';
 
 let pipWindowState = null;
 export function togglePiP() {
@@ -29,11 +29,11 @@ export function togglePiP() {
     }
 
     const monitor = window.findBestMonitor();
-    const workX = org.lwjgl.BufferUtils.createIntBuffer(1);
-    const workY = org.lwjgl.BufferUtils.createIntBuffer(1);
-    const workWidth = org.lwjgl.BufferUtils.createIntBuffer(1);
-    const workHeight = org.lwjgl.BufferUtils.createIntBuffer(1);
-    GLFW.glfwGetMonitorWorkarea(monitor ? monitor.getMonitor() : GLFW.glfwGetPrimaryMonitor(), workX, workY, workWidth, workHeight);
+    const workX = BufferUtils.createIntBuffer(1);
+    const workY = BufferUtils.createIntBuffer(1);
+    const workWidth = BufferUtils.createIntBuffer(1);
+    const workHeight = BufferUtils.createIntBuffer(1);
+    GLFW.glfwGetMonitorWorkarea(monitor ? monitor.monitor() : GLFW.glfwGetPrimaryMonitor(), workX, workY, workWidth, workHeight);
 
     pipWindowState = {
         x: window.getX(),

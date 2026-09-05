@@ -7,9 +7,8 @@ import { getPingColor, getServerInfo, getTpsColor } from './player/ServerInfo';
 const commandRegistry = new Map();
 let developerModeEnableConfirmationPending = false;
 
-const callCommand = function (name) {
+const callCommand = function (name, ...args) {
     const handler = commandRegistry.get(name)?.handler;
-    let args = Array.prototype.slice.call(arguments, 1);
 
     try {
         if (args.length === 1 && typeof args[0] === 'string') args = args[0].trim().split(/\s+/).filter(Boolean);

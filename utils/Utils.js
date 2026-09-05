@@ -86,7 +86,7 @@ export function convertToVector(input) {
     }
 
     const vector = coordinates?.slice(0, 3);
-    return vector?.every(Number.isFinite) ? new Vec3d(...vector) : null;
+    return vector?.every(Number.isFinite) ? new Vec3d(vector[0], vector[1], vector[2]) : null;
 }
 
 export function playerIsCollided(ignoreBottomSlab = false) {

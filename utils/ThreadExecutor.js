@@ -1,5 +1,7 @@
-const threadNumber = new java.util.concurrent.atomic.AtomicInteger(1);
-const service = java.util.concurrent.Executors.newCachedThreadPool((runnable) => {
+import { AtomicInteger, Executors } from './Constants';
+
+const threadNumber = new AtomicInteger(1);
+const service = Executors.newCachedThreadPool((runnable) => {
     const thread = new java.lang.Thread(runnable);
     thread.setDaemon(true);
     thread.setName(`V5-Executor-${threadNumber.getAndIncrement()}`);

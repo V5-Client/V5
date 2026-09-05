@@ -8,7 +8,7 @@ import FailsafeUtils from '../FailsafeUtils';
 let lastRightClickTime = 0;
 let lastCommandTime = 0;
 let pendingWarpIgnore = false;
-let pendingWarpIgnoreTimer = null;
+let pendingWarpIgnoreGeneration = 0;
 
 const WARP_IGNORE_RADIUS = 3;
 const WARP_IGNORE_RADIUS_SQ = WARP_IGNORE_RADIUS * WARP_IGNORE_RADIUS;
@@ -39,12 +39,12 @@ class TeleportFailsafe extends Failsafe {
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
                 lastCommandTime = Date.now();
-                chatDebug(`warp command used, awaiting warp-point teleport ignore`, false);
+                chatDebug(`warp command used, awaiting warp-point teleport ignore`);
                 pendingWarpIgnore = true;
-                if (pendingWarpIgnoreTimer) clearTimeout(pendingWarpIgnoreTimer);
-                pendingWarpIgnoreTimer = setTimeout(() => {
+                const generation = ++pendingWarpIgnoreGeneration;
+                setTimeout(() => {
+                    if (generation !== pendingWarpIgnoreGeneration) return;
                     pendingWarpIgnore = false;
-                    pendingWarpIgnoreTimer = null;
                 }, WARP_IGNORE_TIMEOUT_MS);
             }
         }).setFilteredClass(ServerboundChatCommandPacket);
@@ -63,10 +63,7 @@ class TeleportFailsafe extends Failsafe {
         if (!isWarpPointTeleport) return false;
 
         pendingWarpIgnore = false;
-        if (pendingWarpIgnoreTimer) {
-            clearTimeout(pendingWarpIgnoreTimer);
-            pendingWarpIgnoreTimer = null;
-        }
+        pendingWarpIgnoreGeneration++;
         return true;
     }
 

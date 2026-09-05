@@ -1,4 +1,5 @@
 import { finiteNumber } from '../Math';
+import { JavaArray, JavaInteger } from '../Constants';
 
 const readPointArray = (values) => {
     const points = [];
@@ -12,7 +13,7 @@ class SwiftIntegration {
     constructor() {
         this.pathManager = PathManager;
         this.cachedResult = null;
-        this.intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
+        this.intArrayClass = JavaArray.newInstance(JavaInteger.TYPE, 0).getClass();
     }
 
     clearResultCache() {
@@ -36,13 +37,13 @@ class SwiftIntegration {
     }
 
     toJavaPointArray(points, isFly) {
-        const javaArray = java.lang.reflect.Array.newInstance(this.intArrayClass, points.length);
+        const javaArray = JavaArray.newInstance(this.intArrayClass, points.length);
 
         for (let i = 0; i < points.length; i++) {
             const parsed = this.toIntPoint(points[i], isFly);
             if (!parsed) return null;
 
-            const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
+            const pointArray = JavaArray.newInstance(JavaInteger.TYPE, 3);
             pointArray[0] = parsed[0];
             pointArray[1] = parsed[1];
             pointArray[2] = parsed[2];

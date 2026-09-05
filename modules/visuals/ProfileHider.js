@@ -33,9 +33,9 @@ class ProfileHider extends ModuleBase {
                 try {
                     const hexStr = rawCustomInput.substring(1, 7);
                     const nameText = rawCustomInput.substring(7);
-                    const colorInt = java.lang.Integer.parseInt(hexStr, 16);
+                    const colorInt = Number.parseInt(hexStr, 16);
 
-                    return Text.literal(nameText).styled((s) => s.withColor(colorInt));
+                    return Text.literal(nameText).withStyle((s) => s.withColor(colorInt));
                 } catch (e) {
                     console.error(e);
                     return Text.literal(rawCustomInput);
@@ -79,7 +79,7 @@ class ProfileHider extends ModuleBase {
             const hue = (Date.now() % speed) / speed + (i * offset) / (speed * 2);
             const hexColor = java.awt.Color.getHSBColor(hue % 1, 0.8, 1.0).getRGB() & 0xffffff;
 
-            mutableText.append(Text.literal(text[i]).styled((s) => s.withColor(hexColor).withBold(true)));
+            mutableText.append(Text.literal(text[i]).withStyle((s) => s.withColor(hexColor).withBold(true)));
         }
         return mutableText;
     }

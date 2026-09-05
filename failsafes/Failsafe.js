@@ -5,7 +5,7 @@ export class Failsafe {
     registered = false;
     disabled = false;
     _disabledUntil = 0;
-    _disabledTimer = null;
+    _disabledGeneration = 0;
 
     constructor() {
         this._registerListeners();
@@ -18,10 +18,7 @@ export class Failsafe {
     reset() {
         this.disabled = false;
         this._disabledUntil = 0;
-        if (this._disabledTimer) {
-            clearTimeout(this._disabledTimer);
-            this._disabledTimer = null;
-        }
+        this._disabledGeneration++;
     }
 
     _setDisabled(durationMs) {
@@ -33,12 +30,11 @@ export class Failsafe {
         this._disabledUntil = end;
         this.disabled = true;
 
-        if (this._disabledTimer) clearTimeout(this._disabledTimer);
-
-        this._disabledTimer = setTimeout(() => {
+        const generation = ++this._disabledGeneration;
+        setTimeout(() => {
+            if (generation !== this._disabledGeneration) return;
             if (Date.now() >= this._disabledUntil) {
                 this.disabled = false;
-                this._disabledTimer = null;
             }
         }, durationMs);
     }

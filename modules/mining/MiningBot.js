@@ -653,7 +653,7 @@ class Bot extends ModuleBase {
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().swinging}`
             );
         }
 
@@ -672,7 +672,7 @@ class Bot extends ModuleBase {
 
             Client.setKey('leftclick', false);
             this._pendingAbilityActivation = true;
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().swinging})`);
             return;
         }
 

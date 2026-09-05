@@ -42,7 +42,7 @@ class RotationFailsafe extends Failsafe {
 
             // todo: this isnt what a null rotation packet is, which retard made these failsafes?
             if (yawDiff === 0 && pitchDiff === 0) {
-                chatDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
+                chatDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)');
                 return;
             }
 

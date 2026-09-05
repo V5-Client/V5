@@ -51,7 +51,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.on('tick', () => this.tick());
         this.on('actionBar', (text) => {
             if (!this.enabled || this.rewarping || !ChatLib.removeFormatting(text).includes('NOT ENOUGH MANA')) return;
-            this.rewarp('Not enough mana.');
+            this.rewarp();
         }).setCriteria('${text}');
         this.on('worldUnload', () => this.onWorldUnload());
     }

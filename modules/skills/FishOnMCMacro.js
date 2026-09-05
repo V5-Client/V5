@@ -357,10 +357,11 @@ class FishOnMCMacro extends ModuleBase {
 
     hasFishingHook() {
         return World.getAllEntities().some((entity) => {
-            if (entity.getClassName() !== 'FishingHook') return false;
+            const hook = entity.toMC();
+            if (!(hook instanceof net.minecraft.world.entity.projectile.FishingHook)) return false;
 
-            const name = entity.toMC().getPlayerOwner()?.getName?.();
-            return String(name?.getString?.() ?? name) === Player.getName();
+            const name = hook.getPlayerOwner()?.getName?.();
+            return String(name?.getString?.(256) ?? name) === Player.getName();
         });
     }
 }

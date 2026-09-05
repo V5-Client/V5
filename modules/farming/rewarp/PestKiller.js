@@ -7,8 +7,9 @@ import { farmingSettings } from '../FarmingSettings';
 import { angleToPlayer } from '../../../utils/Math';
 import { getGardenPestStatus } from '../../../utils/Utils';
 import { registerSkyblockEvent } from '../../../utils/SkyblockEvents';
+import { ParticleTypes } from '../../../utils/Constants';
 
-const ANGRY_VILLAGER = net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER;
+const ANGRY_VILLAGER = ParticleTypes.ANGRY_VILLAGER;
 const PEST_RANGE_SQ = 12.5 ** 2;
 const PEST_ANGLE = 45;
 const PARTICLE_SEARCH_MS = 1_000;

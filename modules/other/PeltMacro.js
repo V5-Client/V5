@@ -222,7 +222,7 @@ class PeltMacro extends ModuleBase {
         this.syncMobJumpHold(this.enabled && this.shouldHoldMobJump());
         if (!this.enabled || !areaName) return;
         if (areaName != 'The Farming Islands') {
-            this.restartTrevorHunt(areaName);
+            this.restartTrevorHunt();
             return;
         }
         if (this.consumePendingTrevorTarget()) return;
@@ -366,7 +366,7 @@ class PeltMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return null;
         try {
-            const ep = player.getEyePos?.();
+            const ep = player.getEyePosition?.();
             if (ep) {
                 const ex = Number(ep.x());
                 const ey = Number(ep.y());
@@ -647,8 +647,8 @@ class PeltMacro extends ModuleBase {
 
             applyToPlayer(direction.yaw, direction.pitch);
 
-            const yaw = Number.parseFloat(Player.getYaw());
-            const pitch = Number.parseFloat(Player.getPitch());
+            const yaw = Player.getYaw();
+            const pitch = Player.getPitch();
             if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return;
 
             Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));

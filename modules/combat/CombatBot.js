@@ -1,4 +1,4 @@
-import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+import { ArmorStandEntity, DataComponents, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
 import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -520,7 +520,7 @@ class Combat extends ModuleBase {
                 const uuid = entity.getUUID();
                 if (whitelist?.has(uuid)) return false;
                 if (names && !names.some((candidate) => this.getCleanEntityName(entity).includes(candidate))) return false;
-                if (entity.isSpectator?.() || entity.isInvisible?.() || entity.isDead?.()) return false;
+                if (entity.toMC().isSpectator() || entity.isInvisible?.() || entity.isDead?.()) return false;
                 if (config.boundaryCheck && !config.boundaryCheck(entity.getX(), entity.getY(), entity.getZ())) return false;
 
                 return this.isVisibleOrRecent(entity, config.checkVisibility);
@@ -605,7 +605,7 @@ class Combat extends ModuleBase {
     isBlackholeHead(item) {
         try {
             const stack = item?.toMC ? item.toMC() : item;
-            const profile = stack?.get(net.minecraft.core.component.DataComponents.PROFILE)?.partialProfile?.()?.toString() || '';
+            const profile = stack?.get(DataComponents.PROFILE)?.partialProfile?.()?.toString() || '';
             if (!profile) return false;
 
             for (const texture of BLACKHOLE_TEXTURES) {

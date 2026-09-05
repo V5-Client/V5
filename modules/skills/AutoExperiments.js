@@ -90,7 +90,7 @@ class AutoExperiments extends ModuleBase {
         const container = Player.getContainer();
         if (!container) return;
 
-        const containerName = ChatLib.removeFormatting(container.getName());
+        const containerName = ChatLib.removeFormatting(String(container.getName()));
         if (!containerName) return;
 
         this.detectState(containerName);

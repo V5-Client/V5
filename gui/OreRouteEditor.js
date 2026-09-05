@@ -166,8 +166,8 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
     scrollY = clamp(scrollY, 0, Math.max(0, contentHeight - rect.height));
     layout.list = rect;
 
-    NVG.save();
-    NVG.scissor(rect.x, rect.y, rect.width, rect.height);
+    Render2D.save();
+    Render2D.scissor(rect.x, rect.y, rect.width, rect.height);
     let y = rect.y - scrollY;
     waypoints.forEach((waypoint, index) => {
         const height = waypointHeight(waypoint, index);
@@ -215,7 +215,7 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
         }
         y += height + 4;
     });
-    NVG.restore();
+    Render2D.restore();
 
     if (!waypoints.length) drawText('Add a Tp or Walk waypoint to begin.', rect.x + 12, rect.y + 18, FontSizes.REGULAR, THEME.TEXT_MUTED);
 };
@@ -342,8 +342,8 @@ const drawRouteMenu = (mouseX, mouseY, anchor) => {
 };
 
 const drawEditor = (mouseX, mouseY) => {
-    const screenWidth = Renderer.screen.getWidth();
-    const screenHeight = Renderer.screen.getHeight();
+    const screenWidth = Render2D.screen.getWidth();
+    const screenHeight = Render2D.screen.getHeight();
     const panel = {
         width: Math.min(820, screenWidth - 20),
         height: Math.min(500, screenHeight - 20),
@@ -499,15 +499,12 @@ register('guiKey', (char, keyCode, gui, event) => {
     cancel(event);
 });
 
-NVG.registerV5Render(() => {
+Render2D.registerV5Render(() => {
     if (!routeEditorGui.isOpen()) return;
     try {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         drawEditor(Client.getMouseX(), Client.getMouseY());
     } catch (error) {
         console.error('[Ore Route Editor] Render error:', error);
-    } finally {
-        NVG.endFrame();
     }
 });
 

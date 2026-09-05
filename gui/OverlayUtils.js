@@ -64,6 +64,8 @@ class OverlayUtils {
 
         this.editorOrder = ['default', 'scheduler', 'hudInventory', 'hudStats', 'music'];
         this.editorBoxes = {};
+        this.exampleOverlay = null;
+        this.schedulerExampleOverlay = null;
         this.lastClickTarget = null;
         this.lastClickAt = 0;
 
@@ -937,7 +939,7 @@ class OverlayUtils {
         const lines = getStatsHudLines();
         const overlay = {
             ...this.hudSettings.stats,
-            ...getStatsHudBounds(this.hudSettings.stats.scale, lines),
+            ...getStatsHudBounds(this.hudSettings.stats.scale),
         };
         Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale));
         Object.assign(overlay, this.hudSettings.stats);

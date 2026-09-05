@@ -43,9 +43,9 @@ const getCategorySelectionRect = (name) => {
         return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
     }
     if (name === 'Edit') return { ...getEditButtonRect(), radius: 8 };
-    if (name === 'Changelog') return getVersionButtonRect();
+    if (name === 'Changelog') return { ...getVersionButtonRect(), radius: 8 };
     const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
-    if (visibleIndex === -1) return getEditButtonRect();
+    if (visibleIndex === -1) return { ...getEditButtonRect(), radius: 8 };
     const rect = getCategoryRect(visibleIndex);
     return { ...rect, radius: 8 };
 };
