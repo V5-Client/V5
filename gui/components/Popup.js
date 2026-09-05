@@ -8,16 +8,20 @@ import {
     easeInBack,
     easeOutBack,
     FontSizes,
+    getTextWidth,
     isInside,
+    PADDING,
     playClickSound,
     THEME,
 } from '../Utils';
 import { Button } from './Button';
 import { getComponentLayoutHeight } from './layout';
 import { GuiState } from '../core/GuiState';
+import { setTooltip } from '../core/GuiTooltip';
 
 const CLOSE_TEXT = '×';
 const ANIMATION_DURATION = 350;
+const CONTENT_INDENT = 4;
 
 export class Popup {
     constructor(title, x, y, openText = 'Open', closeText = 'Close', callback = null) {
@@ -41,16 +45,17 @@ export class Popup {
         this.components = [];
         this.contentScrollY = 0;
 
-        this.windowPadding = 20;
-        this.headerHeight = 44;
-        this.closeSize = 24;
+        this.windowPadding = 12;
+        this.headerHeight = 36;
+        this.closeSize = 20;
         this.windowRect = {};
         this.closeRect = {};
 
-        this.button = new Button(title, x, y, openText, () => this.toggleOpen(undefined, false));
+        this.button = new Button(title, x, y, openText, () => this.toggleOpen(undefined, false), { showContainer: false });
     }
 
-    addComponent(component) {
+    addComponent(component, description) {
+        if (description !== undefined) component.description = description;
         this.components.push(component);
         return component;
     }
@@ -84,7 +89,7 @@ export class Popup {
         this.components.forEach((component) => {
             height += getComponentLayoutHeight(component);
         });
-        height += 10;
+        height += 4;
         return height;
     }
 
@@ -120,12 +125,24 @@ export class Popup {
     }
 
     drawButton(mouseX, mouseY) {
+        const panelWidth = this.optionPanelWidth - PADDING * 2;
+        const buttonWidth = Math.max(64, getTextWidth(this.button.buttonText, FontSizes.REGULAR) + 20);
+
         this.button.x = this.x;
         this.button.y = this.y;
+        this.button.drawHighlight(panelWidth, this.containerHeight);
+        drawText(this.title, this.x, this.y + this.containerHeight / 2, FontSizes.REGULAR, THEME.TEXT);
+
+        this.button.x = this.x + panelWidth - buttonWidth;
+        this.button.y = this.y + (this.containerHeight - 18) / 2;
         this.button.optionPanelWidth = this.optionPanelWidth;
         this.button.optionPanelHeight = this.optionPanelHeight;
-        this.button.description = this.description;
+        this.button.description = null;
         this.button.draw(mouseX, mouseY);
+
+        if (this.description && isInside(mouseX, mouseY, { x: this.x, y: this.y, width: panelWidth, height: this.containerHeight })) {
+            setTooltip(this.description);
+        }
     }
 
     drawOverlay(mouseX, mouseY) {
@@ -195,8 +212,8 @@ export class Popup {
             color: THEME.BORDER,
         });
 
-        const titleX = windowRect.x + this.windowPadding + 4;
-        const titleY = windowRect.y + this.headerHeight / 2 + 3;
+        const titleX = windowRect.x + this.windowPadding;
+        const titleY = windowRect.y + this.headerHeight / 2;
         drawText(this.title, titleX, titleY, FontSizes.HEADER, THEME.TEXT);
 
         const closeX = windowRect.x + windowRect.width - this.windowPadding - this.closeSize;
@@ -219,9 +236,9 @@ export class Popup {
         const closeTextY = closeY + this.closeSize / 2;
         drawText(CLOSE_TEXT, closeX + this.closeSize / 2, closeTextY, FontSizes.LARGE, THEME.TEXT, 18);
 
-        const contentX = windowRect.x + this.windowPadding;
+        const contentX = windowRect.x + this.windowPadding + CONTENT_INDENT;
         const contentY = windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
-        const contentWidth = windowRect.width - this.windowPadding * 2;
+        const contentWidth = windowRect.width - (this.windowPadding + CONTENT_INDENT) * 2;
         const contentHeight = windowRect.height - this.headerHeight - this.windowPadding * 2;
         const visibleTop = windowRect.y + this.headerHeight;
         const visibleBottom = windowRect.y + windowRect.height - this.windowPadding;
@@ -302,7 +319,7 @@ export class Popup {
 
             component.x = contentX;
             component.y = currentY;
-            component.optionPanelWidth = contentWidth + this.windowPadding * 2;
+            component.optionPanelWidth = contentWidth + PADDING * 2;
             component.optionPanelHeight = contentHeight;
             component.draw(mouseX, mouseY);
 
@@ -331,9 +348,9 @@ export class Popup {
             return true;
         }
 
-        const contentX = this.windowRect.x + this.windowPadding;
+        const contentX = this.windowRect.x + this.windowPadding + CONTENT_INDENT;
         const contentY = this.windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
-        const contentWidth = this.windowRect.width - this.windowPadding * 2;
+        const contentWidth = this.windowRect.width - (this.windowPadding + CONTENT_INDENT) * 2;
 
         if (mouseY < this.windowRect.y + this.headerHeight) return true;
 
@@ -390,7 +407,7 @@ export class Popup {
                 if (isInside(mouseX, mouseY, clickableArea)) {
                     component.x = contentX;
                     component.y = currentY;
-                    component.optionPanelWidth = contentWidth + this.windowPadding * 2;
+                    component.optionPanelWidth = contentWidth + PADDING * 2;
                     component.optionPanelHeight = this.windowRect.height;
 
                     if (component.handleClick(mouseX, mouseY)) return true;
@@ -419,9 +436,9 @@ export class Popup {
     handleMouseDrag(mouseX, mouseY) {
         if (this.animationState !== 'open') return false;
 
-        const contentX = this.windowRect.x + this.windowPadding;
+        const contentX = this.windowRect.x + this.windowPadding + CONTENT_INDENT;
         const contentY = this.windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
-        const contentWidth = this.windowRect.width - this.windowPadding * 2;
+        const contentWidth = this.windowRect.width - (this.windowPadding + CONTENT_INDENT) * 2;
 
         let currentY = contentY;
         if (this.statusText) currentY += 20;
@@ -439,7 +456,7 @@ export class Popup {
 
             component.x = contentX;
             component.y = currentY;
-            component.optionPanelWidth = contentWidth + this.windowPadding * 2;
+            component.optionPanelWidth = contentWidth + PADDING * 2;
 
             currentY += getComponentLayoutHeight(component);
 
