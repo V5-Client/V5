@@ -43,7 +43,8 @@ class RewarpHandler {
         const runPhilip = rewarpSettings.shouldRunPhilipBonus();
         this.tasks = runVisitor ? [autoSell, visitorMacro] : [];
         if (runPhilip) this.tasks.push(philipMacro);
-        const hasBarnTasks = this.tasks.length > 0;
+        const hasBarnTasks = runVisitor || (runPhilip && rewarpSettings.philipContactMethod === 'Pathfind');
+        this.resumeAfterTasks = rewarpSettings.looping && !hasBarnTasks && !runPestKiller;
         if (runPestKiller) this.tasks.push(pestKiller, autoSell);
         this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
         this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + farmingDelays.random('rewarp');
@@ -88,7 +89,10 @@ class RewarpHandler {
                     break;
                 }
             }
-            if (!this.task) this.phase = this.runPestKiller && !rewarpSettings.looping ? PHASES.RETURNING : PHASES.REWARP;
+            if (!this.task) {
+                if (this.resumeAfterTasks) return this.macro.finishRewarp(Player.getPlayer());
+                this.phase = this.runPestKiller && !rewarpSettings.looping ? PHASES.RETURNING : PHASES.REWARP;
+            }
         }
 
         if (this.phase === PHASES.RUNNING && this.task.tick()) this.phase = PHASES.DECIDING;

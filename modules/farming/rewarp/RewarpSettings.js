@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../../utils/ModuleBase';
 import { Slider } from '../../../gui/components/Slider';
 import { ToggleButton } from '../../../gui/components/Toggle';
+import { MultiToggle } from '../../../gui/components/Dropdown';
 import { stripItemFormatting } from '../../../utils/player/Inventory';
 import { findTabListIndex, getTabListNames, readVisitors } from '../../../utils/TabListUtils';
 
@@ -21,6 +22,7 @@ class RewarpSettings extends ModuleBase {
         this.maxVisitorPrice = 500_000;
         this.declinePurchaseFailures = false;
         this.autoPhilipBonus = false;
+        this.philipContactMethod = '/call (recommended)';
         this.pestKiller = false;
         this.pestThreshold = 5;
 
@@ -71,6 +73,18 @@ class RewarpSettings extends ModuleBase {
         philipPopup.addComponent(
             new ToggleButton('Auto Philip Bonus', 0, 0, undefined, undefined, (value) => (this.autoPhilipBonus = !!value), this.autoPhilipBonus),
             'Empties a vacuum bag with Philip when Buzzing Bonus is inactive and it holds 40 or more pests.'
+        );
+        philipPopup.addComponent(
+            new MultiToggle(
+                'Contact Method',
+                0,
+                0,
+                ['Pathfind', 'Abiphone', '/call (recommended)'],
+                true,
+                (options) => (this.philipContactMethod = options.find((option) => option.enabled)?.name || '/call (recommended)'),
+                this.philipContactMethod
+            ),
+            'How to contact Philip. Abiphone requires one in the hotbar.'
         );
 
         const pestPopup = this.addPopup('Pest Killer Settings', null, 'Configure when Pest Killer runs.');
