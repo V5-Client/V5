@@ -152,7 +152,7 @@ export class FarmingMacro extends ModuleBase {
             return this.beginRewarp(this.points.start, rewarpSettings.pestKiller && getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold);
         }
         if (looping && this.shouldRunBarnTasks()) {
-            ChatLib.command('sethome');
+            if (rewarpSettings.shouldRunVisitorMacro() || rewarpSettings.philipContactMethod === 'Pathfind') ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
         }
 

@@ -1,13 +1,17 @@
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
-import { clickItem, closeInventory } from '../../../utils/player/Inventory';
+import { chat } from '../../../utils/Chat';
+import { clickItem, closeInventory, findItemInHotbar, getGuiName, setItemSlot } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
 import { farmingDelays } from '../FarmingDelays';
+import { rewarpSettings } from './RewarpSettings';
 
 const STATES = {
     SEEKING: 'Seeking Philip',
     PATHING: 'Pathing to Philip',
     APPROACHING: 'Approaching Philip',
+    USING_ABIPHONE: 'Using Abiphone',
+    SELECTING_PHILIP: 'Selecting Philip',
     OPENING: 'Opening Philip',
     EMPTYING: 'Emptying vacuum',
 };
@@ -26,18 +30,30 @@ class PhilipMacro {
     start() {
         this.running = true;
         this.startedAt = Date.now();
-        this.transition(STATES.SEEKING);
+        this.method = rewarpSettings.philipContactMethod;
+
+        if (this.method === 'Pathfind') return this.transition(STATES.SEEKING);
+        if (this.method === 'Abiphone') {
+            const slot = findItemInHotbar('Abiphone');
+            if (slot === -1) {
+                chat('&cAbiphone not found in hotbar!');
+                this.stop();
+                return false;
+            }
+            setItemSlot(slot);
+            return this.transition(STATES.USING_ABIPHONE, 250);
+        }
+
+        ChatLib.command('call Philip');
+        this.transition(STATES.OPENING, 2500);
     }
 
     tick() {
         if (!this.running) return true;
         if (Date.now() - this.startedAt >= TIMEOUT_MS) return this.stop();
         if (this.state === STATES.OPENING) {
-            if (Client.isInGui()) {
-                this.transition(STATES.EMPTYING);
-            } else if (Date.now() >= this.nextActionAt) {
-                this.transition(STATES.SEEKING);
-            }
+            if (Client.isInGui() && clickItem('Empty Vacuum Bag', false, 'LEFT')) return this.finish();
+            if (Date.now() >= this.nextActionAt) this.retry();
             return;
         }
         if (Date.now() < this.nextActionAt) return;
@@ -50,8 +66,15 @@ class PhilipMacro {
             case STATES.APPROACHING:
                 this.approach();
                 break;
+            case STATES.USING_ABIPHONE:
+                Client.rightClick();
+                this.transition(STATES.SELECTING_PHILIP, 2500);
+                break;
+            case STATES.SELECTING_PHILIP:
+                if (getGuiName()?.includes('Abiphone') && clickItem('Philip', false, 'LEFT')) this.transition(STATES.OPENING, 2500);
+                else if (Date.now() >= this.nextActionAt) this.retry();
+                break;
             case STATES.EMPTYING:
-                this.emptyVacuum();
                 break;
         }
     }
@@ -111,10 +134,8 @@ class PhilipMacro {
         });
     }
 
-    emptyVacuum() {
-        if (!Client.isInGui() || !clickItem('Empty Vacuum Bag', false, 'LEFT')) return this.retry();
-
-        this.nextActionAt = Infinity;
+    finish() {
+        this.transition(STATES.EMPTYING, Infinity);
         ScheduleTask(1, () => {
             if (!this.running || this.state !== STATES.EMPTYING) return;
             closeInventory();
@@ -129,7 +150,11 @@ class PhilipMacro {
 
     retry() {
         Client.stopMovement();
-        this.transition(STATES.SEEKING, farmingDelays.random('visitorRetry'));
+        if (Client.isInGui()) closeInventory();
+        if (this.method === 'Pathfind') return this.transition(STATES.SEEKING, farmingDelays.random('visitorRetry'));
+        if (this.method === 'Abiphone') return this.transition(STATES.USING_ABIPHONE, farmingDelays.random('visitorRetry'));
+        ChatLib.command('call Philip');
+        this.transition(STATES.OPENING, 2500);
     }
 
     stop() {
