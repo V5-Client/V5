@@ -70,7 +70,7 @@ export const getDiscordPfpRect = () => {
     const pfpSize = 20;
     return {
         x: leftPanel.x + (leftPanel.width - pfpSize) / 2,
-        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2 - 2,
+        y: leftPanel.y + leftPanel.height - pfpSize - PADDING * 2 - 7,
         width: pfpSize,
         height: pfpSize,
     };
@@ -537,6 +537,9 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     const discordPfpPath = getDiscordPfpPath();
     if (discordPfpPath) {
         drawCircularImage(discordPfpPath, pfpRect.x, pfpRect.y, pfpRect.width);
+    } else {
+        drawRoundedRectangle({ ...pfpRect, radius: pfpRect.width / 2, color: THEME.NOTIF_ERROR });
+        drawText('!', pfpRect.x + pfpRect.width / 2, pfpRect.y + pfpRect.height / 2, FontSizes.HEADER, THEME.TEXT, 18);
     }
     const versionRect = getVersionButtonRect();
     drawCenteredText(
