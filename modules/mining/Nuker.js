@@ -1,11 +1,15 @@
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Constants';
+import { offsetPitch } from '../../utils/Math';
+import { hasMaxGreatExplorer } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { nukeQueue, queueNuke } from '../../utils/NukerUtils';
-import { ServerboundUseItemOnPacket } from '../../utils/Packets';
+import { ClientboundLevelParticlesPacket, ServerboundUseItemOnPacket } from '../../utils/Packets';
+import { Rotations } from '../../utils/player/Rotations';
 import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 import { executeAsync } from '../../utils/ThreadExecutor';
 import { getPickaxeAbilityStatus, stripTabFormatting } from '../../utils/TabListUtils';
 import { v5Command } from '../../utils/V5Commands';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -25,7 +29,12 @@ class NukerClass extends ModuleBase {
         this.tickCounter = 0;
         this.minedBlocks = new Map();
         this.chestClickCooldowns = new Map();
+        this.ignoredChests = new Set();
         this.chestClickedThisTick = false;
+        this.solvingChest = null;
+        this.blockFilter = null;
+        this.chestFilter = null;
+        this.chestWalkDistance = 0;
 
         this.BLOCK_COOLDOWN = 20;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
@@ -90,12 +99,37 @@ class NukerClass extends ModuleBase {
 
         this.on('tick', () => {
             this.tickCounter++;
+            this.chestClickedThisTick = false;
+            if (this.solvingChest) {
+                const chest = this.solvingChest;
+                if (this.chestFilter && !this.chestFilter(chest)) {
+                    this.ignoreChest(chest.key);
+                    this.finishChest();
+                } else if (!this.autoChest || !this.isChestBlock(World.getBlockAt(chest.x, chest.y, chest.z))) {
+                    this.finishChest();
+                } else if (Date.now() - chest.startedAt > 10000) {
+                    if (!hasMaxGreatExplorer()) this.ignoreChest(chest.key);
+                    this.finishChest();
+                } else if (Date.now() - chest.lastParticle > 4000) {
+                    this.finishChest();
+                } else {
+                    if (
+                        this.chestWalkDistance
+                            ? Math.hypot(chest.x + 0.5 - Player.getX(), chest.z + 0.5 - Player.getZ()) <= this.chestWalkDistance
+                            : hasMaxGreatExplorer()
+                    )
+                        Client.stopMovement();
+                    else setKeysForStraightLineCoords(chest.x + 0.5, Player.getY(), chest.z + 0.5, false);
+                    if (Client.isInGui()) Rotations.stop();
+                    else Rotations.lookAtVector(chest.particle);
+                    return;
+                }
+            }
 
             const now = Date.now();
             for (const [posStr, clickedAt] of this.chestClickCooldowns) {
-                if (now - clickedAt >= 1000) this.chestClickCooldowns.delete(posStr);
+                if (now - clickedAt >= 2000 && this.solvingChest?.key !== posStr) this.chestClickCooldowns.delete(posStr);
             }
-
             if (this.customBlockList.length === 0) {
                 this.message('Try setting targets with /v5 commands:');
                 this.message('- /v5 nuker add - adds block at crosshair');
@@ -113,7 +147,6 @@ class NukerClass extends ModuleBase {
             if (this.tickCounter - this.lastMineTick < delay) return;
 
             this.lastMineTick = this.tickCounter;
-            this.chestClickedThisTick = false;
 
             if (this.shouldUsePickaxeAbility()) {
                 this.usePickaxeAbilityNow();
@@ -127,9 +160,10 @@ class NukerClass extends ModuleBase {
             }
 
             executeAsync(() => {
+                if (!this.enabled || this.solvingChest) return;
                 const target = this.scanForBlock();
 
-                if (target) {
+                if (target && this.enabled && !this.solvingChest) {
                     const posArr = [target.getX(), target.getY(), target.getZ()];
                     queueNuke(posArr, delay);
                     this.target = target;
@@ -160,6 +194,46 @@ class NukerClass extends ModuleBase {
             this.abilityFromChat = false;
         });
 
+        this.on('packetReceived', (packet) => {
+            if (!this.autoChest || Client.isInGui()) return;
+            if (packet.getParticle()?.getType() !== net.minecraft.core.particles.ParticleTypes.CRIT) return;
+            const particle = { x: packet.getX(), y: packet.getY(), z: packet.getZ() };
+            const player = Player.getPlayer();
+            const distance = player ? Math.hypot(particle.x - player.getX(), particle.z - player.getZ()) : 0;
+            const aim = offsetPitch(particle, 5 / Math.max(1, distance));
+            for (const key of this.ignoredChests) {
+                if (hasMaxGreatExplorer()) break;
+                const [x, y, z] = key.split(',').map(Number);
+                if (Math.abs(particle.x - x - 0.5) < 0.7 && Math.abs(particle.y - y - 0.5) < 0.7 && Math.abs(particle.z - z - 0.5) < 0.7) return;
+            }
+            for (const [key, clickedAt] of this.chestClickCooldowns) {
+                if (!hasMaxGreatExplorer() && this.ignoredChests.has(key)) continue;
+                if (Date.now() - clickedAt > 2000 && this.solvingChest?.key !== key) continue;
+                const [x, y, z] = key.split(',').map(Number);
+                if (this.solvingChest && this.solvingChest.key !== key) continue;
+                if (Math.abs(particle.x - x - 0.5) >= 0.7 || Math.abs(particle.y - y - 0.5) >= 0.7 || Math.abs(particle.z - z - 0.5) >= 0.7) continue;
+                this.solvingChest = {
+                    key,
+                    x,
+                    y,
+                    z,
+                    particle: aim,
+                    startedAt: this.solvingChest?.startedAt ?? Date.now(),
+                    lastParticle: Date.now(),
+                };
+                this.chestClickCooldowns.set(key, Date.now());
+                nukeQueue.length = 0;
+                Client.stopMovement();
+                Rotations.lookAtVector(aim);
+                break;
+            }
+        }).setFilteredClass(ClientboundLevelParticlesPacket);
+        for (const event of ['chestsolve', 'chestopen']) {
+            registerSkyblockEvent(event, () => {
+                if (this.enabled && this.solvingChest) this.finishChest();
+            });
+        }
+
         this.on('postRenderWorld', () => {
             if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
@@ -171,10 +245,13 @@ class NukerClass extends ModuleBase {
             () => this.enabled && this.autoChest && !(Client.isInGui() && !Client.isInChat()),
             'renderBlockEntity',
             (entity) => {
-                if (entity?.getBlockType?.()?.getRegistryName?.() !== 'minecraft:chest') return;
+                if (this.solvingChest) return;
+                if (!this.isChestBlock(entity?.getBlockType?.())) return;
                 const chest = { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
-                this.chestPos = chest;
+                if (this.chestFilter && !this.chestFilter(chest)) return;
                 const posStr = `${chest.x},${chest.y},${chest.z}`;
+                if (!hasMaxGreatExplorer() && this.ignoredChests.has(posStr)) return;
+                this.chestPos = chest;
 
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
@@ -235,6 +312,7 @@ class NukerClass extends ModuleBase {
             const blockX = block.x;
             const blockY = block.y;
             const blockZ = block.z;
+            if (this.blockFilter && !this.blockFilter(blockX, blockY, blockZ)) continue;
             if (this.minedBlocks.has(`${blockX},${blockY},${blockZ}`)) continue;
 
             let dx = 0;
@@ -326,17 +404,24 @@ class NukerClass extends ModuleBase {
         Render3D.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
     }
 
+    isChestBlock(block) {
+        return ['minecraft:chest', 'minecraft:trapped_chest'].includes(block?.type?.getRegistryName?.() ?? block?.getRegistryName?.());
+    }
+
     rightClickBlock(xyz) {
         let hitResult = new BlockHitResult(new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5), Direction.UP, new BP(xyz[0], xyz[1], xyz[2]), false);
         Client.sendSequencedPacket((sequence) => new ServerboundUseItemOnPacket(MCHand.MAIN_HAND, hitResult, sequence));
     }
 
     init() {
+        this.finishChest();
+        nukeQueue.length = 0;
         this.target = null;
         this.lastMineTick = 0;
         this.tickCounter = 0;
         this.minedBlocks.clear();
         this.chestClickCooldowns.clear();
+        this.ignoredChests.clear();
         this.abilityFromChat = false;
     }
 
@@ -346,8 +431,23 @@ class NukerClass extends ModuleBase {
     }
 
     onDisable() {
+        this.finishChest();
+        nukeQueue.length = 0;
         this.message('&cDisabled');
+    }
+
+    finishChest() {
+        if (!this.solvingChest) return;
+        this.chestClickCooldowns.set(this.solvingChest.key, Date.now());
+        this.solvingChest = null;
+        this.chestPos = null;
+        Rotations.stop();
+    }
+
+    ignoreChest(key) {
+        this.ignoredChests.add(key);
+        if (this.chestPos && `${this.chestPos.x},${this.chestPos.y},${this.chestPos.z}` === key) this.chestPos = null;
     }
 }
 
-new NukerClass();
+export const Nuker = new NukerClass();

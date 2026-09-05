@@ -9,7 +9,7 @@ const AIR_BLOCK_ID = 0;
 const PASSABLE_BLOCKS = new Set([0, 513]);
 
 const RaycastContext = ClipContext;
-const faceOffsets = [[0.5, 0.5, 0.5]];
+const faceOffsets = [];
 let eyeCache = { pos: null, time: 0 };
 
 for (const { axis, value, otherAxes } of [
@@ -41,7 +41,7 @@ export function getPlayerEyePosition() {
     return eyeCache.pos;
 }
 
-const testPointNative = (targetX, targetY, targetZ, point, eye) => {
+export const testPointNative = (targetX, targetY, targetZ, point, eye) => {
     try {
         const player = Player.getPlayer();
         const world = World.getWorld();

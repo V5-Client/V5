@@ -124,3 +124,13 @@ export const formatRoundedNumber = (value) => {
     if (!Number.isFinite(value)) return '0';
     return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
+
+export function offsetPitch(point, degrees) {
+    const target = toPoint(point);
+    const eyes = playerEyes();
+    if (!target || !eyes) return point;
+    const horizontal = Math.hypot(target.x - eyes.x, target.z - eyes.z);
+    if (!horizontal) return point;
+    const pitch = calculateAbsoluteAngles(target).pitch + degrees;
+    return { ...point, y: eyes.y - horizontal * Math.tan(pitch * DEG_TO_RAD) };
+}
