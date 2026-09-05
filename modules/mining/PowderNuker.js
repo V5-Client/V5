@@ -7,6 +7,7 @@ import { TabListUtils } from '../../utils/TabListUtils';
 import { manager } from '../../utils/SkyblockEvents';
 import { Nuker } from './Nuker';
 import { MiningUtils } from '../../utils/MiningUtils';
+import { Guis } from '../../utils/player/Inventory';
 import {
     ClientboundBlockUpdatePacket,
     ClientboundSectionBlocksUpdatePacket,
@@ -68,7 +69,7 @@ class PowderNuker extends ModuleBase {
         );
         manager.subscribe('emptydrill', () => {
             if (!this.enabled || this.refueling) return;
-            const refueling = (this.refueling = {});
+            const refueling = (this.refueling = { toolSlot: Player.getHeldItemIndex() });
             Client.stopMovement();
             Client.setKey('shift', false);
             Rotations.stop();
@@ -81,6 +82,7 @@ class PowderNuker extends ModuleBase {
                     if (!success) return this.stop('&cRefueling failed!');
                     this.message('&aRefueling successful!');
                     this.refueling = false;
+                    Guis.setItemSlot(refueling.toolSlot);
                     this.breaks.clear();
                     this.pendingBreaks.clear();
                     this.breakWindowStart = Date.now();
