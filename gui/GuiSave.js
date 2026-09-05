@@ -16,13 +16,15 @@ export const SettingsMap = new Map();
 const getCategoryItems = (category) => category.items.reduce((acc, group) => acc.concat(group.type === 'separator' ? group.items : [group]), []);
 const getDirectComponentParentName = (category, component) =>
     category.name === 'Theme' ? 'Theme V2' : category.name === 'Settings' && component.sectionName ? component.sectionName : category.name;
+const forEachSettingComponent = (components, callback) =>
+    components.forEach((component) => (component instanceof Popup ? forEachSettingComponent(component.components, callback) : callback(component)));
 
 function buildSettingsMapFromComponents() {
     SettingsMap.clear();
 
     Categories.categories.forEach((category) => {
         getCategoryItems(category).forEach((item) => {
-            item.components.forEach((component) => {
+            forEachSettingComponent(item.components, (component) => {
                 const key = `${item.title}.${component.title}`;
                 storeComponentValue(key, component);
             });
@@ -87,7 +89,7 @@ export const applySettings = () => {
                 applyModuleEnabled(item.title, enabled);
             }
 
-            item.components.forEach((component) => {
+            forEachSettingComponent(item.components, (component) => {
                 triggerComponentCallback(item.title, component);
             });
         });
@@ -136,7 +138,7 @@ export const loadSettings = () => {
             getCategoryItems(category).forEach((item) => {
                 const savedItemSettings = settings[item.title];
                 if (savedItemSettings) {
-                    item.components.forEach((component) => {
+                    forEachSettingComponent(item.components, (component) => {
                         loadComponentValue(component, savedItemSettings[component.title]);
                     });
                 }
