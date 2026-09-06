@@ -826,7 +826,11 @@ class Bot extends ModuleBase {
     getPrecisionMinerAim() {
         if (!this.PRECISION_MINER) return null;
         if (!this.precisionMinerAim || this.precisionMinerAim.expiresAt < Date.now()) return null;
-        return this.isPrecisionMinerAimValid(this.precisionMinerAim) ? this.precisionMinerAim : null;
+        const player = Player.getPlayer();
+        if (!player) return null;
+        const distance = Math.hypot(this.precisionMinerAim.x - player.getX(), this.precisionMinerAim.z - player.getZ());
+        const aim = MathUtils.offsetPitch(this.precisionMinerAim, 5 / Math.max(1, distance - 1));
+        return this.isPrecisionMinerAimValid(aim) ? aim : null;
     }
 
     isPrecisionMinerAimValid(aim) {

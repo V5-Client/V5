@@ -21,9 +21,7 @@ const AREAS = {
     'Goblin Hideout': [202, 512, 513, 823],
     'Precursor Remnants': [513, 823, 513, 823],
 };
-const HARDSTONE = ['stone', 'cyan_terracotta', 'coal_ore', 'iron_ore', 'gold_ore', 'lapis_ore', 'redstone_ore', 'diamond_ore', 'emerald_ore'].map(
-    (name) => `minecraft:${name}`
-);
+const HARDSTONE = ['stone', 'coal_ore', 'iron_ore', 'gold_ore', 'lapis_ore', 'redstone_ore', 'diamond_ore', 'emerald_ore'].map((name) => `minecraft:${name}`);
 
 class PowderNuker extends ModuleBase {
     constructor() {

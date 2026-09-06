@@ -1,4 +1,6 @@
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Constants';
+import { MathUtils } from '../../utils/Math';
+import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { NukerUtils } from '../../utils/NukerUtils';
 import { ClientboundLevelParticlesPacket, ServerboundUseItemOnPacket } from '../../utils/Packets';
@@ -7,6 +9,7 @@ import { manager } from '../../utils/SkyblockEvents';
 import { Executor } from '../../utils/ThreadExecutor';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { v5Command } from '../../utils/V5Commands';
+import { Movement } from '../../utils/player/Movement';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -26,6 +29,7 @@ class NukerClass extends ModuleBase {
         this.tickCounter = 0;
         this.minedBlocks = new Map();
         this.chestClickCooldowns = new Map();
+        this.ignoredChests = new Set();
         this.chestClickedThisTick = false;
         this.solvingChest = null;
         this.blockFilter = null;
@@ -96,14 +100,16 @@ class NukerClass extends ModuleBase {
             this.chestClickedThisTick = false;
             if (this.solvingChest) {
                 const chest = this.solvingChest;
-                if (
-                    !this.autoChest ||
-                    Date.now() - chest.lastParticle > 4000 ||
-                    World.getBlockAt(chest.x, chest.y, chest.z)?.type?.getRegistryName() !== 'minecraft:chest'
-                ) {
+                if (!this.autoChest || World.getBlockAt(chest.x, chest.y, chest.z)?.type?.getRegistryName() !== 'minecraft:chest') {
+                    this.finishChest();
+                } else if (Date.now() - chest.startedAt > 10000) {
+                    this.ignoreChest(chest.key);
+                    this.finishChest();
+                } else if (Date.now() - chest.lastParticle > 4000) {
                     this.finishChest();
                 } else {
-                    Client.stopMovement();
+                    if (MiningUtils.hasMaxGreatExplorer()) Client.stopMovement();
+                    else Movement.setKeysForStraightLineCoords(chest.x + 0.5, Player.getY(), chest.z + 0.5, false);
                     if (Client.isInGui()) Rotations.stop();
                     else Rotations.lookAtVector(chest.particle);
                     return;
@@ -179,21 +185,36 @@ class NukerClass extends ModuleBase {
             this.abilityFromChat = false;
         });
 
-        // Lock particles only take control after Auto Chest has clicked this chest.
         this.on('packetReceived', (packet) => {
             if (!this.autoChest || Client.isInGui()) return;
             if (packet.getParticle()?.getType() !== net.minecraft.core.particles.ParticleTypes.CRIT) return;
             const particle = { x: packet.getX(), y: packet.getY(), z: packet.getZ() };
+            const player = Player.getPlayer();
+            const distance = player ? Math.hypot(particle.x - player.getX(), particle.z - player.getZ()) : 0;
+            const aim = MathUtils.offsetPitch(particle, 5 / Math.max(1, distance));
+            for (const key of this.ignoredChests) {
+                const [x, y, z] = key.split(',').map(Number);
+                if (Math.abs(particle.x - x - 0.5) < 0.7 && Math.abs(particle.y - y - 0.5) < 0.7 && Math.abs(particle.z - z - 0.5) < 0.7) return;
+            }
             for (const [key, clickedAt] of this.chestClickCooldowns) {
+                if (this.ignoredChests.has(key)) continue;
                 if (Date.now() - clickedAt > 2000 && this.solvingChest?.key !== key) continue;
                 const [x, y, z] = key.split(',').map(Number);
                 if (this.solvingChest && this.solvingChest.key !== key) continue;
                 if (Math.abs(particle.x - x - 0.5) >= 0.7 || Math.abs(particle.y - y - 0.5) >= 0.7 || Math.abs(particle.z - z - 0.5) >= 0.7) continue;
-                this.solvingChest = { key, x, y, z, particle, lastParticle: Date.now() };
+                this.solvingChest = {
+                    key,
+                    x,
+                    y,
+                    z,
+                    particle: aim,
+                    startedAt: this.solvingChest?.startedAt ?? Date.now(),
+                    lastParticle: Date.now(),
+                };
                 this.chestClickCooldowns.set(key, Date.now());
                 NukerUtils.nukeQueue = [];
                 Client.stopMovement();
-                Rotations.lookAtVector(particle);
+                Rotations.lookAtVector(aim);
                 break;
             }
         }).setFilteredClass(ClientboundLevelParticlesPacket);
@@ -217,8 +238,9 @@ class NukerClass extends ModuleBase {
                 if (this.solvingChest) return;
                 if (entity?.getBlockType?.()?.getRegistryName?.() !== 'minecraft:chest') return;
                 const chest = { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
-                this.chestPos = chest;
                 const posStr = `${chest.x},${chest.y},${chest.z}`;
+                if (this.ignoredChests.has(posStr)) return;
+                this.chestPos = chest;
 
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
@@ -384,6 +406,7 @@ class NukerClass extends ModuleBase {
         this.tickCounter = 0;
         this.minedBlocks.clear();
         this.chestClickCooldowns.clear();
+        this.ignoredChests.clear();
         this.abilityFromChat = false;
     }
 
@@ -402,7 +425,13 @@ class NukerClass extends ModuleBase {
         if (!this.solvingChest) return;
         this.chestClickCooldowns.set(this.solvingChest.key, Date.now());
         this.solvingChest = null;
+        this.chestPos = null;
         Rotations.stop();
+    }
+
+    ignoreChest(key) {
+        this.ignoredChests.add(key);
+        if (this.chestPos && `${this.chestPos.x},${this.chestPos.y},${this.chestPos.z}` === key) this.chestPos = null;
     }
 }
 

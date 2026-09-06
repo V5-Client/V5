@@ -1048,6 +1048,9 @@ export const MiningUtils = {
     getBlockInfo: function (registryName) {
         return lookupBlock(registryName);
     },
+    hasMaxGreatExplorer: function () {
+        return miningStatsCollector.getStoredStats()?.maxge === true;
+    },
     refreshMiningStatsIfNeeded: function (callback = null) {
         Executor.execute(() => {
             const refreshed = miningStatsCollector.refreshIfNeeded();

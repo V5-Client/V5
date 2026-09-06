@@ -237,6 +237,16 @@ export const MathUtils = {
         return angleCalc.calculateAbsoluteAngles(target);
     },
 
+    offsetPitch: function (point, degrees) {
+        const target = distCalc.getPointFromInput(point);
+        const eyes = distCalc.getPlayerEyes();
+        if (!target || !eyes) return point;
+        const horizontal = Math.hypot(target.x - eyes.x, target.z - eyes.z);
+        if (!horizontal) return point;
+        const pitch = angleCalc.calculateAbsoluteAngles(target).pitch + degrees;
+        return { ...point, y: eyes.y - horizontal * Math.tan(pitch * DEG_TO_RAD) };
+    },
+
     getNumbersFromString: function (str) {
         if (!str) return 0;
         const match = str.match(/\d+/g);
