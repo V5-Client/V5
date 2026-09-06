@@ -121,7 +121,7 @@ class PowderNuker extends ModuleBase {
         Nuker.customBlockList = HARDSTONE.map((registryName) => ({ registryName, name: registryName }));
         Nuker.nukeBelow = true;
         Nuker.targetMode = 'Closest';
-        Nuker.chestFilter = (chest) => Math.abs(chest.y - Player.getY()) < 2;
+        Nuker.chestFilter = (chest) => MiningUtils.hasMaxGreatExplorer() || Math.abs(chest.y - Player.getY()) < 2;
         Nuker.chestWalkDistance = 2.5;
         this.descent = null;
         this.breaks = new Map();
