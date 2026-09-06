@@ -114,11 +114,15 @@ class PowderNuker extends ModuleBase {
             customBlockList: Nuker.customBlockList,
             nukeBelow: Nuker.nukeBelow,
             blockFilter: Nuker.blockFilter,
+            chestFilter: Nuker.chestFilter,
+            chestWalkDistance: Nuker.chestWalkDistance,
             targetMode: Nuker.targetMode,
         };
         Nuker.customBlockList = HARDSTONE.map((registryName) => ({ registryName, name: registryName }));
         Nuker.nukeBelow = true;
         Nuker.targetMode = 'Closest';
+        Nuker.chestFilter = (chest) => Math.abs(chest.y - Player.getY()) < 2;
+        Nuker.chestWalkDistance = 2.5;
         this.descent = null;
         this.breaks = new Map();
         this.pendingBreaks = new Map();
@@ -395,7 +399,7 @@ class PowderNuker extends ModuleBase {
         }
         if (!this.inside(Player.getX(), Player.getZ(), 0.35)) return this.stop('Reached the area safety boundary.');
         if (Client.isInGui() || Nuker.solvingChest) {
-            Client.stopMovement();
+            if (Client.isInGui()) Client.stopMovement();
             if (!Nuker.solvingChest) Rotations.stop();
             this.lastProgress = Date.now();
             this.search = null;

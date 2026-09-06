@@ -33,6 +33,8 @@ class NukerClass extends ModuleBase {
         this.chestClickedThisTick = false;
         this.solvingChest = null;
         this.blockFilter = null;
+        this.chestFilter = null;
+        this.chestWalkDistance = 0;
 
         this.BLOCK_COOLDOWN = 20;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
@@ -100,7 +102,10 @@ class NukerClass extends ModuleBase {
             this.chestClickedThisTick = false;
             if (this.solvingChest) {
                 const chest = this.solvingChest;
-                if (!this.autoChest || World.getBlockAt(chest.x, chest.y, chest.z)?.type?.getRegistryName() !== 'minecraft:chest') {
+                if (this.chestFilter && !this.chestFilter(chest)) {
+                    this.ignoreChest(chest.key);
+                    this.finishChest();
+                } else if (!this.autoChest || World.getBlockAt(chest.x, chest.y, chest.z)?.type?.getRegistryName() !== 'minecraft:chest') {
                     this.finishChest();
                 } else if (Date.now() - chest.startedAt > 10000) {
                     this.ignoreChest(chest.key);
@@ -108,7 +113,12 @@ class NukerClass extends ModuleBase {
                 } else if (Date.now() - chest.lastParticle > 4000) {
                     this.finishChest();
                 } else {
-                    if (MiningUtils.hasMaxGreatExplorer()) Client.stopMovement();
+                    if (
+                        this.chestWalkDistance
+                            ? Math.hypot(chest.x + 0.5 - Player.getX(), chest.z + 0.5 - Player.getZ()) <= this.chestWalkDistance
+                            : MiningUtils.hasMaxGreatExplorer()
+                    )
+                        Client.stopMovement();
                     else Movement.setKeysForStraightLineCoords(chest.x + 0.5, Player.getY(), chest.z + 0.5, false);
                     if (Client.isInGui()) Rotations.stop();
                     else Rotations.lookAtVector(chest.particle);
@@ -238,6 +248,7 @@ class NukerClass extends ModuleBase {
                 if (this.solvingChest) return;
                 if (entity?.getBlockType?.()?.getRegistryName?.() !== 'minecraft:chest') return;
                 const chest = { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
+                if (this.chestFilter && !this.chestFilter(chest)) return;
                 const posStr = `${chest.x},${chest.y},${chest.z}`;
                 if (this.ignoredChests.has(posStr)) return;
                 this.chestPos = chest;
