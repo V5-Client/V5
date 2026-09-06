@@ -105,10 +105,10 @@ class NukerClass extends ModuleBase {
                 if (this.chestFilter && !this.chestFilter(chest)) {
                     this.ignoreChest(chest.key);
                     this.finishChest();
-                } else if (!this.autoChest || World.getBlockAt(chest.x, chest.y, chest.z)?.type?.getRegistryName() !== 'minecraft:chest') {
+                } else if (!this.autoChest || !this.isChestBlock(World.getBlockAt(chest.x, chest.y, chest.z))) {
                     this.finishChest();
                 } else if (Date.now() - chest.startedAt > 10000) {
-                    this.ignoreChest(chest.key);
+                    if (!MiningUtils.hasMaxGreatExplorer()) this.ignoreChest(chest.key);
                     this.finishChest();
                 } else if (Date.now() - chest.lastParticle > 4000) {
                     this.finishChest();
@@ -130,7 +130,6 @@ class NukerClass extends ModuleBase {
             for (const [posStr, clickedAt] of this.chestClickCooldowns) {
                 if (now - clickedAt >= 2000 && this.solvingChest?.key !== posStr) this.chestClickCooldowns.delete(posStr);
             }
-
             if (this.customBlockList.length === 0) {
                 this.message('Try setting targets with /v5 commands:');
                 this.message('- /v5 nuker add - adds block at crosshair');
@@ -203,11 +202,12 @@ class NukerClass extends ModuleBase {
             const distance = player ? Math.hypot(particle.x - player.getX(), particle.z - player.getZ()) : 0;
             const aim = MathUtils.offsetPitch(particle, 5 / Math.max(1, distance));
             for (const key of this.ignoredChests) {
+                if (MiningUtils.hasMaxGreatExplorer()) break;
                 const [x, y, z] = key.split(',').map(Number);
                 if (Math.abs(particle.x - x - 0.5) < 0.7 && Math.abs(particle.y - y - 0.5) < 0.7 && Math.abs(particle.z - z - 0.5) < 0.7) return;
             }
             for (const [key, clickedAt] of this.chestClickCooldowns) {
-                if (this.ignoredChests.has(key)) continue;
+                if (!MiningUtils.hasMaxGreatExplorer() && this.ignoredChests.has(key)) continue;
                 if (Date.now() - clickedAt > 2000 && this.solvingChest?.key !== key) continue;
                 const [x, y, z] = key.split(',').map(Number);
                 if (this.solvingChest && this.solvingChest.key !== key) continue;
@@ -246,11 +246,11 @@ class NukerClass extends ModuleBase {
             'renderBlockEntity',
             (entity) => {
                 if (this.solvingChest) return;
-                if (entity?.getBlockType?.()?.getRegistryName?.() !== 'minecraft:chest') return;
+                if (!this.isChestBlock(entity?.getBlockType?.())) return;
                 const chest = { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
                 if (this.chestFilter && !this.chestFilter(chest)) return;
                 const posStr = `${chest.x},${chest.y},${chest.z}`;
-                if (this.ignoredChests.has(posStr)) return;
+                if (!MiningUtils.hasMaxGreatExplorer() && this.ignoredChests.has(posStr)) return;
                 this.chestPos = chest;
 
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
@@ -402,6 +402,10 @@ class NukerClass extends ModuleBase {
             g = Math.sin(time + 2) * 127 + 128,
             b = Math.sin(time + 4) * 127 + 128;
         RenderUtils.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
+    }
+
+    isChestBlock(block) {
+        return ['minecraft:chest', 'minecraft:trapped_chest'].includes(block?.type?.getRegistryName?.() ?? block?.getRegistryName?.());
     }
 
     rightClickBlock(xyz) {
