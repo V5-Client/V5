@@ -1836,13 +1836,7 @@ class OreMiner extends ModuleBase {
                     : block.rOneTap
                       ? [COLORS.rOneTapFill, COLORS.rOneTapWire]
                       : [COLORS.mineFill, COLORS.mineWire];
-                RenderUtils.drawStyledBox(
-                    new Vec3d(block.x, block.y, block.z),
-                    mineColors[0],
-                    mineColors[1],
-                    index === this.selectedWaypoint ? 3 : 2,
-                    false
-                );
+                RenderUtils.drawStyledBox(new Vec3d(block.x, block.y, block.z), mineColors[0], mineColors[1], index === this.selectedWaypoint ? 3 : 2, false);
             });
         });
         if (this.currentRenderTarget) {
