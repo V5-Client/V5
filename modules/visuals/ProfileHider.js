@@ -16,72 +16,23 @@ class ProfileHider extends ModuleBase {
         this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
         this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
 
-        Client.setNameProcessor((text) => this.getModifiedText(text));
+        Client.setNameProcessor(null);
+        this.on('tick', () => this.updateName());
+        register('gameUnload', () => Client.setNameReplacement(null, null));
     }
 
-    getModifiedText(originalTextComponent) {
-        if (!originalTextComponent || !this.HIDE_USERNAME || !this.enabled) return originalTextComponent;
-        if (!this.defaultName) this.defaultName = this.getUsername();
-
-        const username = Player.getName();
-        const rawCustomInput = this.USERNAME?.trim() || this.defaultName || 'Failed to get username';
-        const Text = net.minecraft.network.chat.Component;
-        const newComponent = Text.empty();
-
-        const getReplacement = () => {
-            if (rawCustomInput.startsWith('#') && rawCustomInput.length > 7) {
-                try {
-                    const hexStr = rawCustomInput.substring(1, 7);
-                    const nameText = rawCustomInput.substring(7);
-                    const colorInt = Number.parseInt(hexStr, 16);
-
-                    return Text.literal(nameText).withStyle((s) => s.withColor(colorInt));
-                } catch (e) {
-                    console.error(e);
-                    return Text.literal(rawCustomInput);
-                }
-            }
-
-            if (rawCustomInput.includes('&') || rawCustomInput.includes('§')) {
-                return Text.literal(rawCustomInput.replace(/&/g, '§'));
-            }
-
-            return this.chroma(rawCustomInput);
-        };
-
-        originalTextComponent.visit((style, content) => {
-            if (content.includes(username)) {
-                const parts = content.split(username);
-                for (let i = 0; i < parts.length; i++) {
-                    if (parts[i].length > 0) {
-                        newComponent.append(Text.literal(parts[i]).setStyle(style));
-                    }
-                    if (i < parts.length - 1) {
-                        newComponent.append(getReplacement());
-                    }
-                }
-            } else {
-                newComponent.append(Text.literal(content).setStyle(style));
-            }
-            return java.util.Optional.empty();
-        }, net.minecraft.network.chat.Style.EMPTY);
-
-        return newComponent;
+    onEnable() {
+        this.defaultName = this.getUsername();
+        this.updateName();
     }
 
-    chroma(text) {
-        const Text = net.minecraft.network.chat.Component;
-        const mutableText = Text.empty();
-        const speed = 2000;
-        const offset = 100;
+    onDisable() {
+        Client.setNameReplacement(null, null);
+    }
 
-        for (let i = 0; i < text.length; i++) {
-            const hue = (Date.now() % speed) / speed + (i * offset) / (speed * 2);
-            const hexColor = java.awt.Color.getHSBColor(hue % 1, 0.8, 1.0).getRGB() & 0xffffff;
-
-            mutableText.append(Text.literal(text[i]).withStyle((s) => s.withColor(hexColor).withBold(true)));
-        }
-        return mutableText;
+    updateName() {
+        const username = this.HIDE_USERNAME ? Player.getName() : null;
+        Client.setNameReplacement(username, this.USERNAME?.trim() || this.defaultName || 'Failed to get username');
     }
 
     getUsername() {
