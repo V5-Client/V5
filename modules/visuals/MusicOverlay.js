@@ -1,4 +1,4 @@
-import requestV2 from 'requestV2';
+import requestV2 from '../../utils/Request';
 import { drawImageFromURL, THEME } from '../../gui/Utils';
 import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
 import { chat } from '../../utils/Chat';

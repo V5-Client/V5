@@ -1,4 +1,4 @@
-import requestV2 from 'requestV2';
+import requestV2 from '../../utils/Request';
 import { chat } from '../../utils/Chat';
 import { DataComponents } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';

@@ -1,4 +1,4 @@
-import WebSocket from 'WebSocket';
+import WebSocket from '../WebSocket';
 import { chatIrc } from '../Chat';
 import { Links } from '../Constants';
 import { returnDiscord } from '../NetworkUtils';

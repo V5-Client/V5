@@ -3,6 +3,5 @@
     "creator": "Zurviq, Rdbt, EpilsonPhoenix and Contributors",
     "description": "Cheaters get banned",
     "version": "5.2.0",
-    "entry": "loader.js",
-    "requires": ["requestV2", "WebSocket"]
+    "entry": "loader.js"
 }

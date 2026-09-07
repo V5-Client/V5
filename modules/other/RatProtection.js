@@ -1,4 +1,4 @@
-import requestV2 from 'requestV2';
+import requestV2 from '../../utils/Request';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class RatProtection extends ModuleBase {
