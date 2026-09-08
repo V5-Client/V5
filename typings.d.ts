@@ -206,6 +206,8 @@ declare global {
   interface Config extends com.chattriggers.ctjs.api.Config {}
   const V5Auth: typeof com.chattriggers.ctjs.api.V5Auth;
   interface V5Auth extends com.chattriggers.ctjs.api.V5Auth {}
+  const V5Irc: typeof com.chattriggers.ctjs.api.V5Irc;
+  interface V5Irc extends com.chattriggers.ctjs.api.V5Irc {}
   const DiscordRPC: typeof com.chattriggers.ctjs.api.client.DiscordRPC;
   interface DiscordRPC extends com.chattriggers.ctjs.api.client.DiscordRPC {}
   const GradientChat: typeof com.chattriggers.ctjs.api.message.Chat;
@@ -47372,6 +47374,7 @@ declare global {
                 setWorld(worldKey: string, minY: number, maxY: number): void;
                 clearWorld(): void;
                 upsertChunk(chunkX: number, chunkZ: number, minY: number, maxY: number, sectionMask: number, sectionFlags: Array<number>): void;
+                upsertChunks(metadata: Array<number>, sectionMasks: Array<number>, sectionFlags: Array<Array<number>>): void;
                 applyBlockUpdates(updates: Array<number>): void;
                 findPath(request: com.chattriggers.ctjs.api.world.pathfinding.NativePathfinderBridge$NativePathSearchRequest): com.chattriggers.ctjs.api.world.pathfinding.NativePathResult | null | undefined;
                 findEtherwarpPath(request: com.chattriggers.ctjs.api.world.pathfinding.NativePathfinderBridge$NativeEtherwarpSearchRequest): com.chattriggers.ctjs.api.world.pathfinding.NativeEtherwarpResult | null | undefined;
@@ -47384,6 +47387,7 @@ declare global {
                 setWorld(worldKey: string, minY: number, maxY: number): void;
                 clearWorld(): void;
                 upsertChunk(chunkX: number, chunkZ: number, minY: number, maxY: number, sectionMask: number, sectionFlags: Array<number>): void;
+                upsertChunks(metadata: Array<number>, sectionMasks: Array<number>, sectionFlags: Array<Array<number>>): void;
                 applyBlockUpdates(updates: Array<number>): void;
                 findPath(request: com.chattriggers.ctjs.api.world.pathfinding.NativePathfinderBridge$NativePathSearchRequest): com.chattriggers.ctjs.api.world.pathfinding.NativePathResult | null | undefined;
                 findEtherwarpPath(request: com.chattriggers.ctjs.api.world.pathfinding.NativePathfinderBridge$NativeEtherwarpSearchRequest): com.chattriggers.ctjs.api.world.pathfinding.NativeEtherwarpResult | null | undefined;
@@ -47488,6 +47492,7 @@ declare global {
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number): boolean;
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number): boolean;
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number, eyeHeight: number): boolean;
+                findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number, eyeHeight: number, callback: java.lang.Runnable | null | undefined): boolean;
                 isFlyPositionClear(x: number, y: number, z: number): boolean;
                 isValidEtherwarpLanding(x: number, y: number, z: number): boolean;
                 getEtherwarpLandingCenter(x: number, y: number, z: number): kotlin.DoubleArray | null | undefined;
@@ -47557,6 +47562,7 @@ declare global {
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number): boolean;
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number): boolean;
                 findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number, eyeHeight: number): boolean;
+                findEtherwarpPath(goalX: number, goalY: number, goalZ: number, maxIterations: number, threadCount: number, yawStep: number, pitchStep: number, newNodeCost: number, heuristicWeight: number, rayLength: number, rewireEpsilon: number, eyeHeight: number, callback: java.lang.Runnable | null | undefined): boolean;
                 isFlyPositionClear(x: number, y: number, z: number): boolean;
                 isValidEtherwarpLanding(x: number, y: number, z: number): boolean;
                 getEtherwarpLandingCenter(x: number, y: number, z: number): kotlin.DoubleArray | null | undefined;
@@ -50849,6 +50855,8 @@ declare global {
               getCameraYaw(): number | null | undefined;
               getCameraPitch(): number | null | undefined;
               setNameProcessor(processor: org.mozilla.javascript.Callable | null | undefined): void;
+              setNameReplacement(username: string | null | undefined, replacement: string | null | undefined): void;
+              hasNameProcessor(): boolean;
               processName(original: net.minecraft.network.chat.Component): net.minecraft.network.chat.Component;
 							/**
 							 * Gets Minecraft's Minecraft object
@@ -51040,6 +51048,8 @@ declare global {
               getCameraYaw(): number | null | undefined;
               getCameraPitch(): number | null | undefined;
               setNameProcessor(processor: org.mozilla.javascript.Callable | null | undefined): void;
+              setNameReplacement(username: string | null | undefined, replacement: string | null | undefined): void;
+              hasNameProcessor(): boolean;
               processName(original: net.minecraft.network.chat.Component): net.minecraft.network.chat.Component;
 							/**
 							 * Gets Minecraft's Minecraft object
@@ -52010,7 +52020,7 @@ declare global {
               textWidth(text: string, size: number): number;
               textWidth(text: string, size: number, font: com.chattriggers.ctjs.api.render.Font | null | undefined): number;
               loadImage(path: string): string;
-              unloadImage(path: string): void | null | undefined;
+              unloadImage(path: string): void;
               isImageLoaded(path: string): boolean;
               drawImage(path: string, x: number, y: number, width: number, height: number): void;
               drawImage(path: string, x: number, y: number, width: number, height: number, radius: number): void;
@@ -52898,6 +52908,7 @@ declare global {
             new(): com.chattriggers.ctjs.api.Config;
           }
           const V5Auth: {
+            authenticate(): java.util.concurrent.CompletableFuture<string | null | undefined>;
             getJwtToken(): string | null | undefined;
             getFreshJwtToken(): string | null | undefined;
             setJwtToken(token: string | null | undefined): void;
@@ -52905,11 +52916,34 @@ declare global {
             new(): com.chattriggers.ctjs.api.V5Auth;
           }
           interface V5Auth { 
+            authenticate(): java.util.concurrent.CompletableFuture<string | null | undefined>;
             getJwtToken(): string | null | undefined;
             getFreshJwtToken(): string | null | undefined;
             setJwtToken(token: string | null | undefined): void;
             shutDownHard(): java.lang.Void;
             new(): com.chattriggers.ctjs.api.V5Auth;
+          }
+          const V5Irc: {
+            getEnabled(): boolean;
+            setEnabled(value: boolean): void;
+            getAutoMeow(): boolean;
+            setAutoMeow(value: boolean): void;
+            getRandomChoiceMeow(): boolean;
+            setRandomChoiceMeow(value: boolean): void;
+            reconnect(): void;
+            send(content: string): void;
+            new(): com.chattriggers.ctjs.api.V5Irc;
+          }
+          interface V5Irc { 
+            getEnabled(): boolean;
+            setEnabled(value: boolean): void;
+            getAutoMeow(): boolean;
+            setAutoMeow(value: boolean): void;
+            getRandomChoiceMeow(): boolean;
+            setRandomChoiceMeow(value: boolean): void;
+            reconnect(): void;
+            send(content: string): void;
+            new(): com.chattriggers.ctjs.api.V5Irc;
           }
           const Mappings: {
 						/**

@@ -9,7 +9,7 @@ import './gui/GUI';
 
 /* CORE */
 import './utils/Config';
-import './utils/backend/WebSocket';
+import './utils/backend/IRC';
 import { ServerboundCommandSuggestionPacket } from './utils/Packets';
 
 register('packetSent', (packet, event) => {

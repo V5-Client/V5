@@ -66,8 +66,3 @@ export const Consumer = Java.type('java.util.function.Consumer');
 export const ScreenshotRecorder = net.minecraft.client.Screenshot;
 
 export const V5ConfigFile = new File('./config/ChatTriggers/modules/V5Config/config.json');
-export const Links = {
-    WEBSOCKET_URL: 'wss://backend.rdbt.top/api/chat',
-    BASE_API_URL: 'https://backend.rdbt.top',
-    PATHFINDER_API_URL: 'http://localhost:3000',
-};

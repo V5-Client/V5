@@ -1,5 +1,5 @@
 import { chat } from './Chat';
-import { BufferedReader, File, InputStreamReader, Links, StandardCharsets, URL, globalAssetsDir } from './Constants';
+import { BufferedReader, File, InputStreamReader, StandardCharsets, URL, globalAssetsDir } from './Constants';
 import { downloadFile } from './FileUtils';
 
 const fetchURL = (url, headers = {}) => {
@@ -38,7 +38,7 @@ export const returnDiscord = (authToken) => {
             const t = new java.lang.Thread(() => {
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 
-                const responseText = fetchURL(`${Links.BASE_API_URL}/api/me`, {
+                const responseText = fetchURL(`https://backend.rdbt.top/api/me`, {
                     Authorization: `Bearer ${authToken}`,
                 });
 
