@@ -160,6 +160,28 @@ class OreMiner extends ModuleBase {
         this.selectedWaypoint = -1;
         this.editing = false;
 
+        this.addSeparator('Route');
+        const routeNames = this.getRouteNames();
+        this.routesToggle = this.addMultiToggle(
+            'Selected Route',
+            routeNames,
+            true,
+            (selected) => {
+                const selectedFile = Router.getFilefromCallback(selected);
+                if (!selectedFile) return;
+                this.loadRoute(selectedFile, this.routeActive);
+            },
+            'The named Ore route the macro will follow.',
+            routeNames[0] || false
+        );
+        this.loopRoute = true;
+        this.addToggle(
+            'Loop Route',
+            (value) => (this.loopRoute = !!value),
+            'After the last waypoint, start again from the first. Disable to stop at the end of the route.',
+            true
+        );
+
         this.addSlider('Drill Slot', 1, 8, 1, (value) => (this.drillSlot = Math.round(value) - 1), 'Mining tool hotbar slot.');
         this.addSlider(
             'Mining Deployable Slot',
@@ -546,7 +568,7 @@ class OreMiner extends ModuleBase {
     }
 
     getRouteNames() {
-        return Router.getFilesInDir(ROUTE_DIR_RELATIVE);
+        return Router.getFilesInDir(ROUTE_DIR_RELATIVE).filter((name) => name && name !== 'empty');
     }
 
     loadRoute(path, startAfterLoad = false) {
@@ -679,6 +701,25 @@ class OreMiner extends ModuleBase {
     printStatus() {
         if (!this.loadedWaypoints) return this.message('&7Ore Miner: no route loaded.');
         this.message(`&7Ore Miner: ${this.routeActive ? '&aRUNNING' : '&eREADY'} &7| ` + `&f${this.loadedWaypoints.length} &7waypoints | &f${this.loadedPath}`);
+    }
+
+    nextWaypointIndex() {
+        const nextIndex = this.waypointIndex + 1;
+        if (nextIndex < this.loadedWaypoints.length) return nextIndex;
+        return this.loopRoute ? 0 : -1;
+    }
+
+    finishRoute() {
+        this.message('&aReached the last waypoint.');
+        this.toggle(false);
+        return false;
+    }
+
+    advanceWaypoint() {
+        const nextIndex = this.nextWaypointIndex();
+        if (nextIndex === -1) return this.finishRoute();
+        this.waypointIndex = nextIndex;
+        return true;
     }
 
     tick() {
@@ -869,7 +910,7 @@ class OreMiner extends ModuleBase {
                 return;
 
             case 'ADVANCE':
-                this.waypointIndex = (this.waypointIndex + 1) % this.loadedWaypoints.length;
+                if (!this.advanceWaypoint()) return;
                 this.mineIndex = 0;
                 this.typeMineBlock = null;
                 this.typeMineNextBlock = null;
@@ -1014,9 +1055,8 @@ class OreMiner extends ModuleBase {
         if (walkState === 'COMPLETE') {
             const hasAction = this.typeMineEnabled || waypoint.minableBlocks.length > 0 || (waypoint.isDeployable && this.deployableWaypointsEnabled);
             if (!hasAction) {
-                const nextIndex = (this.waypointIndex + 1) % this.loadedWaypoints.length;
-                const nextWaypoint = this.loadedWaypoints[nextIndex];
-                this.waypointIndex = nextIndex;
+                if (!this.advanceWaypoint()) return;
+                const nextWaypoint = this.loadedWaypoints[this.waypointIndex];
                 this.mineIndex = 0;
                 this.waitTicks = 0;
 
@@ -1133,7 +1173,9 @@ class OreMiner extends ModuleBase {
         if (!count) return null;
 
         for (let offset = 0; offset < count; offset++) {
-            const waypoint = this.loadedWaypoints[(this.waypointIndex + offset) % count];
+            const index = this.waypointIndex + offset;
+            if (index >= count && !this.loopRoute) break;
+            const waypoint = this.loadedWaypoints[index % count];
             if (!waypoint) continue;
 
             if (waypoint.type === 'Tp') {
