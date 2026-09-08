@@ -2,7 +2,7 @@ import { chat } from './Chat';
 import { BufferedReader, File, InputStreamReader, StandardCharsets, URL, globalAssetsDir } from './Constants';
 import { downloadFile } from './FileUtils';
 
-const fetchURL = (url, headers = {}) => {
+export const fetchURL = (url, headers = {}) => {
     try {
         const conn = new URL(url).openConnection();
         conn.setConnectTimeout(5000);

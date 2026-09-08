@@ -3,6 +3,8 @@ import { getEnabledModulesRevision, modules as registeredModules } from '../util
 import { formatUptime } from '../utils/TimeUtils';
 import { area, subArea } from '../utils/Utils';
 import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
+import { fetchURL, returnDiscord } from '../utils/NetworkUtils';
+import { Button } from './components/Button';
 
 const clientStartedAt = Date.now();
 
@@ -14,10 +16,53 @@ const MODULE_ROW_HEIGHT = 22;
 const EMPTY_STATE_HEIGHT = 24;
 const HEADER_TO_FIRST_ROW = 24;
 const CARD_BOTTOM_PADDING = 4;
+const AUTH_HEIGHT = 24;
 
 let lastModuleLayouts = [];
 let activeModules = [];
 let activeModulesRevision = -1;
+
+const getAuthInfo = (token) => {
+    if (!token) return null;
+    const response = fetchURL('https://backend.rdbt.top/api/me', { Authorization: `Bearer ${token}` });
+    return response ? JSON.parse(response) : null;
+};
+
+let authButton;
+const showAuth = (token) => {
+    let info = null;
+    try {
+        info = getAuthInfo(token);
+    } catch (e) {
+        console.error('Failed to read V5 authentication info: ' + e);
+    }
+
+    Client.scheduleTask(0, () => {
+        const discord = info?.discord;
+        const name = discord?.global_name || discord?.displayName || discord?.username;
+        const authenticated = !!discord;
+        authButton.title = authenticated ? 'Authenticated' + (name ? ' as ' + name : '') : token ? 'Status unavailable' : 'Not authenticated';
+        authButton.description = discord?.id ? `Discord ID: ${discord.id}` : 'Authenticate V5 through Discord.';
+        authButton.setButtonText(authenticated ? 'Re-authenticate' : 'Authenticate');
+    });
+};
+
+const refreshAuth = (token) => {
+    const thread = new java.lang.Thread(() => showAuth(token === undefined ? V5Auth.getFreshJwtToken() : token));
+    thread.setDaemon(true);
+    thread.start();
+};
+
+authButton = new Button('Checking...', 0, 0, 'Authenticate', () => {
+    authButton.setButtonText('Waiting for browser...');
+    V5Auth.authenticate().whenComplete((token, error) => {
+        if (error) console.error('V5 authentication failed: ' + error);
+        if (token) returnDiscord(token);
+        refreshAuth(token);
+    });
+});
+authButton.description = 'Authenticate V5 through Discord.';
+refreshAuth();
 
 const normalizeLocation = (value) => {
     if (!value || String(value).trim().length === 0) return 'Unknown';
@@ -151,18 +196,26 @@ export const getDashboardContentHeight = () => {
     const modules = getActiveModules();
     const debugHeight = getCardHeight(getDebugRows().length);
     const modulesHeight = getCardHeight(modules.length > 0 ? modules.length : 1, modules.length > 0 ? MODULE_ROW_HEIGHT : EMPTY_STATE_HEIGHT);
-    return PADDING + debugHeight + CARD_GAP + modulesHeight + PADDING;
+    return PADDING + AUTH_HEIGHT + CARD_GAP + debugHeight + CARD_GAP + modulesHeight + PADDING;
 };
 
 export const drawDashboard = (panel, panelX, yOffset, mouseX, mouseY, scrollY) => {
     const x = panelX + PADDING;
     const width = panel.width - PADDING * 2;
-    let y = yOffset - scrollY;
+    let y = yOffset + PADDING - scrollY;
+
+    authButton.x = x;
+    authButton.y = y;
+    authButton.optionPanelWidth = width + PADDING * 2;
+    authButton.draw(mouseX, mouseY);
+    y += AUTH_HEIGHT + CARD_GAP;
 
     const debugHeight = drawDebugCard(x, y, width);
     y += debugHeight + CARD_GAP;
     drawModulesCard(panel, x, y, width, mouseX, mouseY);
 };
+
+export const handleDashboardClick = (mouseX, mouseY) => authButton.handleClick(mouseX, mouseY);
 
 export const getDashboardModuleAt = (mouseX, mouseY) => {
     const match = lastModuleLayouts.find((layout) => isInside(mouseX, mouseY, layout.rect));

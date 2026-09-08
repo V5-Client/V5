@@ -21,7 +21,7 @@ import {
 import { SearchBar } from './CategorySearchBar';
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 import { getModule } from '../../utils/MacroState';
-import { drawDashboard, getDashboardContentHeight, getDashboardModuleAt } from '../Dashboard';
+import { drawDashboard, getDashboardContentHeight, getDashboardModuleAt, handleDashboardClick } from '../Dashboard';
 import { drawChangelog, getChangelogContentHeight } from '../Changelog';
 
 let targetRightPanelScrollY = 0;
@@ -744,6 +744,7 @@ const handleClick = (mouseX, mouseY) => {
         Categories.transitionDirection === 0 &&
         isInside(mouseX, mouseY, panel)
     ) {
+        if (handleDashboardClick(mouseX, mouseY)) return;
         const moduleName = getDashboardModuleAt(mouseX, mouseY);
         const moduleItem = moduleName ? Categories.findItem('Modules', moduleName) : null;
         if (moduleItem) {
