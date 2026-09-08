@@ -345,10 +345,10 @@ class ForagingBot extends ModuleBase {
     renderConnectedBlocks() {
         if (!this.debug || this.connectedBlocks.length === 0) return;
 
-        this.connectedBlocks.forEach((location) => {
-            location.renderPosition ||= new Vec3d(location.x, location.y, location.z);
-            Render3D.drawWireFrameBox(location.renderPosition, DEBUG_BLOCK_COLOR);
-        });
+        Render3D.drawWireFrameBoxes(
+            this.connectedBlocks.map((location) => (location.renderPosition ||= new Vec3d(location.x, location.y, location.z))),
+            DEBUG_BLOCK_COLOR
+        );
     }
 }
 

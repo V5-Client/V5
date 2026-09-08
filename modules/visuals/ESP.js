@@ -49,6 +49,9 @@ class ESP extends ModuleBase {
             const self = Player.getPlayer();
             const disableEspWithinDistanceSq = this.disableEspWithinDistance * this.disableEspWithinDistance;
 
+            const entities = [];
+            const names = [];
+            const namePositions = [];
             for (const player of players) {
                 if (String(player.getUUID()) === String(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
@@ -58,15 +61,18 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= disableEspWithinDistanceSq) continue;
 
-                Render3D.drawHitbox(entity, this.rgba, 4, false);
+                entities.push(entity);
 
                 if (!this.showNames) continue;
 
                 if (distanceSq <= (self.hasLineOfSight(entity) ? 64 * 64 : 32 * 32)) continue;
 
                 const vec = new Vec3d(player.getX(), player.getY() + 2.3, player.getZ());
-                Render3D.drawText(player.getName(), vec, 1.2, true, false, true);
+                names.push(player.getName());
+                namePositions.push(vec);
             }
+            Render3D.drawHitboxes(entities, this.rgba, 4, false);
+            Render3D.drawTexts(names, namePositions, 1.2, true, false, true);
         });
     }
 }

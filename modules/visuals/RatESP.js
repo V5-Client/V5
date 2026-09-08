@@ -74,16 +74,15 @@ class RatESP extends ModuleBase {
     renderRats() {
         this.rats = this.rats.filter((entity) => entity && !entity.isDead());
 
+        const positions = [];
         this.rats.forEach((entity) => {
             const position = this.getInterpolatedHeadPosition(entity);
             if (!position) return;
 
-            const cubeSize = 0.7;
-            const cubePos = new Vec3d(position.x, position.y, position.z);
-
-            Render3D.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
-            Render3D.drawTracer(cubePos, this.tracerColor, 2, false);
+            positions.push(new Vec3d(position.x, position.y, position.z));
         });
+        Render3D.drawSizedBoxes(positions, 0.7, 0.7, 0.7, this.fillColor, true, 4, false);
+        Render3D.drawTracers(positions, this.tracerColor, 2, false);
     }
 
     getInterpolatedHeadPosition(entity) {

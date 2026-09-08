@@ -258,15 +258,21 @@ class PeltQOL extends ModuleBase {
         const fill = new RenderColor(r, g, b, 90);
         const line = new RenderColor(r, g, b, 255);
 
+        const groups = new Map();
+        const tracers = [];
         this.animals.forEach((e) => {
             const w = e.getWidth();
             const h = e.getHeight();
             const x = e.getX();
             const y = e.getY();
             const z = e.getZ();
-            Render3D.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
-            Render3D.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
+            const key = `${w}:${h}`;
+            if (!groups.has(key)) groups.set(key, { w, h, positions: [] });
+            groups.get(key).positions.push(new Vec3d(x, y, z));
+            tracers.push(new Vec3d(x, y + h / 2, z));
         });
+        groups.forEach(({ w, h, positions }) => Render3D.drawSizedBoxes(positions, w, h, w, fill, true, 1, false));
+        Render3D.drawTracers(tracers, line, 2, false);
     }
 }
 

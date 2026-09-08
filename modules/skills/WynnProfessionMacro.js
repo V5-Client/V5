@@ -13,6 +13,10 @@ import { File, Vec3d } from '../../utils/Constants';
 
 const CONFIG_DIR = 'V5Config';
 const CONFIG_PATH = 'WynnProfession/route.json';
+const ROUTE_FILL_COLOR = new RenderColor(63, 191, 127, 80);
+const ROUTE_SELECTED_FILL_COLOR = new RenderColor(85, 255, 85, 120);
+const ROUTE_WIRE_COLOR = new RenderColor(63, 191, 127, 255);
+const ROUTE_LINE_COLOR = new RenderColor(63, 191, 127, 180);
 
 const BLACKSMITH_LOCATIONS = [
     { x: -2005, y: 75, z: -4462 },
@@ -469,23 +473,24 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     renderRoute() {
-        for (let i = 0; i < this.route.length; i++) {
-            const point = this.route[i];
-            if (!this.isValidPoint(point)) continue;
-
-            const color = i === this.currentIndex ? new RenderColor(85, 255, 85, 120) : new RenderColor(63, 191, 127, 80);
-            Render3D.drawStyledBox(
-                new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)),
-                color,
-                new RenderColor(63, 191, 127, 255),
-                3,
-                false
-            );
-
-            const next = this.route[(i + 1) % this.route.length];
-            if (!this.isValidPoint(next)) continue;
-            Render3D.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), new RenderColor(63, 191, 127, 180), 2, false);
+        if (!this.route.length) return;
+        const selected = [];
+        const positions = [];
+        let linePoints = [];
+        for (let i = 0; i <= this.route.length; i++) {
+            const point = this.route[i % this.route.length];
+            if (!this.isValidPoint(point)) {
+                if (linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_LINE_COLOR, 2, false);
+                linePoints = [];
+                continue;
+            }
+            linePoints.push(new Vec3d(point.x, point.y, point.z));
+            if (i === this.route.length) continue;
+            (i === this.currentIndex ? selected : positions).push(new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)));
         }
+        if (linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_LINE_COLOR, 2, false);
+        Render3D.drawStyledBoxes(selected, ROUTE_SELECTED_FILL_COLOR, ROUTE_WIRE_COLOR, 3, false);
+        Render3D.drawStyledBoxes(positions, ROUTE_FILL_COLOR, ROUTE_WIRE_COLOR, 3, false);
     }
 
     getRouteProgressDisplay() {

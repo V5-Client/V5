@@ -118,24 +118,20 @@ export function drawLookPoints() {
     if (!cachedLookPoints.length || !Player.getPlayer()) return;
     const playerX = Player.getX();
     const playerZ = Player.getZ();
-    for (const point of cachedLookPoints) {
-        if (Math.abs(point.x - playerX) < 64 && Math.abs(point.z - playerZ) < 64) {
-            Render3D.drawSizedBox(new Vec3d(point.x, point.y + 0.2, point.z), 0.4, 0.4, 0.4, new RenderColor(255, 0, 255, 180), true, 1, true);
-        }
-    }
+    const positions = cachedLookPoints
+        .filter((point) => Math.abs(point.x - playerX) < 64 && Math.abs(point.z - playerZ) < 64)
+        .map((point) => new Vec3d(point.x, point.y + 0.2, point.z));
+    Render3D.drawSizedBoxes(positions, 0.4, 0.4, 0.4, new RenderColor(255, 0, 255, 180), true, 1, true);
 }
 
 export function drawFloatingSpline(path) {
     if (!path || path.length < 2) return;
-    for (let i = 0; i < path.length - 1; i++) {
-        Render3D.drawLine(
-            new Vec3d(path[i].x + 0.5, path[i].y + 2.62, path[i].z + 0.5),
-            new Vec3d(path[i + 1].x + 0.5, path[i + 1].y + 2.62, path[i + 1].z + 0.5),
-            new RenderColor(0, 255, 255, 255),
-            3,
-            true
-        );
-    }
+    Render3D.drawLines(
+        path.map((point) => new Vec3d(point.x + 0.5, point.y + 2.62, point.z + 0.5)),
+        new RenderColor(0, 255, 255, 255),
+        3,
+        true
+    );
 }
 
 export function clearSplineCache() {

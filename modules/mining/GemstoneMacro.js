@@ -13,6 +13,9 @@ import { Rotations } from '../../utils/player/Rotations';
 import { getTPS } from '../../utils/player/ServerInfo';
 import { MiningBot } from './MiningBot';
 
+const ROUTE_FILL_COLOR = new RenderColor(125, 18, 255, 80);
+const ROUTE_WIRE_COLOR = new RenderColor(125, 18, 255, 255);
+
 class GemstoneMacro extends ModuleBase {
     constructor() {
         super({
@@ -104,37 +107,27 @@ class GemstoneMacro extends ModuleBase {
             () => {
                 if (!this.route || this.route.length < 1) return;
 
-                const amethyst = [125, 18, 255];
-
-                for (let i = 0; i < this.route.length; i++) {
-                    const current = this.route[i];
-                    if (!current || typeof current.x !== 'number') continue;
-
-                    const pos = new Vec3d(current.x, current.y, current.z);
-
-                    Render3D.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    Render3D.drawStyledBox(
-                        pos,
-                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 80),
-                        new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
-                        2,
-                        false
-                    );
-
-                    const nextIndex = (i + 1) % this.route.length;
-
-                    if (this.route.length > 1) {
-                        const next = this.route[nextIndex];
-                        if (next && typeof next.x === 'number') {
-                            Render3D.drawLine(
-                                new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
-                                new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
-                                new RenderColor(amethyst[0], amethyst[1], amethyst[2], 255),
-                                2
-                            );
-                        }
+                const positions = [];
+                const names = [];
+                const namePositions = [];
+                let linePoints = [];
+                for (let i = 0; i <= this.route.length; i++) {
+                    const current = this.route[i % this.route.length];
+                    if (!current || typeof current.x !== 'number') {
+                        if (linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_WIRE_COLOR, 2, false);
+                        linePoints = [];
+                        continue;
                     }
+                    const pos = new Vec3d(current.x, current.y, current.z);
+                    linePoints.push(pos.add(0.5, 0.5, 0.5));
+                    if (i === this.route.length) continue;
+                    positions.push(pos);
+                    names.push(`#${i + 1}`);
+                    namePositions.push(pos.add(0.5, 1.3, 0.5));
                 }
+                if (this.route.length > 1 && linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_WIRE_COLOR, 2, false);
+                Render3D.drawTexts(names, namePositions, 1.2, true, false, true);
+                Render3D.drawStyledBoxes(positions, ROUTE_FILL_COLOR, ROUTE_WIRE_COLOR, 2, false);
             }
         );
 

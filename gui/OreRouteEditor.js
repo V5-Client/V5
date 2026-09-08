@@ -27,6 +27,7 @@ const ROUTE_MENU_VISIBLE_ROWS = 10;
 const routeEditorGui = new Gui();
 
 let oreMiner = null;
+let renderRegistration = null;
 let routeName = 'route';
 let scrollY = 0;
 let expandedWaypoint = -1;
@@ -623,7 +624,15 @@ routeEditorGui.registerScrolled((mouseX, mouseY, direction) => {
     if (layout.list && isInside(mouseX, mouseY, layout.list)) scrollY = Math.max(0, scrollY - direction * ROW_HEIGHT * 2);
 });
 
+routeEditorGui.registerOpened(() => {
+    if (!renderRegistration) renderRegistration = Render2D.registerV5Render(renderEditor);
+});
+
 routeEditorGui.registerClosed(() => {
+    if (renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
     commitField();
     routesOpen = false;
     if (!mineableEditMode) {
@@ -708,14 +717,14 @@ register('guiKey', (char, keyCode, gui, event) => {
     cancel(event);
 });
 
-Render2D.registerV5Render(() => {
+const renderEditor = () => {
     if (!routeEditorGui.isOpen()) return;
     try {
         drawEditor(Client.getMouseX(), Client.getMouseY());
     } catch (error) {
         console.error('[Ore Route Editor] Render error:', error);
     }
-});
+};
 
 export const oreRouteEditor = {
     open(module) {

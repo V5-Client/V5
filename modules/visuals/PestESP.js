@@ -69,13 +69,17 @@ class PestESP extends ModuleBase {
             () => this.enabled && area() === 'Garden',
             'postRenderWorld',
             () => {
+                const entities = [];
+                const positions = [];
                 this.persistentPests.forEach((data) => {
                     if (!data.entity || data.entity.isDead()) return;
-                    Render3D.drawHitbox(data.entity.toMC(), PEST_BOX_COLOR, 5, false);
+                    entities.push(data.entity.toMC());
 
                     data.position ||= new Vec3d(data.x, data.y, data.z);
-                    Render3D.drawTracer(data.position, PEST_TRACER_COLOR, 2, false);
+                    positions.push(data.position);
                 });
+                Render3D.drawHitboxes(entities, PEST_BOX_COLOR, 5, false);
+                Render3D.drawTracers(positions, PEST_TRACER_COLOR, 2, false);
             }
         );
     }

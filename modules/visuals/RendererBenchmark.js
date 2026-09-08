@@ -36,11 +36,24 @@ let phaseStartedAt = 0;
 let frames = 0;
 let positions = [];
 let boxes = [];
+let renderRegistration = null;
 
 const currentPhase = () => phases[phaseIndex];
 
+const updateRenderRegistration = () => {
+    const phase = currentPhase();
+    const active = phase?.renderer === '2D' && !['String', 'Image', 'Player'].includes(phase.type);
+    if (active && !renderRegistration) {
+        renderRegistration = Render2D.registerV5Render(renderBenchmark);
+    } else if (!active && renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
+};
+
 const stop = () => {
     phases = [];
+    updateRenderRegistration();
     ChatLib.chat('&cRenderer benchmark stopped.');
 };
 
@@ -93,7 +106,8 @@ const start = (mode) => {
     phaseIndex = 0;
     frames = 0;
     phaseStartedAt = Date.now();
-    ChatLib.chat(`&aRenderer benchmark started: &f${phases.length} phases, ${COUNT} draws/frame, 15s each.`);
+    updateRenderRegistration();
+    ChatLib.chat(`&aRenderer benchmark started: &f${phases.length} phases, ${COUNT} items/frame, 15s each.`);
 };
 
 const finishFrame = (phase) => {
@@ -105,10 +119,11 @@ const finishFrame = (phase) => {
     phaseIndex++;
     frames = 0;
     phaseStartedAt = Date.now();
+    updateRenderRegistration();
     if (!currentPhase()) ChatLib.chat('&aRenderer benchmark complete.');
 };
 
-Render2D.registerV5Render(() => {
+const renderBenchmark = () => {
     const phase = currentPhase();
     if (!phase || phase.renderer !== '2D' || ['String', 'Image', 'Player'].includes(phase.type)) return;
 
@@ -164,7 +179,7 @@ Render2D.registerV5Render(() => {
     Render2D.resetScissor();
     Render2D.restore();
     finishFrame(phase);
-});
+};
 
 register('renderOverlay', () => {
     const phase = currentPhase();
@@ -190,39 +205,49 @@ register('postRenderWorld', () => {
     const player = Player.getPlayer();
     if (!player) return;
 
-    positions.forEach((position, index) => {
-        switch (phase.type) {
-            case 'Filled Box':
-                Render3D.drawFilledBox(position, COLOR, false);
-                break;
-            case 'Wireframe Box':
-                Render3D.drawWireFrameBox(position, COLOR, 1, false);
-                break;
-            case 'Box':
-                Render3D.drawBox(boxes[index], COLOR, 1, false);
-                break;
-            case 'Styled Box':
-                Render3D.drawStyledBox(position, COLOR, COLOR_ALT, 1, false);
-                break;
-            case 'Sized Filled Box':
-                Render3D.drawSizedBox(position, 0.25, 0.25, 0.25, COLOR, true, 1, false);
-                break;
-            case 'Sized Wireframe Box':
-                Render3D.drawSizedBox(position, 0.25, 0.25, 0.25, COLOR, false, 1, false);
-                break;
-            case 'Line':
-                Render3D.drawLine(position, position.add(0, 0.5, 0), COLOR, 1, false);
-                break;
-            case 'Tracer':
-                Render3D.drawTracer(position, COLOR, 1, false);
-                break;
-            case 'Text':
-                Render3D.drawText('V5', position.add(0, 0.5, 0), 0.5, false, false, false);
-                break;
-            default:
-                Render3D.drawHitbox(player, COLOR, 1, false);
-        }
-    });
+    switch (phase.type) {
+        case 'Filled Box':
+            Render3D.drawFilledBoxes(positions, COLOR, false);
+            break;
+        case 'Wireframe Box':
+            Render3D.drawWireFrameBoxes(positions, COLOR, 1, false);
+            break;
+        case 'Box':
+            Render3D.drawBoxes(boxes, COLOR, 1, false);
+            break;
+        case 'Styled Box':
+            Render3D.drawStyledBoxes(positions, COLOR, COLOR_ALT, 1, false);
+            break;
+        case 'Sized Filled Box':
+            Render3D.drawSizedBoxes(positions, 0.25, 0.25, 0.25, COLOR, true, 1, false);
+            break;
+        case 'Sized Wireframe Box':
+            Render3D.drawSizedBoxes(positions, 0.25, 0.25, 0.25, COLOR, false, 1, false);
+            break;
+        case 'Line':
+            positions.forEach((position) => Render3D.drawLine(position, position.add(0, 0.5, 0), COLOR, 1, false));
+            break;
+        case 'Tracer':
+            Render3D.drawTracers(positions, COLOR, 1, false);
+            break;
+        case 'Text':
+            Render3D.drawTexts(
+                positions.map(() => 'V5'),
+                positions.map((position) => position.add(0, 0.5, 0)),
+                0.5,
+                false,
+                false,
+                false
+            );
+            break;
+        default:
+            Render3D.drawHitboxes(
+                positions.map(() => player),
+                COLOR,
+                1,
+                false
+            );
+    }
     finishFrame(phase);
 });
 

@@ -78,10 +78,8 @@ class GlowingMushroomESP extends ModuleBase {
     }
 
     renderMushrooms() {
-        for (const data of this.mushrooms.values()) {
-            const pos = new Vec3d(data.x + 0.5, data.y + 0.001, data.z + 0.5);
-            Render3D.drawSizedBox(pos, 0.4, 0.4, 0.4, this.fillColor, true, 1, false);
-        }
+        const positions = Array.from(this.mushrooms.values(), (data) => new Vec3d(data.x + 0.5, data.y + 0.001, data.z + 0.5));
+        Render3D.drawSizedBoxes(positions, 0.4, 0.4, 0.4, this.fillColor, true, 1, false);
     }
 }
 

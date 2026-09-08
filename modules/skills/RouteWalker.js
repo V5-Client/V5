@@ -63,11 +63,13 @@ class RouteWalkerer extends ModuleBase {
             };
             this.renderRoute = route.map((point) => {
                 const valid = this.checkPoint(point);
+                const color = getColor(point.movements);
                 return {
                     point,
                     position: valid ? new Vec3d(point.x, point.y, point.z) : null,
                     endpoint: valid ? new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5) : null,
-                    color: getColor(point.movements),
+                    color,
+                    colorKey: color.getPacked(),
                 };
             });
             const validEntries = this.renderRoute.filter((entry) => entry.endpoint);
@@ -133,28 +135,34 @@ class RouteWalkerer extends ModuleBase {
                 const route = this.renderRoute;
                 if (!route.length) return;
 
-                route.forEach((entry, i) => {
+                const groups = new Map();
+                route.forEach((entry) => {
                     if (!entry.position || !entry.endpoint) return;
-                    Render3D.drawStyledBox(entry.position, entry.color, entry.color, 4, false);
-
-                    if (!this.renderLinePoints.length && i < route.length - 1) {
-                        const next = route[i + 1];
-                        if (!next.endpoint) return;
-                        Render3D.drawLine(entry.endpoint, next.endpoint, next.color, 3, false);
-                    }
+                    const key = entry.colorKey;
+                    if (!groups.has(key)) groups.set(key, { color: entry.color, positions: [] });
+                    groups.get(key).positions.push(entry.position);
                 });
+                groups.forEach(({ color, positions }) => Render3D.drawStyledBoxes(positions, color, color, 4, false));
 
                 if (this.renderLinePoints.length) {
                     Render3D.drawLines(this.renderLinePoints, this.renderLineColors, 3, false);
                     return;
                 }
 
-                const firstPoint = route[0];
-                const lastPoint = route[route.length - 1];
-
-                if (!firstPoint.endpoint || !lastPoint.endpoint) return;
-
-                Render3D.drawLine(lastPoint.endpoint, firstPoint.endpoint, firstPoint.color, 3, false);
+                let points = [];
+                let colors = [];
+                for (let i = 0; i <= route.length; i++) {
+                    const entry = route[i % route.length];
+                    if (!entry.endpoint) {
+                        if (points.length > 1) Render3D.drawLines(points, colors, 3, false);
+                        points = [];
+                        colors = [];
+                        continue;
+                    }
+                    if (points.length) colors.push(entry.color);
+                    points.push(entry.endpoint);
+                }
+                if (points.length > 1) Render3D.drawLines(points, colors, 3, false);
             }
         );
 

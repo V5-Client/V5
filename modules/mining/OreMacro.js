@@ -1798,6 +1798,11 @@ class OreMiner extends ModuleBase {
     render() {
         if (!this.showOverlay || !this.loadedWaypoints) return;
         const closestWaypoint = this.loadedWaypoints.length ? this.findNearestWaypoint() : -1;
+        const boxGroups = new Map();
+        const names = [];
+        const namePositions = [];
+        const mineNames = [];
+        const mineNamePositions = [];
         this.loadedWaypoints.forEach((waypoint, index) => {
             const colors =
                 this.editing && index === this.selectedWaypoint
@@ -1809,12 +1814,15 @@ class OreMiner extends ModuleBase {
                         : waypoint.type === 'Walk'
                           ? [COLORS.walkFill, COLORS.walkWire]
                           : [COLORS.teleportFill, COLORS.teleportWire];
-            Render3D.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
-            Render3D.drawText(`[${index}]`, new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5), 1.2, true, false, false);
+            if (!boxGroups.has(colors[0])) boxGroups.set(colors[0], { colors, positions: [], selectedPositions: [] });
+            boxGroups.get(colors[0]).positions.push(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z));
+            names.push(`[${index}]`);
+            namePositions.push(new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5));
             if (index === closestWaypoint) {
                 waypoint.minableBlocks.forEach((block, mineIndex) => {
                     const type = block.oneTap ? '1T' : block.rOneTap ? 'RT' : 'M';
-                    Render3D.drawText(`${type}[${mineIndex}]`, new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5), 1, true, false, true);
+                    mineNames.push(`${type}[${mineIndex}]`);
+                    mineNamePositions.push(new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5));
                 });
             }
             waypoint.minableBlocks.forEach((block) => {
@@ -1823,9 +1831,17 @@ class OreMiner extends ModuleBase {
                     : block.rOneTap
                       ? [COLORS.rOneTapFill, COLORS.rOneTapWire]
                       : [COLORS.mineFill, COLORS.mineWire];
-                Render3D.drawStyledBox(new Vec3d(block.x, block.y, block.z), mineColors[0], mineColors[1], index === this.selectedWaypoint ? 3 : 2, false);
+                if (!boxGroups.has(mineColors[0])) boxGroups.set(mineColors[0], { colors: mineColors, positions: [], selectedPositions: [] });
+                const group = boxGroups.get(mineColors[0]);
+                (index === this.selectedWaypoint ? group.selectedPositions : group.positions).push(new Vec3d(block.x, block.y, block.z));
             });
         });
+        boxGroups.forEach(({ colors, positions, selectedPositions }) => {
+            if (positions.length) Render3D.drawStyledBoxes(positions, colors[0], colors[1], 2, false);
+            if (selectedPositions.length) Render3D.drawStyledBoxes(selectedPositions, colors[0], colors[1], 3, false);
+        });
+        Render3D.drawTexts(names, namePositions, 1.2, true, false, false);
+        Render3D.drawTexts(mineNames, mineNamePositions, 1, true, false, true);
         if (this.currentRenderTarget) {
             const { x, y, z } = this.currentRenderTarget;
             Render3D.drawStyledBox(new Vec3d(x, y, z), COLORS.currentFill, COLORS.currentWire, 3, false);

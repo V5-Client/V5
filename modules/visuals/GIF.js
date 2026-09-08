@@ -220,6 +220,7 @@ class GIFOverlay extends ModuleBase {
         this.instances = [];
         this.positionConfig = getConfigFile('Gifs/gif_positions.json') || {};
         this.renderOverEverything = true;
+        this.renderRegistration = null;
 
         const gifFiles = this.getGifFiles();
         const gifNames = gifFiles.map((f) => f.getName());
@@ -230,12 +231,15 @@ class GIFOverlay extends ModuleBase {
             this.addMultiToggle('No GIFs Found', ['Put .gif files in', 'config/ChatTriggers', 'modules/V5Config/Gifs'], false, () => {});
         }
 
-        this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
-
-        Render2D.registerV5Render(() => {
-            if (!this.renderOverEverything || !this.enabled) return;
-            this.render();
-        });
+        this.addToggle(
+            'Render Over Everything',
+            (value) => {
+                this.renderOverEverything = !!value;
+                this.updateRenderRegistration();
+            },
+            'Render GIFs above GUI and overlays',
+            true
+        );
 
         this.on('renderOverlay', () => {
             if (this.renderOverEverything) return;
@@ -249,6 +253,24 @@ class GIFOverlay extends ModuleBase {
             this.resetAll();
         });
         register('guiClosed', () => this.savePositions());
+    }
+
+    onEnable() {
+        this.updateRenderRegistration();
+    }
+
+    onDisable() {
+        this.updateRenderRegistration();
+    }
+
+    updateRenderRegistration() {
+        const active = this.enabled && this.renderOverEverything && this.instances.some((inst) => inst.loaded && inst.frameCount > 0);
+        if (active && !this.renderRegistration) {
+            this.renderRegistration = Render2D.registerV5Render(() => this.render());
+        } else if (!active && this.renderRegistration) {
+            Render2D.unregisterV5Render(this.renderRegistration);
+            this.renderRegistration = null;
+        }
     }
 
     isChatOpen() {
@@ -285,6 +307,7 @@ class GIFOverlay extends ModuleBase {
             }
         });
 
+        this.updateRenderRegistration();
         this.savePositions();
     }
 

@@ -216,6 +216,7 @@ class ChocolateFactory extends ModuleBase {
     }
 
     renderEggs() {
+        const groups = new Map();
         this.detectedEggs.forEach((egg) => {
             if (!egg || egg.isFound || !egg.entity || egg.entity.isDead()) return;
 
@@ -225,8 +226,14 @@ class ChocolateFactory extends ModuleBase {
             const tracerPos = new Vec3d(x, y + 1.75, z);
             const boxPos = new Vec3d(x, y + 1.45, z);
 
-            Render3D.drawSizedBox(boxPos, 0.6, 0.6, 0.6, egg.color.fill, true, 2, false);
-            Render3D.drawTracer(tracerPos, egg.color.line, 2, false);
+            if (!groups.has(egg.color)) groups.set(egg.color, { boxes: [], tracers: [] });
+            const group = groups.get(egg.color);
+            group.boxes.push(boxPos);
+            group.tracers.push(tracerPos);
+        });
+        groups.forEach(({ boxes, tracers }, color) => {
+            Render3D.drawSizedBoxes(boxes, 0.6, 0.6, 0.6, color.fill, true, 2, false);
+            Render3D.drawTracers(tracers, color.line, 2, false);
         });
     }
 

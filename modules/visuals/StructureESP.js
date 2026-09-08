@@ -58,6 +58,10 @@ class StructureESP extends ModuleBase {
             const playerZ = Player.getZ();
             const maxDistance = Math.max(16, (Client.getMinecraft().options.getEffectiveRenderDistance() - 1) * 16);
 
+            const fairyPositions = [];
+            const structurePositions = [];
+            const names = [];
+            const namePositions = [];
             for (let i = 0; i + 2 < blocks.length; i += 3) {
                 const name = String(labels[i / 3]);
                 const x = blocks[i] + 0.5;
@@ -69,11 +73,13 @@ class StructureESP extends ModuleBase {
                 const distance = Math.hypot(dx, dy, dz);
                 const scale = distance > maxDistance ? maxDistance / distance : 1;
                 const pos = new Vec3d(playerX + dx * scale, playerY + dy * scale, playerZ + dz * scale);
-                const color = name === 'Fairy Grotto' ? FAIRY_COLOR : STRUCTURE_COLOR;
-
-                Render3D.drawSizedBox(pos, 8, 8, 8, color, true, 1, false);
-                Render3D.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);
+                (name === 'Fairy Grotto' ? fairyPositions : structurePositions).push(pos);
+                names.push(name);
+                namePositions.push(pos.add(0, 8.5, 0));
             }
+            Render3D.drawSizedBoxes(fairyPositions, 8, 8, 8, FAIRY_COLOR, true, 1, false);
+            Render3D.drawSizedBoxes(structurePositions, 8, 8, 8, STRUCTURE_COLOR, true, 1, false);
+            Render3D.drawTexts(names, namePositions, 7.5, true, false, true);
         } catch (e) {
             console.error(e);
         }

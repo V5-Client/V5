@@ -622,19 +622,28 @@ class Combat extends ModuleBase {
     }
 
     renderTargets() {
+        const groups = new Map();
         this.targets.forEach((target) => {
             const blacklisted = this.blacklistedTargets.has(this.getTargetUuid(target));
             if (!blacklisted && !this.isTargetUsable(target)) return;
 
             const entity = target.toMC ? target.toMC() : target;
             const selected = this.sameTarget(target, this.target);
-            const color = blacklisted ? new RenderColor(0, 0, 0, 150) : selected ? new RenderColor(255, 0, 0, 100) : new RenderColor(0, 70, 200, 100);
-            Render3D.drawHitbox(entity, color, selected ? 7 : 3, false);
+            const key = `${blacklisted}:${selected}`;
+            if (!groups.has(key))
+                groups.set(key, {
+                    color: blacklisted ? new RenderColor(0, 0, 0, 150) : selected ? new RenderColor(255, 0, 0, 100) : new RenderColor(0, 70, 200, 100),
+                    thickness: selected ? 7 : 3,
+                    entities: [],
+                });
+            groups.get(key).entities.push(entity);
         });
-
-        this.activeBlackholes.forEach((blackhole) => {
-            Render3D.drawFilledBox(new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5), new RenderColor(0, 0, 0, 150), false);
-        });
+        groups.forEach(({ entities, color, thickness }) => Render3D.drawHitboxes(entities, color, thickness, false));
+        Render3D.drawFilledBoxes(
+            this.activeBlackholes.map((blackhole) => new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5)),
+            new RenderColor(0, 0, 0, 150),
+            false
+        );
     }
 
     getTargetDisplayName(target) {

@@ -540,21 +540,23 @@ class EtherwarpPathHandler {
         if (!World.isLoaded()) return;
         if (!this.renderGeometry.length) return;
 
-        for (let i = 0; i < this.renderGeometry.length; i++) {
-            const geometry = this.renderGeometry[i];
-
-            if (geometry.boxes.length) {
-                for (const box of geometry.boxes) {
-                    Render3D.drawFilledBox(box, geometry.color, false);
-                    Render3D.drawWireFrameBox(box, geometry.color, 3, false);
-                }
-            } else {
-                Render3D.drawStyledBox(geometry.position, geometry.color, geometry.color, 3, false);
-            }
-
-            const next = this.renderGeometry[i + 1];
-            if (next) Render3D.drawLine(geometry.center, next.center, PATH_COLORS.pending, 3, false);
+        const groups = new Map();
+        for (const geometry of this.renderGeometry) {
+            if (!groups.has(geometry.color)) groups.set(geometry.color, { boxes: [], positions: [] });
+            const group = groups.get(geometry.color);
+            if (geometry.boxes.length) group.boxes.push(...geometry.boxes);
+            else group.positions.push(geometry.position);
         }
+        groups.forEach(({ boxes, positions }, color) => {
+            if (boxes.length) Render3D.drawBoxes(boxes, color, 3, false);
+            if (positions.length) Render3D.drawStyledBoxes(positions, color, color, 3, false);
+        });
+        Render3D.drawLines(
+            this.renderGeometry.map((geometry) => geometry.center),
+            PATH_COLORS.pending,
+            3,
+            false
+        );
     }
 
     handleWorldUnload() {
