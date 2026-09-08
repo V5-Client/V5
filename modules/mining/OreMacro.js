@@ -77,6 +77,8 @@ const COLORS = {
     warpWire: new RenderColor(144, 224, 239, 230),
     deployableFill: new RenderColor(173, 232, 244, 20),
     deployableWire: new RenderColor(173, 232, 244, 230),
+    skipMineFill: new RenderColor(140, 140, 160, 20),
+    skipMineWire: new RenderColor(140, 140, 160, 200),
     selectedFill: new RenderColor(202, 240, 248, 35),
     selectedWire: new RenderColor(202, 240, 248, 255),
     mineFill: new RenderColor(0, 180, 216, 25),
@@ -366,6 +368,7 @@ class OreMiner extends ModuleBase {
         this.message('  &fedit add warp <destination> [index] &7- append, or insert and shift later waypoints');
         this.message('  &fedit add <mine|onetap|ronetap> [waypoint] &7- add the block under your crosshair');
         this.message('  &fedit deployable <waypoint> &7- toggle deployable placement');
+        this.message('  &fedit mine <waypoint> &7- toggle mining at a waypoint');
         this.message('  &fedit remove <waypoint> &7- remove a waypoint');
         this.message('  &fedit removemine <waypoint> <mine> &7- remove a mining block');
         this.message('  &fedit undo | clear | list | done');
@@ -385,6 +388,8 @@ class OreMiner extends ModuleBase {
             return this.message('&cUsage: /v5 mining ore edit add <tp|walk|warp|mine|onetap|ronetap> [waypoint]');
         } else if (action === 'deployable') {
             return this.toggleDeployable(args[0]);
+        } else if (action === 'mine') {
+            return this.toggleMine(args[0]);
         } else if (action === 'removemine') {
             if (args[1] === undefined) return this.message('&cUsage: /v5 mining ore edit removemine <waypoint> <mine>');
             return this.removeRoutePoint(args[0], args[1]);
@@ -403,7 +408,7 @@ class OreMiner extends ModuleBase {
             return this.message('&7Route editing finished.');
         }
 
-        this.message('&cUsage: /v5 mining ore edit <add|deployable|remove|removemine|undo|clear|list|done>');
+        this.message('&cUsage: /v5 mining ore edit <add|deployable|mine|remove|removemine|undo|clear|list|done>');
     }
 
     addWaypoint(type, indexArg) {
@@ -419,6 +424,7 @@ class OreMiner extends ModuleBase {
             type: type === 'tp' ? 'Tp' : 'Walk',
             minableBlocks: [],
             isDeployable: false,
+            mine: true,
         });
         this.selectedWaypoint = index;
         const inserted = index < route.length - 1;
@@ -442,6 +448,7 @@ class OreMiner extends ModuleBase {
             warpCommand,
             minableBlocks: [],
             isDeployable: false,
+            mine: true,
         });
         this.selectedWaypoint = index;
         const inserted = index < route.length - 1;
@@ -486,6 +493,16 @@ class OreMiner extends ModuleBase {
         this.loadedWaypoints[index].isDeployable = !this.loadedWaypoints[index].isDeployable;
         this.selectedWaypoint = index;
         this.message(`&aWaypoint [${index}] deployable: &f${this.loadedWaypoints[index].isDeployable}`);
+    }
+
+    toggleMine(indexArg) {
+        const index = Number.parseInt(indexArg, 10);
+        if (!this.loadedWaypoints?.[index]) return this.message('&cProvide a valid waypoint index.');
+
+        this.recordUndo();
+        this.loadedWaypoints[index].mine = this.loadedWaypoints[index].mine === false;
+        this.selectedWaypoint = index;
+        this.message(`&aWaypoint [${index}] mine: &f${this.loadedWaypoints[index].mine !== false}`);
     }
 
     removeRoutePoint(waypointArg, mineArg) {
@@ -549,9 +566,10 @@ class OreMiner extends ModuleBase {
         this.message(`&bOre route &7(${this.loadedWaypoints.length} waypoints):`);
         this.loadedWaypoints.forEach((waypoint, index) => {
             const deployable = waypoint.isDeployable ? ' &d[DEPLOYABLE]' : '';
+            const skipMine = waypoint.mine === false ? ' &8[NO MINE]' : '';
             const warpInfo = waypoint.type === 'Warp' ? ` &e/warp ${waypoint.warpCommand}` : '';
             this.message(
-                `  &8[${index}] &f${waypoint.type}${deployable}${warpInfo} &7@ &e${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z} &7- &f${waypoint.minableBlocks.length} blocks`
+                `  &8[${index}] &f${waypoint.type}${deployable}${skipMine}${warpInfo} &7@ &e${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z} &7- &f${waypoint.minableBlocks.length} blocks`
             );
             waypoint.minableBlocks.forEach((block, mineIndex) => {
                 const oneTap = block.oneTap ? ' &6[ONE-TAP]' : block.rOneTap ? ' &b[R-ONE-TAP]' : '';
@@ -681,7 +699,12 @@ class OreMiner extends ModuleBase {
             warpCommand: type === 'warp' ? String(waypoint.warpCommand || '') : undefined,
             minableBlocks,
             isDeployable: !!waypoint.isDeployable,
+            mine: waypoint.mine !== false,
         };
+    }
+
+    shouldMineAt(waypoint) {
+        return waypoint?.mine !== false;
     }
 
     normalizePosition(position) {
@@ -898,6 +921,8 @@ class OreMiner extends ModuleBase {
                 Client.setKey('leftclick', false);
                 if (waypoint.isDeployable && this.deployableWaypointsEnabled && !this.hasNearbyDeployable(waypoint.pos)) {
                     this.enterState('DEPLOYABLE');
+                } else if (!this.shouldMineAt(waypoint)) {
+                    this.enterState('MINE_RELEASE');
                 } else {
                     Guis.setItemSlot(this.drillSlot);
                     this.enterState('MINE_NEXT');
@@ -1098,7 +1123,9 @@ class OreMiner extends ModuleBase {
         const walkState = RoutePathWalker.tick({ x, y, z }, this.sneakWhileMining);
 
         if (walkState === 'COMPLETE') {
-            const hasAction = this.typeMineEnabled || waypoint.minableBlocks.length > 0 || (waypoint.isDeployable && this.deployableWaypointsEnabled);
+            const hasAction =
+                (this.shouldMineAt(waypoint) && (this.typeMineEnabled || waypoint.minableBlocks.length > 0)) ||
+                (waypoint.isDeployable && this.deployableWaypointsEnabled);
             if (!hasAction) {
                 if (!this.advanceWaypoint()) return;
                 const nextWaypoint = this.loadedWaypoints[this.waypointIndex];
@@ -1283,6 +1310,11 @@ class OreMiner extends ModuleBase {
     }
 
     beginNextBlock(waypoint) {
+        if (!this.shouldMineAt(waypoint)) {
+            Client.setKey('leftclick', false);
+            this.enterState('MINE_RELEASE');
+            return;
+        }
         if ((this.miningAbilityEnabled || this.abilityDrillSwapEnabled) && this.isMiningAbilityReady()) {
             this.startAbilitySequence();
             return;
@@ -1902,13 +1934,15 @@ class OreMiner extends ModuleBase {
             const colors =
                 this.editing && index === this.selectedWaypoint
                     ? [COLORS.selectedFill, COLORS.selectedWire]
-                    : waypoint.isDeployable
-                      ? [COLORS.deployableFill, COLORS.deployableWire]
-                      : waypoint.type === 'Warp'
-                        ? [COLORS.warpFill, COLORS.warpWire]
-                        : waypoint.type === 'Walk'
-                          ? [COLORS.walkFill, COLORS.walkWire]
-                          : [COLORS.teleportFill, COLORS.teleportWire];
+                    : waypoint.mine === false
+                      ? [COLORS.skipMineFill, COLORS.skipMineWire]
+                      : waypoint.isDeployable
+                        ? [COLORS.deployableFill, COLORS.deployableWire]
+                        : waypoint.type === 'Warp'
+                          ? [COLORS.warpFill, COLORS.warpWire]
+                          : waypoint.type === 'Walk'
+                            ? [COLORS.walkFill, COLORS.walkWire]
+                            : [COLORS.teleportFill, COLORS.teleportWire];
             RenderUtils.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
             RenderUtils.drawText(`[${index}]`, new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5), 1.2, true, false, false);
             if (index === closestWaypoint) {
