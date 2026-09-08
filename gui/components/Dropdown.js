@@ -313,6 +313,7 @@ export class MultiToggle {
         if (mouseX >= this.x && mouseX <= this.x + panelWidth && mouseY >= this.y && mouseY <= this.y + this.containerHeight) {
             this.expanded = !this.expanded;
             this.startAnimation(this.expanded);
+            if (this.expanded && typeof this.onExpand === 'function') this.onExpand();
             playClickSound();
             return true;
         }
