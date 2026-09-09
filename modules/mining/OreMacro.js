@@ -5,7 +5,6 @@ import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Raytrace, visibilityChecker } from '../../utils/Raytrace';
 import { Router } from '../../utils/Router';
-import RouteState from '../../utils/RouteState';
 import { manager } from '../../utils/SkyblockEvents';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Utils } from '../../utils/Utils';
@@ -178,10 +177,6 @@ class OreMiner extends ModuleBase {
             routeNames[0] || false
         );
         this.routesToggle.onExpand = () => this.refreshRoutesToggle();
-        RouteState.onChange((change) => {
-            if (change.folder !== ROUTE_DIR_RELATIVE) return;
-            this.refreshRoutesToggle(change);
-        });
         this.loopRoute = true;
         this.addToggle(
             'Loop Route',
@@ -595,21 +590,11 @@ class OreMiner extends ModuleBase {
         return Router.getFilesInDir(ROUTE_DIR_RELATIVE).filter((name) => name && name !== 'empty');
     }
 
-    getLoadedRouteName() {
-        const base =
-            String(this.loadedPath || '')
-                .split(/[/\\]/)
-                .pop() || '';
-        return sanitizeRouteName(base);
-    }
-
-    refreshRoutesToggle(change = {}) {
+    refreshRoutesToggle() {
         if (!this.routesToggle) return;
 
         const routes = this.getRouteNames();
         let keep = this.routesToggle.options.find((option) => option.enabled)?.name || null;
-        if (change.deleted && change.name === keep) keep = null;
-        if (change.previousName && change.previousName === keep) keep = change.name || keep;
         if (keep && !routes.includes(keep)) keep = null;
 
         this.routesToggle.options = routes.map((routeName) => {
@@ -621,17 +606,6 @@ class OreMiner extends ModuleBase {
                 animationStart: 0,
             };
         });
-
-        const loadedName = this.getLoadedRouteName();
-        if (change.deleted && loadedName === change.name) {
-            this.loadedPath = '';
-            this.loadedWaypoints = null;
-            this.selectedWaypoint = -1;
-            if (this.routeActive) this.stopRoute();
-        } else if (change.previousName && loadedName === change.previousName && change.name) {
-            const resolved = this.resolveRoutePath(change.name);
-            if (resolved) this.loadedPath = resolved.path;
-        }
     }
 
     loadRoute(path, startAfterLoad = false) {
