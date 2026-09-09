@@ -3,7 +3,7 @@ import { Swift } from './SwiftIntegration';
 import { Jump } from './PathWalker/PathJumps';
 import { setKeysForStraightLineCoords } from '../player/Movement';
 import { Vec3d } from '../Constants';
-import { Spline } from './PathSpline';
+import { generateSpline, createLookPoints, drawFloatingSpline, drawLookPoints } from './PathSpline';
 
 class OreRoutePathWalker {
     constructor() {
@@ -68,8 +68,8 @@ class OreRoutePathWalker {
             this.pathFlags = result.path_flags;
             this.pathFlagBits = result.path_flag_bits;
             this.keyNodes = result.keynodes;
-            this.splinePath = Spline.generateSpline(this.path, 1);
-            Spline.createLookPoints(this.splinePath);
+            this.splinePath = generateSpline(this.path, 1);
+            createLookPoints(this.splinePath);
         }
 
         if (this.hasReachedGoal()) {
@@ -142,8 +142,8 @@ class OreRoutePathWalker {
                 Render3D.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
             });
         }
-        if (debug || PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(this.splinePath);
-        if (debug || PathConfig.RENDER_LOOK_POINTS) Spline.drawLookPoints();
+        if (debug || PathConfig.RENDER_FLOATING_SPLINE) drawFloatingSpline(this.splinePath);
+        if (debug || PathConfig.RENDER_LOOK_POINTS) drawLookPoints();
         if ((debug || PathConfig.RENDER_LOOK_POINTS) && this.walkTarget) {
             Render3D.drawSizedBox(
                 new Vec3d(this.walkTarget.x, this.walkTarget.y, this.walkTarget.z),

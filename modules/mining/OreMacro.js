@@ -282,7 +282,7 @@ class OreMiner extends ModuleBase {
 
         this.bindToggleKey('Toggle Ore Miner');
         const editorKeyName = 'Open Ore Route Editor';
-        const editorKeyCode = (Utils.getConfigFile('keybinds.json') || {})[editorKeyName] || Keyboard.KEY_NONE;
+        const editorKeyCode = (getConfigFile('keybinds.json') || {})[editorKeyName] || Keyboard.KEY_NONE;
         this.editorKey = new KeyBind(editorKeyName, editorKeyCode, 'v5_mining');
         this.editorKey.registerKeyPress(() => oreRouteEditor.open(this));
         register('gameUnload', () => this._saveKey(editorKeyName, this.editorKey.getKeyCode()));
