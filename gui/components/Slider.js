@@ -272,7 +272,7 @@ export class Slider {
                 this.isTyping = true;
                 this.typingHandle = inputHandle;
                 TypingState.isTyping = true;
-                this.inputValue = String((this.isRange ? this.value[inputHandle] : this.value).toFixed(this.precision));
+                this.inputValue = '';
             }
             return true;
         }
