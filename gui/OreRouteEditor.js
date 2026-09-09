@@ -318,7 +318,13 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
 
         const expandable = waypoint.type !== 'Warp';
         drawText(expandable ? (index === expandedWaypoint ? '▼' : '▶') : '•', row.x + 8, row.y + ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
-        drawText(`[${index}] ${waypoint.type}`, row.x + 24, row.y + ROW_HEIGHT / 2, FontSizes.REGULAR, THEME.TEXT);
+        drawText(
+            `[${index}] ${waypoint.type}${waypoint.mine === false ? ' · no mine' : ''}`,
+            row.x + 24,
+            row.y + ROW_HEIGHT / 2,
+            FontSizes.REGULAR,
+            THEME.TEXT
+        );
         const coordinates = `${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z}`;
         const reorderX = row.x + row.width - 26;
         drawText(coordinates, reorderX - 8 - getTextWidth(coordinates, FontSizes.SMALL), row.y + ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
@@ -351,9 +357,16 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
             });
             const buttonY = row.y + height - 22;
             if (buttonY + 18 >= rect.y && buttonY <= rect.y + rect.height) {
+                const halfWidth = (row.width - 20) / 2;
+                drawButton(
+                    waypoint.mine === false ? '+ Mine' : '- Mine',
+                    { x: row.x + 8, y: buttonY, width: halfWidth, height: 18 },
+                    () => oreMiner.toggleMine(index),
+                    waypoint.mine !== false
+                );
                 drawButton(
                     waypoint.isDeployable ? '- Deployable' : '+ Deployable',
-                    { x: row.x + 8, y: buttonY, width: row.width - 16, height: 18 },
+                    { x: row.x + 12 + halfWidth, y: buttonY, width: halfWidth, height: 18 },
                     () => oreMiner.toggleDeployable(index),
                     waypoint.isDeployable
                 );
@@ -448,10 +461,19 @@ const drawDetails = (rect) => {
         drawText('Warp destination', rect.x + 16, actionY + 48, FontSizes.SMALL, THEME.TEXT_MUTED);
         drawInput('warp', fields.warp, { x: rect.x + 16, y: actionY + 56, width: rect.width - 32, height: 22 });
     } else {
+        drawButton(
+            waypoint.mine === false ? '+ Mine' : '- Mine',
+            { x: rect.x + 16, y: actionY + 52, width: 78, height: 22 },
+            () =>
+                mutateSelected((entry) => {
+                    entry.mine = entry.mine === false;
+                }),
+            waypoint.mine !== false
+        );
         drawText(
             `${waypoint.minableBlocks.length} mineable block${waypoint.minableBlocks.length === 1 ? '' : 's'}`,
-            rect.x + 16,
-            actionY + 58,
+            rect.x + 102,
+            actionY + 63,
             FontSizes.REGULAR,
             THEME.TEXT_MUTED
         );

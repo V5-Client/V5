@@ -19,6 +19,7 @@ class RouteState {
         this.macroName = null;
         this.isActive = false;
     }
+
 }
 
 const routeState = new RouteState();
