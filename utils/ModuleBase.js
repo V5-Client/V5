@@ -167,6 +167,8 @@ export class ModuleBase {
             } catch (e) {
                 console.error(`Error in ${this.name}.onEnable():`);
                 console.error('V5 Caught error' + e + e.stack);
+                this.toggle(false, parentManaged, toggleContext);
+                return;
             }
             if (!this.enabled) return;
             this._registers.forEach((h) => h.register());
