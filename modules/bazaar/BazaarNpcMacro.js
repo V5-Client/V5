@@ -6,15 +6,17 @@ import { setSignLine } from '../../utils/Sign';
 import { v5Command } from '../../utils/V5Commands';
 import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 
+// This entire macro is AI generated, good luck!
+
 const BAZAAR_URL = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const ITEMS_URL = 'https://api.hypixel.net/v2/resources/skyblock/items';
-const MAX_ORDER_ITEMS = 2_048;
+const MAX_ORDER_ITEMS = 4096;
 const MAX_API_PRICE_INCREASE = 0.05;
 const MIN_API_PRICE_SLACK = 1;
 const GUI_TIMEOUT = 10_000;
 const STUCK_RETRY_DELAY = 1_000;
 const COMMAND_CAPACITY = 10;
-const COMMAND_RESTORE_TIME = 1_050;
+const COMMAND_RESTORE_TIME = 1_050; // +50ms to tolerate server lag, if server lags too much it can still kick for spam tho
 const clean = (value) =>
     ChatLib.removeFormatting(String(value ?? ''))
         .trim()
