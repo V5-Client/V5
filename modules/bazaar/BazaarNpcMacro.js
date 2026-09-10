@@ -163,7 +163,7 @@ class BazaarNpcMacro extends ModuleBase {
         this.orderCheckQueue = [];
         this.activeTargets = [];
         this.claimedTargets = new Set();
-        this.skippedIds = new Set();
+        this.skippedIds = new Map();
         this.openBuyOrders = [];
         this.openOrderCount = 0;
         this.existingOrdersScanned = false;
@@ -287,7 +287,7 @@ class BazaarNpcMacro extends ModuleBase {
                 if (adoptOnly) return this.setAction(this.inspectOrder, 'Checking duplicates', this.clickDelay);
                 this.orderQueue = this.findBestFlips(bazaar, items);
                 if (!this.orderQueue.length) {
-                    if (!this.activeTargets.length) return this.fail('No Bazaar item meets the configured profit minimums.');
+                    if (!this.activeTargets.length) return this.setAction(this.openOrders, 'Waiting for profitable items', 60_000, 0);
                     if (resumeChecks) return this.setAction(this.inspectOrder, 'Checking orders', this.clickDelay, 0);
                     return this.setAction(this.openOrders, 'Checking orders', this.clickDelay, 0);
                 }
@@ -315,7 +315,7 @@ class BazaarNpcMacro extends ModuleBase {
             if (
                 !item ||
                 !prices.length ||
-                this.skippedIds.has(id) ||
+                this.skippedIds.get(id) > Date.now() ||
                 activeNames.has(itemName) ||
                 this.itemNameBlacklist.some((blocked) => itemName.includes(blocked))
             )
@@ -330,7 +330,6 @@ class BazaarNpcMacro extends ModuleBase {
             const profit = profitPerItem * quantity;
             const profitPercent = (profitPerItem / npcPrice) * 100;
 
-            // ponytail: 30 minutes of historical volume is the fill estimate; simulate the order book only if this proves inaccurate.
             if (quantity > 0 && this.isProfitablePrice({ npcPrice, quantity }, orderPrice)) {
                 candidates.push({
                     id,
@@ -402,7 +401,7 @@ class BazaarNpcMacro extends ModuleBase {
         this.target = this.orderQueue.shift() || null;
         if (!this.target) {
             if (this.orderCheckQueue.length) return this.setAction(this.checkNextOrder, 'Checking next order', this.clickDelay, 0);
-            if (!this.activeTargets.length) return this.fail('No selected items remained profitable.');
+            if (!this.activeTargets.length) return this.setAction(this.openOrders, 'Waiting for profitable items', 60_000, 0);
             return this.setAction(this.openOrders, 'Checking orders', this.clickDelay, 0);
         }
 
@@ -688,7 +687,7 @@ class BazaarNpcMacro extends ModuleBase {
             this.message(`Relisting one &b${quantity.toLocaleString()}x ${target.name}&f order.`);
             return this.placeNextOrder();
         }
-        this.skippedIds.add(target.id);
+        this.skippedIds.set(target.id, Date.now() + 60_000);
         this.message(`&eSkipping ${target.name}; the new top order is no longer profitable.`);
         if (this.orderCheckQueue.length) return this.checkNextOrder();
         this.inspectOrder();
@@ -798,6 +797,7 @@ class BazaarNpcMacro extends ModuleBase {
             });
         }
         this.openBuyOrders = buyOrders;
+        if (count < this.openOrderCount) this.orderLimitReached = false;
         this.openOrderCount = count;
     }
 
@@ -917,7 +917,7 @@ class BazaarNpcMacro extends ModuleBase {
 
     retryPrices(message) {
         this.message(`&e${message}`);
-        if (this.target?.id) this.skippedIds.add(this.target.id);
+        if (this.target?.id) this.skippedIds.set(this.target.id, Date.now() + 60_000);
         this.setAction(this.placeNextOrder, 'Skipping item', 500, 0);
     }
 
