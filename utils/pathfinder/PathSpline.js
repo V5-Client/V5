@@ -34,14 +34,19 @@ class PathSpline {
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
-        if (!keyPathNodes || keyPathNodes.length < 2) return [];
+        if (!keyPathNodes || typeof keyPathNodes.length !== 'number' || keyPathNodes.length < 2) return [];
 
-        const rawPoints = keyPathNodes.map((n) => {
-            const x = n.x !== undefined ? n.x : n[0];
-            const y = n.y !== undefined ? n.y : n[1];
-            const z = n.z !== undefined ? n.z : n[2];
-            return { x, y, z };
-        });
+        const rawPoints = [];
+        for (let index = 0; index < keyPathNodes.length; index++) {
+            const node = keyPathNodes[index];
+            if (!node) continue;
+            const x = Number(node.x !== undefined ? node.x : node[0]);
+            const y = Number(node.y !== undefined ? node.y : node[1]);
+            const z = Number(node.z !== undefined ? node.z : node[2]);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+            rawPoints.push({ x, y, z });
+        }
+        if (rawPoints.length < 2) return rawPoints;
 
         const simplifiedPoints = [rawPoints[0]];
         for (let i = 1; i < rawPoints.length - 1; i++) {

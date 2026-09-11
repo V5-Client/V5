@@ -13,9 +13,9 @@ import { manager } from '../../utils/SkyblockEvents';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
+import { MiningEngine } from '../../utils/MiningEngine';
 import { CombatBot } from '../combat/CombatBot';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, MOB_CONFIGS, TRASH_ITEMS } from './CommissionData';
-import { MiningBot } from './MiningBot';
 
 const STATES = {
     IDLE: 'Idle',
@@ -311,7 +311,7 @@ class CommissionMacro extends ModuleBase {
         this.currentPathWaypoint = null;
         this.currentPathWaypoints = [];
 
-        MiningBot.toggle(false, true);
+        MiningEngine.stop('commission');
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         FastEtherwarp.cancel(true);
@@ -329,7 +329,6 @@ class CommissionMacro extends ModuleBase {
 
     runLogic() {
         if (!this.enabled) return;
-        MiningBot.setCost(MiningBot.mithrilCosts);
 
         this.commissionClaimer.cancelNpcRotationIfPathing();
         this.handlePathingAvoidance();
@@ -646,8 +645,8 @@ class CommissionMacro extends ModuleBase {
 
         if (!this.drill) return true;
 
-        if (Player.getHeldItemIndex() !== this.drill.slot) {
-            Guis.setItemSlot(this.drill.slot);
+        if (Player.getHeldItemIndex() !== MiningEngine.getDrillSlot()) {
+            Guis.setItemSlot(MiningEngine.getDrillSlot());
             this.delay(3);
             return false;
         }
@@ -702,7 +701,7 @@ class CommissionMacro extends ModuleBase {
         if (this.drill) {
             const itemName = ChatLib.removeFormatting(this.drill.item.getName());
             this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
-            Guis.setItemSlot(this.drill.slot);
+            Guis.setItemSlot(MiningEngine.getDrillSlot());
         }
     }
 
@@ -856,13 +855,15 @@ class CommissionMacro extends ModuleBase {
         const itemName = ChatLib.removeFormatting(this.drill.item.getName());
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
-        Guis.setItemSlot(this.drill.slot);
+        Guis.setItemSlot(MiningEngine.getDrillSlot());
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
-        MiningBot.setPrioritizeTitanium(isTitaniumCommission);
-        MiningBot.setPrioritizeGrayMithril(true);
-
-        MiningBot.toggle(true, true);
+        MiningEngine.setPrioritizeTitanium(isTitaniumCommission);
+        MiningEngine.setPrioritizeGrayMithril(true);
+        MiningEngine.start({
+            owner: 'commission',
+            costs: MiningEngine.mithrilCosts,
+        });
     }
 
     startSlayer() {
@@ -897,7 +898,7 @@ class CommissionMacro extends ModuleBase {
 
         FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
-        MiningBot.toggle(false, true);
+        MiningEngine.stop('commission');
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false, true);
@@ -913,7 +914,7 @@ class CommissionMacro extends ModuleBase {
 
     onInventoryFull() {
         this.message('&eInventory full! Selling items...');
-        MiningBot.toggle(false, true);
+        MiningEngine.stop('commission');
         this.savedState = this.currentState;
         this.setState(STATES.SELLING);
     }
@@ -927,7 +928,7 @@ class CommissionMacro extends ModuleBase {
         this.commissionClaimer.cancelNpcRotation();
 
         this.message('&eDrill empty! Refueling...');
-        MiningBot.toggle(false, true);
+        MiningEngine.stop('commission');
         this.setState(STATES.REFUELING);
 
         MiningUtils.doRefueling(true, (success) => {

@@ -351,9 +351,16 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
             });
             const buttonY = row.y + height - 22;
             if (buttonY + 18 >= rect.y && buttonY <= rect.y + rect.height) {
+                const buttonWidth = (row.width - 24) / 2;
+                drawButton(
+                    waypoint.mine === false ? '+ Mining' : '- Mining',
+                    { x: row.x + 8, y: buttonY, width: buttonWidth, height: 18 },
+                    () => oreMiner.toggleWaypointMining(index),
+                    waypoint.mine !== false
+                );
                 drawButton(
                     waypoint.isDeployable ? '- Deployable' : '+ Deployable',
-                    { x: row.x + 8, y: buttonY, width: row.width - 16, height: 18 },
+                    { x: row.x + 16 + buttonWidth, y: buttonY, width: buttonWidth, height: 18 },
                     () => oreMiner.toggleDeployable(index),
                     waypoint.isDeployable
                 );

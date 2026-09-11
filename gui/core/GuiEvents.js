@@ -69,12 +69,18 @@ const handleGuiClosed = () => {
 };
 
 export const openGui = () => {
+    if (GuiState.isOpening || GuiState.myGui.isOpen()) return;
     GuiState.isOpening = true;
     GuiState.openStartTime = Date.now();
-    loadSettings();
-    categoryManager?.invalidateLayoutCache();
-    categoryManager?.invalidateContentHeightCache();
-    GuiState.myGui.open();
+    try {
+        loadSettings();
+        categoryManager?.invalidateLayoutCache();
+        categoryManager?.invalidateContentHeightCache();
+        GuiState.myGui.open();
+    } catch (error) {
+        GuiState.isOpening = false;
+        throw error;
+    }
 };
 
 GuiState.myGui.registerClicked((mouseX, mouseY, button) => {

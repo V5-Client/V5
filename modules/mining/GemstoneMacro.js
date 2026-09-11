@@ -1,6 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
+import { MiningEngine, MiningRotations } from '../../utils/MiningEngine';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { Raytrace } from '../../utils/Raytrace';
@@ -10,9 +11,7 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
-import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
-import { MiningBot } from './MiningBot';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -93,7 +92,7 @@ class GemstoneMacro extends ModuleBase {
                         return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
                     },
                     'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length + 1}` : 'No Route'),
-                    'Targets Found': () => MiningBot.foundLocations.length,
+                    'Targets Found': () => MiningEngine.foundLocations.length,
                     TPS: () => ServerInfo.getTPS().toFixed(1),
                 },
             },
@@ -135,7 +134,6 @@ class GemstoneMacro extends ModuleBase {
 
         this.on('tick', () => {
             if (!Player.getPlayer()) return;
-            MiningBot.setCost(this.getGemstoneCosts());
 
             switch (this.state) {
                 // put into etherwarping but gemini wanted to dislike me and do this
@@ -154,7 +152,7 @@ class GemstoneMacro extends ModuleBase {
                     break;
 
                 case this.STATES.ETHERWARPING:
-                    MiningBot.toggle(false);
+                    MiningEngine.stop('gemstone');
                     Client.setKey('leftclick', false);
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
 
@@ -201,7 +199,6 @@ class GemstoneMacro extends ModuleBase {
                         this.attemptedEtherwarp = false;
                         this.etherwarpTicks = 0;
                         this.closestPointIndex = (this.closestPointIndex + 1) % this.route.length;
-                        MiningBot.equipDrill = false;
 
                         this.state = this.STATES.MINING;
                         return;
@@ -213,17 +210,15 @@ class GemstoneMacro extends ModuleBase {
                         const player = Player.getPlayer();
                         if (!player?.isSneaking()) return;
 
-                        Rotations.lookAtVector(this.closestPoint, { speedMultiplier: 1 });
-                        Rotations.onComplete(() => {
+                        MiningRotations.lookAtVector(this.closestPoint, MiningEngine.rotationSpeed);
+                        ScheduleTask(this.FASTAOTV ? 2 : 5, () => {
                             if (!this.enabled) return;
-                            ScheduleTask(this.FASTAOTV ? 2 : 5, () => {
-                                this.rightClickEtherWarp(this.closestPoint);
-                                this.attemptedEtherwarp = true;
-                                this.lastX = Player.getX();
-                                this.lastY = Player.getY();
-                                this.lastZ = Player.getZ();
-                                Client.setKey('shift', false);
-                            });
+                            this.rightClickEtherWarp(this.closestPoint);
+                            this.attemptedEtherwarp = true;
+                            this.lastX = Player.getX();
+                            this.lastY = Player.getY();
+                            this.lastZ = Player.getZ();
+                            Client.setKey('shift', false);
                         });
                         this.rotatedToPoint = true;
                     }
@@ -249,24 +244,26 @@ class GemstoneMacro extends ModuleBase {
                     }
                     break;
                 case this.STATES.MINING:
-                    MiningBot.FOVPenalty = false;
-
                     if (!this.scanned) {
-                        MiningBot.foundLocations = [];
-                        MiningBot.scanForBlock(this.gemstoneCosts);
+                        MiningEngine.scanOnce({
+                            costs: this.getGemstoneCosts(),
+                            checkFov: false,
+                        });
                         this.scanned = true;
                         return;
                     }
 
-                    if (MiningBot.isScanning()) {
-                        return;
-                    }
-
-                    if (MiningBot.foundLocations.length > 0) {
-                        if (!MiningBot.enabled) MiningBot.toggle(true, true);
+                    if (MiningEngine.foundLocations.length > 0) {
+                        if (!MiningEngine.isActive) {
+                            MiningEngine.start({
+                                owner: 'gemstone',
+                                costs: this.getGemstoneCosts(),
+                                checkFov: false,
+                                reuseScan: true,
+                            });
+                        }
                     } else {
-                        MiningBot.foundLocations = [];
-                        MiningBot.toggle(false, true);
+                        MiningEngine.stop('gemstone');
                         this.scanned = false;
                         this.state = this.STATES.DECIDING;
                     }
@@ -444,9 +441,8 @@ class GemstoneMacro extends ModuleBase {
 
     onDisable() {
         RouteState.clearRoute();
-        Rotations.stop();
-        MiningBot.toggle(false, true);
-        MiningBot.foundLocations = [];
+        MiningRotations.stop();
+        MiningEngine.stop('gemstone');
         Client.unpressKeys();
         Mouse.regrab();
 

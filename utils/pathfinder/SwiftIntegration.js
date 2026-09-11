@@ -1,9 +1,11 @@
 import { finiteNumber } from '../NumberUtils';
 
 const readPointArray = (values) => {
+    if (!values || typeof values.length !== 'number') return [];
+
     const points = [];
     for (let i = 0; i + 2 < values.length; i += 3) {
-        points.push({ x: values[i], y: values[i + 1], z: values[i + 2] });
+        points.push({ x: finiteNumber(values[i]), y: finiteNumber(values[i + 1]), z: finiteNumber(values[i + 2]) });
     }
     return points;
 };
@@ -84,45 +86,42 @@ class SwiftIntegration {
     }
 
     getResult() {
-        if (!PathManager.hasPath()) {
+        try {
+            if (!PathManager.hasPath()) {
+                this.cachedResult = null;
+                return null;
+            }
+
+            if (this.cachedResult) {
+                return this.cachedResult;
+            }
+
+            const path = readPointArray(PathManager.getPathArray());
+            const keynodes = readPointArray(PathManager.getKeyNodesArray());
+            if (!path.length && !keynodes.length) return null;
+
+            const result = {
+                path,
+                keynodes,
+                path_between_key_nodes: path.length ? path : keynodes,
+                time_ms: PathManager.getLastTimeMs(),
+                nodes_explored: PathManager.getNodesExplored(),
+                nanoseconds_per_node: PathManager.getNanosecondsPerNode(),
+                selected_start_index: this.getSelectedStartIndex(),
+                path_flags: this.readIntArraySafely(() => PathManager.getPathFlagsArray()),
+                keynode_flags: this.readIntArraySafely(() => PathManager.getKeyNodeFlagsArray()),
+                keynode_metrics: this.readIntArraySafely(() => PathManager.getKeyNodeMetricsArray()),
+                path_flag_bits: this.readIntArraySafely(() => PathManager.getPathFlagBits()),
+                path_signature: this.readStringSafely(() => PathManager.getPathSignature()),
+            };
+
+            this.cachedResult = result;
+            return result;
+        } catch (e) {
+            console.error('Swift getResult Error: ' + e);
             this.cachedResult = null;
             return null;
         }
-
-        if (this.cachedResult) {
-            return this.cachedResult;
-        }
-
-        const pathArr = PathManager.getPathArray();
-        const keyArr = PathManager.getKeyNodesArray();
-        if (!pathArr || !keyArr) return null;
-
-        const path = readPointArray(pathArr);
-        const keynodes = readPointArray(keyArr);
-
-        const pathFlags = this.readIntArraySafely(() => PathManager.getPathFlagsArray());
-        const keyNodeFlags = this.readIntArraySafely(() => PathManager.getKeyNodeFlagsArray());
-        const keyNodeMetrics = this.readIntArraySafely(() => PathManager.getKeyNodeMetricsArray());
-        const pathFlagBits = this.readIntArraySafely(() => PathManager.getPathFlagBits());
-        const pathSignature = this.readStringSafely(() => PathManager.getPathSignature());
-
-        const result = {
-            path,
-            keynodes,
-            path_between_key_nodes: path,
-            time_ms: PathManager.getLastTimeMs(),
-            nodes_explored: PathManager.getNodesExplored(),
-            nanoseconds_per_node: PathManager.getNanosecondsPerNode(),
-            selected_start_index: this.getSelectedStartIndex(),
-            path_flags: pathFlags,
-            keynode_flags: keyNodeFlags,
-            keynode_metrics: keyNodeMetrics,
-            path_flag_bits: pathFlagBits,
-            path_signature: pathSignature,
-        };
-
-        this.cachedResult = result;
-        return result;
     }
 
     getLastError() {

@@ -145,13 +145,15 @@ class PathJumps {
         let closestIndex = -1,
             minDSq = Infinity;
 
-        path.forEach((node, index) => {
+        for (let index = 0; index < path.length; index++) {
+            const node = path[index];
+            if (!node) continue;
             const dSq = Math.pow(pX - (node.x + 0.5), 2) + Math.pow(pY - (node.y + 0.5), 2) + Math.pow(pZ - (node.z + 0.5), 2);
             if (dSq < minDSq) {
                 minDSq = dSq;
                 closestIndex = index;
             }
-        });
+        }
 
         if (closestIndex === -1) return { lookahead: [], closestIndex: -1 };
 
@@ -260,7 +262,7 @@ class PathJumps {
     }
 
     checkGapJump(path, closestIndex) {
-        if (closestIndex === -1 || path.length < closestIndex + 3) return false;
+        if (!path || closestIndex === -1 || path.length < closestIndex + 3) return false;
 
         const pY = Player.getY();
         let baseY = Math.round(path[closestIndex].y);

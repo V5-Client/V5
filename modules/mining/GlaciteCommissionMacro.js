@@ -11,7 +11,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { manager } from '../../utils/SkyblockEvents';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
-import { MiningBot } from './MiningBot';
 import { tunnelsMiner } from './TunnelsMiner';
 import { Utils } from '../../utils/Utils';
 
@@ -308,7 +307,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         }
 
         const now = Date.now();
-        if (!Pathfinder.isPathing() && !FastEtherwarp.isPathing() && !MiningBot.enabled && now - this.lastTunnelRestartAt >= 5000) {
+        if (!Pathfinder.isPathing() && !FastEtherwarp.isPathing() && !tunnelsMiner?.isMining() && now - this.lastTunnelRestartAt >= 5000) {
             tunnelsMiner.restart();
             this.lastTunnelRestartAt = now;
         }
@@ -364,7 +363,6 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     stopTunnelMiner() {
         if (tunnelsMiner.enabled) tunnelsMiner.toggle(false, true);
-        if (MiningBot.enabled) MiningBot.toggle(false, true);
     }
 
     onCommissionComplete() {

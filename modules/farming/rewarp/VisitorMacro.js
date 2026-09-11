@@ -2,7 +2,7 @@ import { bazaarUtil } from '../../../utils/BazaarUtil';
 import { Chat } from '../../../utils/Chat';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { Guis } from '../../../utils/player/Inventory';
-import { Rotations } from '../../../utils/player/Rotations';
+import { MiningEngine, MiningRotations } from '../../../utils/MiningEngine';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
 import { TabListUtils } from '../../../utils/TabListUtils';
 import { farmingDelays } from '../FarmingDelays';
@@ -61,7 +61,7 @@ class VisitorMacro {
         this.running = false;
         bazaarUtil.cancel();
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
-        Rotations.stop();
+        MiningRotations.stop();
         Client.stopMovement();
     }
 
@@ -115,14 +115,14 @@ class VisitorMacro {
         const distanceSq = dx * dx + dy * dy + dz * dz;
         if (distanceSq > 15 ** 2) return;
         if (distanceSq > INTERACT_DISTANCE ** 2) return this.pathTo(entity);
-        if (Rotations.active) return;
+        if (MiningRotations.isRotating) return;
 
-        const aimPoint = Rotations.getAimPoint(entity);
+        const aimPoint = MiningRotations.getAimPoint(entity);
         if (!aimPoint) return this.retry(STATES.SEEKING);
 
         this.transition(STATES.OPENING, OPEN_TIMEOUT_MS);
-        Rotations.lookAtVector(aimPoint);
-        Rotations.onComplete(() => {
+        MiningRotations.lookAtVector(aimPoint, MiningEngine.rotationSpeed);
+        MiningRotations.onComplete(() => {
             if (!this.running || this.state !== STATES.OPENING) return;
             Client.leftClick();
             if (!this.firstSeek) return;
@@ -219,7 +219,7 @@ class VisitorMacro {
 
     skipVisitor() {
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
-        Rotations.stop();
+        MiningRotations.stop();
         Client.stopMovement();
         Guis.closeInv();
         Chat.message('&eVisitor timed out, skipping.');

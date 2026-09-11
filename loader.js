@@ -4,9 +4,6 @@ Config.setOpenConsoleOnError(true);
 /* COMMANDS */
 import { registerV5Commands } from './utils/V5Commands';
 
-/* GUI */
-import './gui/GUI';
-
 /* CORE */
 import './utils/Config';
 import './utils/backend/WebSocket';
@@ -32,6 +29,7 @@ import './utils/SkyblockEvents';
 import './modules/loader';
 import './utils/UserScripts';
 
+import './gui/GUI';
 import { loadSettings } from './gui/GuiSave';
 registerV5Commands();
 MacroState.setupLastMacroToggleKey();

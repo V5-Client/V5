@@ -5,6 +5,7 @@ import { v5Command } from '../V5Commands';
 import { Rotations as PathRotations } from '../pathfinder/PathWalker/PathRotations';
 import { PathFlyer } from '../pathfinder/PathFlyer';
 import { EtherwarpPathState } from '../Etherwarp';
+import { EtherwarpRotations } from '../EtherwarpRotations';
 
 class RotationConfig extends ModuleBase {
     constructor() {
@@ -41,6 +42,30 @@ class RotationConfig extends ModuleBase {
                 this.ROTATION_SPEED = v * 10;
             },
             'Degrees per second',
+            'Rotations'
+        );
+
+        this.addDirectSlider(
+            'Etherwarp Rotation Speed',
+            20,
+            80,
+            50,
+            (v) => {
+                EtherwarpRotations.speed = v;
+            },
+            'How quickly etherwarp looks at the next hop. Higher is faster. Low values are much slower than before.',
+            'Rotations'
+        );
+
+        this.addDirectSlider(
+            'Etherwarp Reaction Time',
+            0,
+            500,
+            50,
+            (v) => {
+                EtherwarpRotations.reactionMs = v;
+            },
+            'Delay before turning to the next etherwarp hop, in milliseconds. 0 starts the next look immediately.',
             'Rotations'
         );
     }

@@ -9,6 +9,7 @@ import './foraging/LushLilacEtherwarpNuker';
 import './mining/Nuker';
 import './mining/PowderNuker';
 import './mining/OreMacro';
+import './mining/MiningEngineSettings';
 import './mining/PinglessMining';
 import './mining/GlowingMushroomMacro';
 import './mining/TunnelsMiner';
@@ -19,6 +20,7 @@ import './foraging/HideonLeafESP';
 import './foraging/HuntingHelpers';
 
 /* FARMING */
+import './farming/PestLasso';
 import './farming/CocoaBeansMacro';
 import './farming/ADRotatingMelonMacro';
 import './farming/SShapeCropMacro';

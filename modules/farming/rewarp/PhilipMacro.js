@@ -1,6 +1,6 @@
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { Guis } from '../../../utils/player/Inventory';
-import { Rotations } from '../../../utils/player/Rotations';
+import { MiningEngine, MiningRotations } from '../../../utils/MiningEngine';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
 import { farmingDelays } from '../FarmingDelays';
 
@@ -96,7 +96,7 @@ class PhilipMacro {
         const philip = this.find();
         if (!philip) return this.retry();
         if (philip.distanceTo(Player.getX(), Player.getY(), Player.getZ()) > INTERACT_DISTANCE) {
-            Rotations.lookAtVector({ x: philip.getX(), y: philip.getY() + 1.62, z: philip.getZ() });
+            MiningRotations.trackVector({ x: philip.getX(), y: philip.getY() + 1.62, z: philip.getZ() }, MiningEngine.rotationSpeed);
             Client.setKey('w', true);
             Client.setKey('shift', true);
             return;
@@ -104,8 +104,8 @@ class PhilipMacro {
 
         Client.stopMovement();
         this.transition(STATES.OPENING, 2500);
-        Rotations.lookAtVector({ x: philip.getX(), y: philip.getY() + 1.62, z: philip.getZ() });
-        Rotations.onComplete(() => {
+        MiningRotations.lookAtVector({ x: philip.getX(), y: philip.getY() + 1.62, z: philip.getZ() }, MiningEngine.rotationSpeed);
+        MiningRotations.onComplete(() => {
             if (this.running && this.state === STATES.OPENING) Client.leftClick();
         });
     }
@@ -134,7 +134,7 @@ class PhilipMacro {
     stop() {
         this.running = false;
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
-        Rotations.stop();
+        MiningRotations.stop();
         Client.stopMovement();
     }
 }

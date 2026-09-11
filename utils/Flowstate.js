@@ -53,13 +53,13 @@ class FlowstateUtilsClass {
                 if (this.flowstateBlocksBroken > 100 * this.multiplier) {
                     if (this.multiplier === 6) {
                         this.isMax = true;
-                        return Chat.message('Reached max Flowstate!');
+                        return Chat.message('&bFlowstate maxed!');
                     }
 
                     this.multiplier++;
 
                     let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
-                    Chat.message(`Current Flowstate: ${rounded}`);
+                    Chat.message(`&bFlowstate ${rounded}`);
                 }
             }
         }).setFilteredClass(ClientboundBlockUpdatePacket);
@@ -67,7 +67,7 @@ class FlowstateUtilsClass {
         register('step', () => {
             if (this.countdown === 0) {
                 if (this.flowstateBlocksBroken > 100) {
-                    Chat.message(`Flowstate lost at ${this.flowstateBlocksBroken} blocks`);
+                    Chat.message(`&cFlowstate lost at ${this.flowstateBlocksBroken}`);
                 }
                 this.isMax = false;
                 this.flowstateBlocksBroken = 0;

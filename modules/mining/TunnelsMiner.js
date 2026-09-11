@@ -5,8 +5,8 @@ import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { MiningEngine } from '../../utils/MiningEngine';
 import { Veins } from './GlaciteData';
-import { MiningBot } from './MiningBot';
 
 const PATH_ARRIVAL_RADIUS = 0.75;
 
@@ -16,7 +16,7 @@ class TunnelsMiner extends ModuleBase {
             name: 'Tunnels Miner',
             subcategory: 'Mining',
             developerMode: true,
-            description: 'Pathfind to recorded tunnels veins and hand off to MiningBot',
+            description: 'Pathfind to recorded tunnels veins and hand off to the mining engine',
             tooltip: 'Select an ore type, find the closest vein edge, path, then mine.',
             isMacro: true,
         });
@@ -119,18 +119,15 @@ class TunnelsMiner extends ModuleBase {
         if (!Player.getPlayer()) return;
         if (!this.isParentManaged && this.handleCold()) return;
         if (!this.botManaged) return;
-        if (MiningBot.enabled) {
-            this.forceTunnelMiningBotCosts();
-        }
 
-        const hasActiveWork = MiningBot.isScanning() || MiningBot.currentTarget || MiningBot.foundLocations.length > 0;
+        const hasActiveWork = MiningEngine.hasWork();
         if (hasActiveWork) {
             this.botStartedWork = true;
             this.botIdleTicks = 0;
             return;
         }
 
-        if (MiningBot.enabled && MiningBot.state !== MiningBot.STATES.MINING) {
+        if (MiningEngine.isActive && MiningEngine.state === 'ROTATING') {
             return;
         }
 
@@ -140,7 +137,7 @@ class TunnelsMiner extends ModuleBase {
             this.exhaustedPositions.add(this.posKey(this.activeMiningPosition.x, this.activeMiningPosition.y, this.activeMiningPosition.z));
         this.exhaustedPositions.add(this.posKey(Math.floor(Player.getX()), Math.floor(Player.getY()), Math.floor(Player.getZ())));
 
-        MiningBot.toggle(false, true);
+        MiningEngine.stop('tunnels');
         this.botManaged = false;
         this.botStartedWork = false;
         this.botIdleTicks = 0;
@@ -169,8 +166,7 @@ class TunnelsMiner extends ModuleBase {
         FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
         if (this.botManaged) {
-            MiningBot.toggle(false, true);
-            MiningBot.isParentManaged = false;
+            MiningEngine.stop('tunnels');
         }
         this.botManaged = false;
         this.botStartedWork = false;
@@ -269,8 +265,11 @@ class TunnelsMiner extends ModuleBase {
         }, null);
         this.activeMiningPosition = resolvedTarget?.candidate || closestCandidate;
         this.pendingTargets = [];
-        MiningBot.toggle(true, true);
-        this.forceTunnelMiningBotCosts();
+        MiningEngine.start({
+            owner: 'tunnels',
+            costs: MiningEngine.getTunnelCostsForOres(this.selectedOres),
+            checkFov: false,
+        });
         this.botManaged = true;
         this.botStartedWork = false;
         this.botIdleTicks = 0;
@@ -385,9 +384,9 @@ class TunnelsMiner extends ModuleBase {
     canMineBlockFrom(standPos, block) {
         const eyeHeight = Player.getPlayer()?.getEyeHeight?.() || 1.62;
         const eyePos = new Vec3d(standPos.x + 0.5, standPos.y + eyeHeight, standPos.z + 0.5);
-        const maxReachSq = MiningBot.mineReach * MiningBot.mineReach;
+        const maxReachSq = MiningEngine.mineReach * MiningEngine.mineReach;
 
-        return MiningBot.findVisibleAimPoint(block.x, block.y, block.z, eyePos, null, maxReachSq, false) !== null;
+        return MiningEngine.findVisibleAimPoint(block.x, block.y, block.z, eyePos, null, maxReachSq, false) !== null;
     }
 
     isPassable(blockVec, passableCache) {
@@ -421,12 +420,11 @@ class TunnelsMiner extends ModuleBase {
 
     isOreBlock(block, ore) {
         const blockName = World.getBlockAt(block.x, block.y, block.z)?.type?.getRegistryName?.() || '';
-        return MiningBot.tunnelOreCosts?.[ore]?.[blockName] != null;
+        return MiningEngine.tunnelOreCosts?.[ore]?.[blockName] != null;
     }
 
-    forceTunnelMiningBotCosts() {
-        MiningBot.selectedTypeName = 'Tunnel';
-        MiningBot.setCost(MiningBot.getTunnelCostsForOres(this.selectedOres));
+    isMining() {
+        return this.botManaged && MiningEngine.isActive;
     }
 
     posKey(x, y, z) {

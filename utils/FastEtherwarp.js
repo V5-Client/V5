@@ -1,10 +1,10 @@
 import { Chat } from './Chat';
 import { MCHand, Vec3d } from './Constants';
 import { EtherwarpPathState, getEtherwarpBlockShape, isAtEtherwarpLanding } from './Etherwarp';
+import { EtherwarpRotations } from './EtherwarpRotations';
 import { finiteNumber } from './NumberUtils';
 import { ServerboundUseItemPacket } from './Packets';
 import { Guis } from './player/Inventory';
-import { RotationGCD } from './player/RotationGCD';
 import { ServerInfo } from './player/ServerInfo';
 import { ScheduleTask } from './ScheduleTask';
 import { v5Command } from './V5Commands';
@@ -89,6 +89,8 @@ class EtherwarpPathHandler {
         this.hopHardDeadlineAt = 0;
         this.hopAwaiting = false;
         this.hopIndex = -1;
+        this.reactionUntil = 0;
+        this.reactionHopIndex = -1;
     }
 
     test(xArg, yArg, zArg) {
@@ -179,6 +181,7 @@ class EtherwarpPathHandler {
         this.searchActive = false;
         PathManager.cancelSearch();
         PathManager.clear();
+        EtherwarpRotations.stop();
 
         this.stopExecution(restoreSlot);
         this.path = [];
@@ -383,6 +386,7 @@ class EtherwarpPathHandler {
         this.executionActive = true;
         this.executionToken++;
         this.resetExecutionRuntime();
+        EtherwarpRotations.stop();
 
         this.preparePlayer(slot);
         ScheduleTask(2, () => this.executePath(this.executionToken));
@@ -416,13 +420,35 @@ class EtherwarpPathHandler {
         }
         if (!this.ensureEtherwarpHeld(token, () => this.executeHop(token, index))) return;
 
-        RotationGCD.applyToPlayer(angles.yaw, angles.pitch);
+        if (!EtherwarpRotations.lookAtAngles(angles.yaw, angles.pitch, () => this.onHopAimed(token, index))) {
+            this.finishFailure('Etherpath execution failed to rotate to hop angles.', !this.currentRun || this.currentRun.restoreSlot !== false);
+        }
+    }
+
+    onHopAimed(token, index) {
+        if (!this.isExecutionContextValid(token)) return;
+        if (!World.isLoaded()) {
+            this.finishFailure('World unloaded during etherwarp.', false);
+            return;
+        }
+        if (!this.ensureEtherwarpHeld(token, () => this.onHopAimed(token, index))) return;
+
         this.sendEtherwarpClick();
         if (index >= this.path.length - 1) {
             this.startAwaitingHop(token, index);
             return;
         }
-        ScheduleTask(1, () => this.executeHop(token, index + 1));
+        this.scheduleNextHop(token, index + 1);
+    }
+
+    scheduleNextHop(token, index) {
+        const delayMs = Math.max(0, EtherwarpRotations.reactionMs || 0);
+        if (delayMs <= 0) {
+            this.executeHop(token, index);
+            return;
+        }
+        this.reactionHopIndex = index;
+        this.reactionUntil = Date.now() + delayMs;
     }
 
     startAwaitingHop(token, index) {
@@ -438,7 +464,15 @@ class EtherwarpPathHandler {
     }
 
     pollExecutionWait() {
-        if (!this.hopAwaiting || !this.executionActive) return;
+        if (!this.executionActive) return;
+        if (this.reactionHopIndex >= 0 && Date.now() >= this.reactionUntil) {
+            const index = this.reactionHopIndex;
+            this.reactionHopIndex = -1;
+            this.reactionUntil = 0;
+            this.executeHop(this.executionToken, index);
+            return;
+        }
+        if (!this.hopAwaiting) return;
         this.evaluateHopArrival(this.executionToken);
     }
 
@@ -479,6 +513,7 @@ class EtherwarpPathHandler {
         this.executionToken++;
         this.executionActive = false;
         this.hopAwaiting = false;
+        EtherwarpRotations.stop();
         this.resetExecutionRuntime();
         this.originalSlot = preserveOriginalSlot ? currentOriginalSlot : -1;
         if (!hasPreparedState) return;

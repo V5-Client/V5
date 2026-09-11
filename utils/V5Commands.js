@@ -12,11 +12,15 @@ const callCommand = function (name) {
     let args = Array.prototype.slice.call(arguments, 1);
 
     try {
+        if (typeof handler !== 'function') {
+            Chat.message(`&cUnknown command: &f${name}`);
+            return;
+        }
         if (args.length === 1 && typeof args[0] === 'string') args = args[0].trim().split(/\s+/).filter(Boolean);
         handler(...args);
     } catch (error) {
         Chat.message(`&cInternal command failed: &f${name}`);
-        console.error('V5 command execution failed:', name, error);
+        console.error('V5 command execution failed:', name, error, error && error.stack);
     }
 };
 

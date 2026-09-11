@@ -43,6 +43,18 @@ class OreRoutePathWalker {
     }
 
     tick(goal, sneakNearGoal = false) {
+        try {
+            return this.tickInternal(goal, sneakNearGoal);
+        } catch (error) {
+            console.error('[OreRoutePathWalker] tick error:', error, error && error.stack);
+            this.stop();
+            return 'FAILED';
+        }
+    }
+
+    tickInternal(goal, sneakNearGoal = false) {
+        if (!goal || ![goal.x, goal.y, goal.z].every(Number.isFinite)) return 'FAILED';
+
         if (this.hasReachedGoal(goal)) {
             this.stop();
             return 'COMPLETE';
@@ -60,16 +72,22 @@ class OreRoutePathWalker {
 
         if (!this.path) {
             const result = Swift.getResult();
-            if (!result?.path_between_key_nodes?.length) {
+            const nodes = this.normalizePathNodes(result?.path_between_key_nodes?.length ? result.path_between_key_nodes : result?.keynodes);
+            if (!nodes.length) {
                 this.stop();
                 return 'FAILED';
             }
-            this.path = result.path_between_key_nodes;
+            this.path = nodes;
             this.pathFlags = result.path_flags;
             this.pathFlagBits = result.path_flag_bits;
-            this.keyNodes = result.keynodes;
+            this.keyNodes = this.normalizePathNodes(result.keynodes);
             this.splinePath = Spline.generateSpline(this.path, 1);
             Spline.createLookPoints(this.splinePath);
+        }
+
+        if (!this.path?.length) {
+            this.stop();
+            return 'FAILED';
         }
 
         if (this.hasReachedGoal()) {
@@ -79,6 +97,10 @@ class OreRoutePathWalker {
 
         this.updatePathIndex();
         const target = this.path[Math.min(this.pathIndex + 1, this.path.length - 1)];
+        if (!target || ![target.x, target.y, target.z].every(Number.isFinite)) {
+            this.stop();
+            return 'FAILED';
+        }
         this.walkTarget = { x: target.x + 0.5, y: target.y + 2.62, z: target.z + 0.5 };
         Movement.setKeysForStraightLineCoords(target.x + 0.5, target.y + 1, target.z + 0.5, false, true);
         Jump.detectJump(this.path, this.pathFlags, this.pathFlagBits);
@@ -87,13 +109,32 @@ class OreRoutePathWalker {
         return 'MOVING';
     }
 
+    normalizePathNodes(nodes) {
+        if (!nodes || typeof nodes.length !== 'number') return [];
+
+        const path = [];
+        for (let index = 0; index < nodes.length; index++) {
+            const node = nodes[index];
+            if (!node) continue;
+            const x = Number(node.x !== undefined ? node.x : node[0]);
+            const y = Number(node.y !== undefined ? node.y : node[1]);
+            const z = Number(node.z !== undefined ? node.z : node[2]);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+            path.push({ x, y, z });
+        }
+        return path;
+    }
+
     updatePathIndex() {
+        if (!this.path?.length) return;
+
         let closestIndex = this.pathIndex;
         let closestDistance = Infinity;
         const end = Math.min(this.path.length - 1, this.pathIndex + 10);
 
         for (let index = this.pathIndex; index <= end; index++) {
             const node = this.path[index];
+            if (!node) continue;
             const horizontal = this.horizontalDistanceSq(node.x + 0.5, node.z + 0.5);
             const vertical = Player.getY() - (node.y + 1);
             const distance = horizontal + vertical * vertical * 0.25;
@@ -106,6 +147,7 @@ class OreRoutePathWalker {
         this.pathIndex = Math.max(this.pathIndex, closestIndex);
         while (this.pathIndex + 1 < this.path.length) {
             const next = this.path[this.pathIndex + 1];
+            if (!next) break;
             if (this.horizontalDistanceSq(next.x + 0.5, next.z + 0.5) > 0.64 || Math.abs(Player.getY() - (next.y + 1)) > 1.5) break;
             this.pathIndex++;
         }

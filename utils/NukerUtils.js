@@ -1,7 +1,6 @@
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { MathUtils } from './Math';
 import { ServerboundSwingPacket, ServerboundPlayerActionPacket, ServerboundPlayerActionPacket$Action } from './Packets';
-import { ScheduleTask } from './ScheduleTask';
 
 class NukerUtilsClass {
     static MAX_REACH_DISTANCE = 6;
@@ -82,13 +81,6 @@ class NukerUtilsClass {
         const threshold = NukerUtilsClass.MIN_NUKE_INTERVAL + ticks * 50;
 
         if (timeSinceLastNuke > threshold || ticks === 1 || this.delay >= NukerUtilsClass.MIN_NUKE_INTERVAL) {
-            if (this.delay > NukerUtilsClass.MIN_NUKE_INTERVAL) {
-                ScheduleTask(1, () => {
-                    if (typeof MiningBot !== 'undefined' && MiningBot) {
-                        MiningBot.ticksMined--;
-                    }
-                });
-            }
             this.delay = 0;
         }
     }
