@@ -164,6 +164,8 @@ class BazaarNpcMacro extends ModuleBase {
         this.activeTargets = [];
         this.claimedTargets = new Set();
         this.skippedIds = new Map();
+        this.consecutiveSkips = 0;
+        this.claimOnly = false;
         this.openBuyOrders = [];
         this.openOrderCount = 0;
         this.existingOrdersScanned = false;
@@ -494,11 +496,12 @@ class BazaarNpcMacro extends ModuleBase {
         this.clickAndWait(this.confirmSlot, this.awaitOrderCreated, 'Creating order', 500);
     }
 
-    openOrders() {
+    openOrders(claimOnly = false) {
+        this.claimOnly ||= claimOnly;
         this.claimedTargets = new Set();
         this.orderCheckQueue = [];
-        this.orderPricesChecked = false;
-        this.orderSlotsChecked = false;
+        this.orderPricesChecked = this.claimOnly;
+        this.orderSlotsChecked = this.claimOnly;
         this.commandAndWait('managebazaarorders', this.inspectOrder, 'Opening Bazaar orders');
     }
 
@@ -557,6 +560,7 @@ class BazaarNpcMacro extends ModuleBase {
         }
         if (hasNewItems) return this.setAction(this.openTrades, 'Selling claimed items', 500);
         this.orderQueue = [];
+        this.claimOnly = false;
         this.setAction(this.openOrders, 'Checking orders', this.clickDelay, 0);
     }
 
@@ -750,6 +754,7 @@ class BazaarNpcMacro extends ModuleBase {
         }
         if (this.action !== this.awaitOrderCreated) return;
         if (message.includes('[Bazaar] Buy Order Setup!')) {
+            this.consecutiveSkips = 0;
             this.target.expectedOrderPrice = this.target.orderPrice;
             this.activeTargets.push(this.target);
             this.setAction(this.placeNextOrder, 'Placing next order', this.clickDelay, 0);
@@ -920,6 +925,12 @@ class BazaarNpcMacro extends ModuleBase {
     retryPrices(message) {
         this.message(`&e${message}`);
         if (this.target?.id) this.skippedIds.set(this.target.id, Date.now() + 60_000);
+        if (++this.consecutiveSkips >= 3) {
+            this.consecutiveSkips = 0;
+            this.orderQueue = [];
+            this.message('&eSkipped 3 items in a row; claiming and selling filled orders.');
+            return this.openOrders(true);
+        }
         this.setAction(this.placeNextOrder, 'Skipping item', 500, 0);
     }
 
