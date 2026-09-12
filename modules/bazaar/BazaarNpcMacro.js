@@ -453,7 +453,9 @@ class BazaarNpcMacro extends ModuleBase {
     choosePrice() {
         const slot = this.findSlot('Top Order +0.1', true);
         if (slot === -1) return;
-        const price = this.unitPrice(Player.getContainer()?.getStackInSlot(slot));
+        const item = Player.getContainer()?.getStackInSlot(slot);
+        if (lore(item).some((line) => /can't afford/i.test(line))) return this.retryPrices(`Can't afford the ${this.target.name} order.`);
+        const price = this.unitPrice(item);
         if (!this.isSafePrice(price)) {
             return this.retryPrices('The +0.1 price moved too far from the API estimate or is no longer profitable.');
         }
@@ -551,7 +553,7 @@ class BazaarNpcMacro extends ModuleBase {
             this.target = claimable.target;
             this.claimedTargets.add(claimable.target);
             clickSlot(claimable.slot);
-            return this.setAction(this.inspectOrder, 'Claiming items', Math.max(250, this.clickDelay), 0);
+            return this.setAction(this.openTrades, 'Claiming items', Math.max(250, this.clickDelay), 0);
         }
         if (hasNewItems) return this.setAction(this.openTrades, 'Selling claimed items', 500);
         this.orderQueue = [];
@@ -575,7 +577,7 @@ class BazaarNpcMacro extends ModuleBase {
         }
         if (claimSlot !== undefined) {
             clickSlot(claimSlot);
-            return this.setAction(this.inspectOrder, 'Claiming items', Math.max(250, this.clickDelay), 0);
+            return this.setAction(this.openTrades, 'Claiming items', Math.max(250, this.clickDelay), 0);
         }
         if (buySlots.length) return this.clickAndWait(buySlots[0], this.cancelCleanupOrder, 'Opening buy order');
         if (hasNewItems) return this.setAction(this.openTrades, 'Selling claimed items', 500);
