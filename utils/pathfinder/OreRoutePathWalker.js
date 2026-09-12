@@ -1,9 +1,9 @@
 import PathConfig from './PathConfig';
 import { Swift } from './SwiftIntegration';
 import { Jump } from './PathWalker/PathJumps';
-import { Movement } from '../player/Movement';
+import { setKeysForStraightLineCoords } from '../player/Movement';
 import { Vec3d } from '../Constants';
-import { Spline } from './PathSpline';
+import { generateSpline, createLookPoints, drawFloatingSpline, drawLookPoints } from './PathSpline';
 
 class OreRoutePathWalker {
     constructor() {
@@ -68,8 +68,8 @@ class OreRoutePathWalker {
             this.pathFlags = result.path_flags;
             this.pathFlagBits = result.path_flag_bits;
             this.keyNodes = result.keynodes;
-            this.splinePath = Spline.generateSpline(this.path, 1);
-            Spline.createLookPoints(this.splinePath);
+            this.splinePath = generateSpline(this.path, 1);
+            createLookPoints(this.splinePath);
         }
 
         if (this.hasReachedGoal()) {
@@ -80,7 +80,7 @@ class OreRoutePathWalker {
         this.updatePathIndex();
         const target = this.path[Math.min(this.pathIndex + 1, this.path.length - 1)];
         this.walkTarget = { x: target.x + 0.5, y: target.y + 2.62, z: target.z + 0.5 };
-        Movement.setKeysForStraightLineCoords(target.x + 0.5, target.y + 1, target.z + 0.5, false, true);
+        setKeysForStraightLineCoords(target.x + 0.5, target.y + 1, target.z + 0.5, false, true);
         Jump.detectJump(this.path, this.pathFlags, this.pathFlagBits);
         Client.setKey('shift', sneakNearGoal && this.horizontalDistanceSq(this.goal.x + 0.5, this.goal.z + 0.5) <= 0.25);
         Client.setKey('sprint', this.horizontalDistanceSq(this.goal.x + 0.5, this.goal.z + 0.5) > 4);
@@ -139,13 +139,13 @@ class OreRoutePathWalker {
 
         if ((debug || PathConfig.RENDER_KEY_NODES) && this.keyNodes?.length >= 2) {
             this.keyNodes.forEach((node) => {
-                RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
+                Render3D.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
             });
         }
-        if (debug || PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(this.splinePath);
-        if (debug || PathConfig.RENDER_LOOK_POINTS) Spline.drawLookPoints();
+        if (debug || PathConfig.RENDER_FLOATING_SPLINE) drawFloatingSpline(this.splinePath);
+        if (debug || PathConfig.RENDER_LOOK_POINTS) drawLookPoints();
         if ((debug || PathConfig.RENDER_LOOK_POINTS) && this.walkTarget) {
-            RenderUtils.drawSizedBox(
+            Render3D.drawSizedBox(
                 new Vec3d(this.walkTarget.x, this.walkTarget.y, this.walkTarget.z),
                 0.4,
                 0.4,

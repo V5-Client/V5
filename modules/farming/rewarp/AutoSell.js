@@ -1,4 +1,4 @@
-import { Guis } from '../../../utils/player/Inventory';
+import { clickItem, clickSlot, closeInventory, getGuiName } from '../../../utils/player/Inventory';
 import { farmingDelays } from '../FarmingDelays';
 
 const TARGETS = [
@@ -41,7 +41,7 @@ class AutoSell {
 
     finish() {
         this.state = null;
-        Guis.closeInv();
+        closeInventory();
         return true;
     }
 
@@ -52,7 +52,7 @@ class AutoSell {
 
         switch (this.state) {
             case 'trades': {
-                if (Guis.guiName() !== 'Trades') {
+                if (getGuiName() !== 'Trades') {
                     ChatLib.command('trades');
                     this.nextActionAt = Date.now() + 1000;
                     return;
@@ -63,7 +63,7 @@ class AutoSell {
                 for (let i = 54; i < items.length; i++) {
                     const item = items[i];
                     if (item && TARGETS.some((name) => ChatLib.removeFormatting(String(item.getName())).includes(name))) {
-                        Guis.clickSlot(i, false, 'LEFT');
+                        clickSlot(i, false, 'LEFT');
                         this.nextActionAt = Date.now() + farmingDelays.random('visitorAutoSell');
                         return;
                     }
@@ -71,7 +71,7 @@ class AutoSell {
 
                 if (this.shouldRun()) {
                     this.state = 'bazaar';
-                    Guis.closeInv();
+                    closeInventory();
                     this.nextActionAt = Date.now() + 1000;
                     return;
                 }
@@ -80,7 +80,7 @@ class AutoSell {
             }
             case 'bazaar':
                 if (
-                    !String(Guis.guiName() || '')
+                    !String(getGuiName() || '')
                         .toLowerCase()
                         .includes('bazaar')
                 ) {
@@ -89,12 +89,12 @@ class AutoSell {
                     return;
                 }
 
-                if (!Guis.clickItem('Sell Inventory Now')) return;
+                if (!clickItem('Sell Inventory Now')) return;
                 this.state = 'selling whole inventory';
                 this.nextActionAt = Date.now() + farmingDelays.random('bazaarAction');
                 return;
             case 'selling whole inventory':
-                if (!Guis.clickItem('Selling whole inventory')) return;
+                if (!clickItem('Selling whole inventory')) return;
 
                 this.state = 'closing inventory';
                 this.nextActionAt = Date.now() + 10 * 50;

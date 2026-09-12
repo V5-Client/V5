@@ -90,7 +90,7 @@ class PathFindingConfig extends ModuleBase {
                 z: Number(warp.z),
             }));
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return [];
         }
     }

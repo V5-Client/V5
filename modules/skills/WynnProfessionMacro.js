@@ -1,19 +1,22 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { MacroState } from '../../utils/MacroState';
-import { MathUtils } from '../../utils/Math';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { fastDistance, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatRoundedNumber } from '../../utils/NumberUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Utils } from '../../utils/Utils';
+import { writeConfigFile } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
-import { manager } from '../../utils/SkyblockEvents';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 import { File, Vec3d } from '../../utils/Constants';
 
 const CONFIG_DIR = 'V5Config';
 const CONFIG_PATH = 'WynnProfession/route.json';
+const ROUTE_FILL_COLOR = new RenderColor(63, 191, 127, 80);
+const ROUTE_SELECTED_FILL_COLOR = new RenderColor(85, 255, 85, 120);
+const ROUTE_WIRE_COLOR = new RenderColor(63, 191, 127, 255);
+const ROUTE_LINE_COLOR = new RenderColor(63, 191, 127, 180);
 
 const BLACKSMITH_LOCATIONS = [
     { x: -2005, y: 75, z: -4462 },
@@ -136,7 +139,7 @@ class WynnProfessionMacro extends ModuleBase {
 
         this.on('tick', () => this.onTick());
         this.on('soundPlay', (_pos, name) => this.onSoundPlay(name));
-        manager.subscribe('wynndurability', () => {
+        registerSkyblockEvent('wynndurability', () => {
             if (this.enabled) this.startRepairDetour();
         });
 
@@ -396,7 +399,7 @@ class WynnProfessionMacro extends ModuleBase {
             const slot = this.findSlotByName(container, 'Repair Items');
             if (slot < 0) return;
 
-            if (Guis.clickSlot(slot, false, 'LEFT')) {
+            if (clickSlot(slot, false, 'LEFT')) {
                 this.state = STATES.REPAIR_SELECTING_ITEM;
                 this.lastRepairActionAt = now;
             }
@@ -407,7 +410,7 @@ class WynnProfessionMacro extends ModuleBase {
             const slot = this.findFirstRepairableSlot(container);
             if (slot < 0) return;
 
-            if (Guis.clickSlot(slot, false, 'LEFT')) {
+            if (clickSlot(slot, false, 'LEFT')) {
                 this.lastRepairActionAt = now;
                 ScheduleTask(3, () => this.finishRepairDetour());
             }
@@ -417,7 +420,7 @@ class WynnProfessionMacro extends ModuleBase {
     finishRepairDetour() {
         if (!this.enabled || this.state !== STATES.REPAIR_SELECTING_ITEM) return;
 
-        Guis.closeInv();
+        closeInventory();
         this.currentIndex = this.getClosestPointIndex();
         this.lastRepairActionAt = 0;
         this.state = STATES.IDLE;
@@ -441,7 +444,7 @@ class WynnProfessionMacro extends ModuleBase {
         let closestDistance = Infinity;
 
         for (const point of BLACKSMITH_LOCATIONS) {
-            const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
+            const distance = fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
             if (distance < closestDistance) {
                 closest = point;
                 closestDistance = distance;
@@ -459,7 +462,7 @@ class WynnProfessionMacro extends ModuleBase {
             const point = this.route[i];
             if (!this.isValidPoint(point)) continue;
 
-            const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
+            const distance = fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = i;
@@ -470,23 +473,24 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     renderRoute() {
-        for (let i = 0; i < this.route.length; i++) {
-            const point = this.route[i];
-            if (!this.isValidPoint(point)) continue;
-
-            const color = i === this.currentIndex ? new RenderColor(85, 255, 85, 120) : new RenderColor(63, 191, 127, 80);
-            RenderUtils.drawStyledBox(
-                new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)),
-                color,
-                new RenderColor(63, 191, 127, 255),
-                3,
-                false
-            );
-
-            const next = this.route[(i + 1) % this.route.length];
-            if (!this.isValidPoint(next)) continue;
-            RenderUtils.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), new RenderColor(63, 191, 127, 180), 2, false);
+        if (!this.route.length) return;
+        const selected = [];
+        const positions = [];
+        let linePoints = [];
+        for (let i = 0; i <= this.route.length; i++) {
+            const point = this.route[i % this.route.length];
+            if (!this.isValidPoint(point)) {
+                if (linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_LINE_COLOR, 2, false);
+                linePoints = [];
+                continue;
+            }
+            linePoints.push(new Vec3d(point.x, point.y, point.z));
+            if (i === this.route.length) continue;
+            (i === this.currentIndex ? selected : positions).push(new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)));
         }
+        if (linePoints.length > 1) Render3D.drawLines(linePoints, ROUTE_LINE_COLOR, 2, false);
+        Render3D.drawStyledBoxes(selected, ROUTE_SELECTED_FILL_COLOR, ROUTE_WIRE_COLOR, 3, false);
+        Render3D.drawStyledBoxes(positions, ROUTE_FILL_COLOR, ROUTE_WIRE_COLOR, 3, false);
     }
 
     getRouteProgressDisplay() {
@@ -521,7 +525,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     getPerHour() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return '0';
 
         return formatRoundedNumber(this.getTotal() / (elapsedMs / 3600000));
@@ -537,7 +541,7 @@ class WynnProfessionMacro extends ModuleBase {
             data = raw && raw.trim() ? JSON.parse(raw) : [];
         } catch (e) {
             this.message('&cFailed to read Wynn route. Resetting to an empty route.');
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return [];
         }
 
@@ -547,7 +551,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     saveRoute() {
-        Utils.writeConfigFile('WynnProfession/route.json', this.route);
+        writeConfigFile('WynnProfession/route.json', this.route);
     }
 
     normalizePoint(point) {

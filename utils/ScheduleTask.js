@@ -1,4 +1,4 @@
-import { finiteNumber } from './NumberUtils';
+import { finiteNumber } from './Math';
 
 let currentTick = 0;
 let queuedTasks = [];
@@ -22,7 +22,7 @@ register('tick', () => {
         try {
             callback();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 });

@@ -11,7 +11,7 @@ import {
     isInside,
     playClickSound,
 } from './Utils';
-import { Raytrace } from '../utils/Raytrace';
+import { getLookingAt } from '../utils/Raytrace';
 import {
     ServerboundInteractPacket,
     ServerboundPlayerActionPacket,
@@ -27,6 +27,7 @@ const ROUTE_MENU_VISIBLE_ROWS = 10;
 const routeEditorGui = new Gui();
 
 let oreMiner = null;
+let renderRegistration = null;
 let routeName = 'route';
 let scrollY = 0;
 let expandedWaypoint = -1;
@@ -128,7 +129,7 @@ const nearestMovementWaypoint = () => {
 };
 
 const lookedAtBlock = () => {
-    const pos = Raytrace.getLookingAt(10)?.getPos?.();
+    const pos = getLookingAt(10)?.getPos?.();
     return pos ? { x: pos.getX(), y: pos.getY(), z: pos.getZ() } : null;
 };
 
@@ -300,8 +301,8 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
     scrollY = clamp(scrollY, 0, Math.max(0, contentHeight - rect.height));
     layout.list = rect;
 
-    NVG.save();
-    NVG.scissor(rect.x, rect.y, rect.width, rect.height);
+    Render2D.save();
+    Render2D.scissor(rect.x, rect.y, rect.width, rect.height);
     let y = rect.y - scrollY;
     waypoints.forEach((waypoint, index) => {
         const height = waypointHeight(waypoint, index);
@@ -361,7 +362,7 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
         }
         y += height + 4;
     });
-    NVG.restore();
+    Render2D.restore();
 
     if (!waypoints.length) drawText('Add a Tp or Walk waypoint to begin.', rect.x + 12, rect.y + 18, FontSizes.REGULAR, THEME.TEXT_MUTED);
 };
@@ -488,8 +489,8 @@ const drawRouteMenu = (mouseX, mouseY, anchor) => {
 };
 
 const drawEditor = (mouseX, mouseY) => {
-    const screenWidth = Renderer.screen.getWidth();
-    const screenHeight = Renderer.screen.getHeight();
+    const screenWidth = Render2D.screen.getWidth();
+    const screenHeight = Render2D.screen.getHeight();
     const panel = {
         width: Math.min(760, screenWidth - 20),
         height: Math.min(420, screenHeight - 20),
@@ -623,7 +624,15 @@ routeEditorGui.registerScrolled((mouseX, mouseY, direction) => {
     if (layout.list && isInside(mouseX, mouseY, layout.list)) scrollY = Math.max(0, scrollY - direction * ROW_HEIGHT * 2);
 });
 
+routeEditorGui.registerOpened(() => {
+    if (!renderRegistration) renderRegistration = Render2D.registerV5Render(renderEditor);
+});
+
 routeEditorGui.registerClosed(() => {
+    if (renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
     commitField();
     routesOpen = false;
     if (!mineableEditMode) {
@@ -673,10 +682,10 @@ register('renderOverlay', () => {
         'Open the Ore Route Editor and click Save to finish',
         mineableEditStatus,
     ];
-    const x = Renderer.screen.getWidth() / 2 + 36;
-    const y = Renderer.screen.getHeight() / 2 - 26;
+    const x = Render2D.screen.getWidth() / 2 + 36;
+    const y = Render2D.screen.getHeight() / 2 - 26;
     lines.forEach((line, index) => {
-        Renderer.drawStringWithShadow(line, x, y + index * 11, index === 0 ? 0xff00b4d8 : Renderer.WHITE);
+        Render2D.drawStringWithShadow(line, x, y + index * 11, index === 0 ? 0xff00b4d8 : Render2D.WHITE);
     });
 });
 
@@ -708,17 +717,14 @@ register('guiKey', (char, keyCode, gui, event) => {
     cancel(event);
 });
 
-NVG.registerV5Render(() => {
+const renderEditor = () => {
     if (!routeEditorGui.isOpen()) return;
     try {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         drawEditor(Client.getMouseX(), Client.getMouseY());
     } catch (error) {
         console.error('[Ore Route Editor] Render error:', error);
-    } finally {
-        NVG.endFrame();
     }
-});
+};
 
 export const oreRouteEditor = {
     open(module) {

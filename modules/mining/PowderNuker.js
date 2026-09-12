@@ -1,13 +1,13 @@
 // vibecoded slop! but it works okay.
 import { BP, Direction } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Movement } from '../../utils/player/Movement';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { manager } from '../../utils/SkyblockEvents';
+import { getArea } from '../../utils/TabListUtils';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 import { Nuker } from './Nuker';
-import { MiningUtils } from '../../utils/MiningUtils';
-import { Guis } from '../../utils/player/Inventory';
+import { refuel, hasMaxGreatExplorer } from '../../utils/MiningUtils';
+import { setItemSlot } from '../../utils/player/Inventory';
 import {
     ClientboundBlockUpdatePacket,
     ClientboundSectionBlocksUpdatePacket,
@@ -65,7 +65,7 @@ class PowderNuker extends ModuleBase {
         this.on('packetReceived', (packet) => packet.runUpdates((pos, state) => this.recordBreak(pos, state))).setFilteredClass(
             ClientboundSectionBlocksUpdatePacket
         );
-        manager.subscribe('emptydrill', () => {
+        registerSkyblockEvent('emptydrill', () => {
             if (!this.enabled || this.refueling) return;
             const refueling = (this.refueling = { toolSlot: Player.getHeldItemIndex() });
             Client.stopMovement();
@@ -73,14 +73,13 @@ class PowderNuker extends ModuleBase {
             Rotations.stop();
             Nuker.toggle(false, true);
             this.message('&eDrill empty! Refueling...');
-            MiningUtils.doRefueling(
-                false,
+            refuel(
                 (success) => {
                     if (!this.enabled || this.refueling !== refueling) return;
                     if (!success) return this.stop('&cRefueling failed!');
                     this.message('&aRefueling successful!');
                     this.refueling = false;
-                    Guis.setItemSlot(refueling.toolSlot);
+                    setItemSlot(refueling.toolSlot);
                     this.breaks.clear();
                     this.pendingBreaks.clear();
                     this.breakWindowStart = Date.now();
@@ -105,7 +104,7 @@ class PowderNuker extends ModuleBase {
     }
 
     onEnable() {
-        if (TabListUtils.getArea() !== 'Crystal Hollows') return this.stop('Start in the Crystal Hollows.');
+        if (getArea() !== 'Crystal Hollows') return this.stop('Start in the Crystal Hollows.');
         if (!this.inside(Player.getX(), Player.getZ(), 1)) return this.stop('Start inside the selected region, away from its border and the Nucleus.');
         if (!Nuker.isHoldingMiningTool()) return this.stop('Hold a drill, gauntlet, or pickaxe.');
         this.savedNuker = {
@@ -121,7 +120,7 @@ class PowderNuker extends ModuleBase {
         Nuker.customBlockList = HARDSTONE.map((registryName) => ({ registryName, name: registryName }));
         Nuker.nukeBelow = true;
         Nuker.targetMode = 'Closest';
-        Nuker.chestFilter = (chest) => MiningUtils.hasMaxGreatExplorer() || Math.abs(chest.y - Player.getY()) < 2;
+        Nuker.chestFilter = (chest) => hasMaxGreatExplorer() || Math.abs(chest.y - Player.getY()) < 2;
         Nuker.chestWalkDistance = 2.5;
         this.descent = null;
         this.breaks = new Map();
@@ -475,7 +474,7 @@ class PowderNuker extends ModuleBase {
             Client.stopMovement();
             return;
         }
-        Movement.setKeysForStraightLineCoords(next.x, Player.getY(), next.z, false);
+        setKeysForStraightLineCoords(next.x, Player.getY(), next.z, false);
     }
 
     stop(reason) {

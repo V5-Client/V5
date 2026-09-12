@@ -1,7 +1,7 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
-import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
@@ -87,7 +87,7 @@ class MudwormMacro extends ModuleBase {
             this.message('&aResumed.');
         }
         if (this.currentTarget && Date.now() - this.targetStartedAt >= TARGET_TIMEOUT_MS) return this.blacklistCurrentTarget();
-        if (this.busy || EtherwarpPathfinder.isPathing()) return;
+        if (this.busy || FastEtherwarp.isPathing()) return;
 
         const targets = this.getTargets();
         this.processedTargets.forEach((key) => {
@@ -108,7 +108,7 @@ class MudwormMacro extends ModuleBase {
         this.targetStartedAt = Date.now();
         this.fallbackChecked = false;
         this.fallbackWaitUntil = 0;
-        const started = EtherwarpPathfinder.findPath(target, {
+        const started = FastEtherwarp.findPath(target, {
             silent: true,
             onSuccess: () => this.clickTarget(target),
             onFail: () => this.finishTarget(target),
@@ -156,7 +156,7 @@ class MudwormMacro extends ModuleBase {
     checkFallback() {
         this.busy = true;
         this.checkingFallback = true;
-        const started = EtherwarpPathfinder.findPath(this.autoRewarp === 'Warp Torrhus' ? TORRHUS_FALLBACK_TARGET : FALLBACK_TARGET, {
+        const started = FastEtherwarp.findPath(this.autoRewarp === 'Warp Torrhus' ? TORRHUS_FALLBACK_TARGET : FALLBACK_TARGET, {
             silent: true,
             onSuccess: () => this.finishFallback(),
             onFail: () => this.failFallback(),
@@ -187,7 +187,7 @@ class MudwormMacro extends ModuleBase {
     }
 
     getHourlyRate(key) {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return 0;
         return Math.round((OverlayManager.getTrackedValue(this.oid, key, 0) * 3600000) / elapsedMs);
     }
@@ -247,7 +247,7 @@ class MudwormMacro extends ModuleBase {
     }
 
     stopCurrentAction() {
-        if (this.busy && EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (this.busy && FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         if (this.busy) Rotations.stop();
         this.currentTarget = null;
         this.targetStartedAt = 0;

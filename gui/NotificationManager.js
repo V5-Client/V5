@@ -15,17 +15,17 @@ const DESC_LINE_SPACING = 7;
 
 const drawCheckIcon = (centerX, centerY, alpha) => {
     const color = (alpha << 24) | THEME.NOTIF_ICON;
-    NVG.save();
-    NVG.translate(centerX - 2, centerY + 4);
-    NVG.rotate(-45);
-    NVG.drawRect(-1.5, -7, 3, 8.5, color);
-    NVG.drawRect(-1.5, -1.5, 14, 3, color);
-    NVG.restore();
+    Render2D.save();
+    Render2D.translate(centerX - 2, centerY + 4);
+    Render2D.rotate(-45);
+    Render2D.drawRect(-1.5, -7, 3, 8.5, color);
+    Render2D.drawRect(-1.5, -1.5, 14, 3, color);
+    Render2D.restore();
 };
 const drawAlertIcon = (centerX, centerY, alpha) => {
     const color = (alpha << 24) | THEME.NOTIF_ICON;
-    NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
-    NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
+    Render2D.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
+    Render2D.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
 };
 
 const NOTIFICATION_TYPES = {
@@ -41,12 +41,12 @@ const NOTIFICATION_TYPES = {
         },
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | THEME.NOTIF_ICON;
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.rotate(45);
-            NVG.drawRect(-1.5, -7, 3, 14, color);
-            NVG.drawRect(-7, -1.5, 14, 3, color);
-            NVG.restore();
+            Render2D.save();
+            Render2D.translate(centerX, centerY);
+            Render2D.rotate(45);
+            Render2D.drawRect(-1.5, -7, 3, 14, color);
+            Render2D.drawRect(-7, -1.5, 14, 3, color);
+            Render2D.restore();
         },
     },
     DANGER: {
@@ -73,8 +73,8 @@ const NOTIFICATION_TYPES = {
         },
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | THEME.NOTIF_ICON;
-            NVG.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
-            NVG.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
+            Render2D.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
+            Render2D.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
         },
     },
 };
@@ -89,9 +89,9 @@ class Notification {
         this.createdAt = Date.now();
         this.state = 'entering';
         this.animationStart = Date.now();
-        this.x = Renderer.screen.getWidth();
-        this.targetX = Renderer.screen.getWidth() - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
-        this.y = Renderer.screen.getHeight();
+        this.x = Render2D.screen.getWidth();
+        this.targetX = Render2D.screen.getWidth() - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
+        this.y = Render2D.screen.getHeight();
         this.targetY = 0;
         this.opacity = 0;
         this.closeHovered = false;
@@ -114,7 +114,7 @@ class Notification {
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
             const testLine = currentLine + ' ' + word;
-            if (NVG.textWidth(testLine, FontSizes.TINY, NVG.getDefaultFont()) > maxWidth) {
+            if (Render2D.textWidth(testLine, FontSizes.TINY, Render2D.getDefaultFont()) > maxWidth) {
                 lines.push(currentLine);
                 currentLine = word;
             } else {
@@ -152,7 +152,7 @@ class Notification {
         if (this.state === 'entering') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
             const eased = easeOutCubic(progress);
-            this.x = Renderer.screen.getWidth() + (this.targetX - Renderer.screen.getWidth()) * eased;
+            this.x = Render2D.screen.getWidth() + (this.targetX - Render2D.screen.getWidth()) * eased;
             this.opacity = eased;
             const yDiff = this.targetY - this.y;
             if (Math.abs(yDiff) > 0.5) this.y += yDiff * 0.3;
@@ -170,7 +170,7 @@ class Notification {
             if (!this.isSticky && lifetime >= this.duration) this.startExit();
         } else if (this.state === 'exiting') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
-            this.x = this.exitX + (Renderer.screen.getWidth() - this.exitX) * progress;
+            this.x = this.exitX + (Render2D.screen.getWidth() - this.exitX) * progress;
             this.opacity = 1 - progress;
             this.y = this.exitY;
             if (progress >= 1) this.state = 'removed';
@@ -256,12 +256,12 @@ class Notification {
         const closeX = this.x + this.closeXOffset;
         const closeY = this.y + this.closeYOffset;
         const closeColor = (Math.floor(alpha * 255) << 24) | (THEME.NOTIF_CLOSE & 0xffffff);
-        NVG.save();
-        NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
-        NVG.rotate(45);
-        NVG.drawRect(-0.75, -5, 1.5, 10, closeColor);
-        NVG.drawRect(-5, -0.75, 10, 1.5, closeColor);
-        NVG.restore();
+        Render2D.save();
+        Render2D.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
+        Render2D.rotate(45);
+        Render2D.drawRect(-0.75, -5, 1.5, 10, closeColor);
+        Render2D.drawRect(-5, -0.75, 10, 1.5, closeColor);
+        Render2D.restore();
 
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
@@ -269,8 +269,8 @@ class Notification {
             const progressColor = colorWithAlpha(THEME.NOTIF_PROGRESS, alpha);
 
             if (progressBarWidth > 0.5) {
-                NVG.save();
-                NVG.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
+                Render2D.save();
+                Render2D.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
 
                 drawRoundedRectangle({
                     x: this.x,
@@ -281,8 +281,8 @@ class Notification {
                     color: progressColor,
                 });
 
-                NVG.resetScissor();
-                NVG.restore();
+                Render2D.resetScissor();
+                Render2D.restore();
             }
         }
     }
@@ -310,6 +310,7 @@ class NotificationManager {
     constructor() {
         this.notifications = [];
         this.registered = false;
+        this.renderCallback = () => this.render();
         this.clickTrigger = null;
         this.tickTrigger = null;
         register('gameUnload', () => this.resetAll());
@@ -319,18 +320,23 @@ class NotificationManager {
         if (this.registered) return;
         this.registered = true;
 
-        NVG.registerV5Render(() => {
-            this.render();
-        });
+        Render2D.registerV5Render(this.renderCallback);
 
         if (!this.clickTrigger) {
             this.clickTrigger = register('guiMouseClick', (mouseX, mouseY, button) => {
                 if (button === 0) this.handleClick(mouseX, mouseY);
             });
-        }
+        } else this.clickTrigger.register();
         if (!this.tickTrigger) {
             this.tickTrigger = register('tick', () => this.update());
-        }
+        } else this.tickTrigger.register();
+    }
+    unregisterEvents() {
+        if (!this.registered) return;
+        this.registered = false;
+        Render2D.unregisterV5Render(this.renderCallback);
+        this.clickTrigger?.unregister();
+        this.tickTrigger?.unregister();
     }
 
     add(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
@@ -345,10 +351,11 @@ class NotificationManager {
         const beforeCount = this.notifications.length;
         this.notifications = this.notifications.filter((n) => n.state !== 'removed');
         if (this.notifications.length !== beforeCount) this.updatePositions();
+        if (this.notifications.length === 0) this.unregisterEvents();
     }
     updatePositions() {
-        const screenWidth = Renderer.screen.getWidth();
-        const screenHeight = Renderer.screen.getHeight();
+        const screenWidth = Render2D.screen.getWidth();
+        const screenHeight = Render2D.screen.getHeight();
         let yOffset = 0;
         this.notifications.forEach((notification) => {
             notification.targetX = screenWidth - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
@@ -361,18 +368,11 @@ class NotificationManager {
         if (this.notifications.length === 0) return;
 
         try {
-            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
             for (let i = this.notifications.length - 1; i >= 0; i--) {
                 this.notifications[i].draw();
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
+            console.error(e);
         }
     }
     handleClick(mouseX, mouseY) {
@@ -381,6 +381,7 @@ class NotificationManager {
 
     resetAll() {
         this.notifications = [];
+        this.unregisterEvents();
     }
 }
 

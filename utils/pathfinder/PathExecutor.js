@@ -1,48 +1,35 @@
-class Executor {
-    constructor() {
-        this.tickCallbacks = [];
-        this.stepCallbacks = [];
+const tickCallbacks = [];
+const stepCallbacks = [];
+let tickRegister = null;
+let stepRegister = null;
 
-        this.tickRegister = null;
-        this.stepRegister = null;
-    }
-
-    execute() {
-        this.destroy();
-
-        this.tickRegister = register('tick', () => this.runCallbacks(this.tickCallbacks, 'tick'));
-        this.stepRegister = register('step', () => this.runCallbacks(this.stepCallbacks, 'step')).setFps(120);
-    }
-
-    runCallbacks(callbacks, name) {
-        for (const callback of callbacks) {
-            if (typeof callback !== 'function') continue;
-            try {
-                callback();
-            } catch (e) {
-                console.error(`PathExecutor ${name} callback error:`, e);
-            }
+const runCallbacks = (callbacks, name) => {
+    for (const callback of callbacks) {
+        try {
+            callback();
+        } catch (error) {
+            console.error(`PathExecutor ${name} callback error:`, error);
         }
     }
+};
 
-    destroy() {
-        if (this.tickRegister) this.tickRegister.unregister();
-        if (this.stepRegister) this.stepRegister.unregister();
-        this.tickRegister = null;
-        this.stepRegister = null;
-    }
-
-    onTick(callback) {
-        if (typeof callback === 'function') {
-            this.tickCallbacks.push(callback);
-        }
-    }
-
-    onStep(callback) {
-        if (typeof callback === 'function') {
-            this.stepCallbacks.push(callback);
-        }
-    }
+export function startPathExecutor() {
+    destroyPathExecutor();
+    tickRegister = register('tick', () => runCallbacks(tickCallbacks, 'tick'));
+    stepRegister = register('step', () => runCallbacks(stepCallbacks, 'step')).setFps(120);
 }
 
-export const PathExecutor = new Executor();
+export function destroyPathExecutor() {
+    tickRegister?.unregister();
+    stepRegister?.unregister();
+    tickRegister = null;
+    stepRegister = null;
+}
+
+export function onPathTick(callback) {
+    if (typeof callback === 'function') tickCallbacks.push(callback);
+}
+
+export function onPathStep(callback) {
+    if (typeof callback === 'function') stepCallbacks.push(callback);
+}

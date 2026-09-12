@@ -1,8 +1,8 @@
-import { Chat } from '../../Chat';
+import { chatPathfinder } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
 import PathConfig from '../PathConfig';
-import { PathExecutor } from '../PathExecutor';
-import { Movement } from './PathMovement';
+import { onPathTick } from '../PathExecutor';
+import { isRecovering } from './PathMovement';
 
 class PathJumps {
     constructor() {
@@ -12,9 +12,12 @@ class PathJumps {
         this.cacheFrame = 0;
         this.lastFluidMessage = 0;
         this.jumpSuppressTicks = 0;
+        this.lastNearestPath = null;
+        this.lastNearestIndex = -1;
 
         this.STEP_HEIGHT = 0.6;
         this.LOOKAHEAD_NODES = 3;
+        this.NEAREST_SEARCH_WINDOW = 16;
         this.PREEMPTIVE_JUMP_DISTANCE = 1.65;
 
         this.FLAG_FLUID_FEET = 1 << 0;
@@ -26,7 +29,7 @@ class PathJumps {
         this.FLAG_DROP_NEXT = 1 << 6;
         this.FLAG_TIGHT_CORRIDOR = 1 << 7;
 
-        PathExecutor.onTick(() => {
+        onPathTick(() => {
             this.cacheFrame++;
             if (this.blockCache.size > 1000) this.blockCache.clear();
             if (this.jumpSuppressTicks > 0) {
@@ -145,15 +148,22 @@ class PathJumps {
         let closestIndex = -1,
             minDSq = Infinity;
 
-        path.forEach((node, index) => {
+        const useLocalWindow = path === this.lastNearestPath && this.lastNearestIndex >= 0 && this.lastNearestIndex < path.length;
+        const start = useLocalWindow ? Math.max(0, this.lastNearestIndex - this.NEAREST_SEARCH_WINDOW) : 0;
+        const searchEnd = useLocalWindow ? Math.min(path.length, this.lastNearestIndex + this.NEAREST_SEARCH_WINDOW + 1) : path.length;
+
+        for (let index = start; index < searchEnd; index++) {
+            const node = path[index];
             const dSq = Math.pow(pX - (node.x + 0.5), 2) + Math.pow(pY - (node.y + 0.5), 2) + Math.pow(pZ - (node.z + 0.5), 2);
             if (dSq < minDSq) {
                 minDSq = dSq;
                 closestIndex = index;
             }
-        });
+        }
 
         if (closestIndex === -1) return { lookahead: [], closestIndex: -1 };
+        this.lastNearestPath = path;
+        this.lastNearestIndex = closestIndex;
 
         const lookahead = [];
         const end = Math.min(closestIndex + 1 + this.LOOKAHEAD_NODES, path.length);
@@ -180,7 +190,7 @@ class PathJumps {
         if (!this.isPlayerInFluid()) return false;
         Client.setKey('space', true);
         if (Date.now() - this.lastFluidMessage > 2000) {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Fluid jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Fluid jump detected');
             this.lastFluidMessage = Date.now();
         }
         return true;
@@ -194,7 +204,7 @@ class PathJumps {
         if (layers === 0) return false;
         const diff = data.vec.y() - (8 - layers) * 0.125 - (Player.getY() - 1);
         if (diff > 0.75 && layers > 6) {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Snow jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Snow jump detected');
             Client.setKey('space', true);
             return true;
         }
@@ -224,7 +234,7 @@ class PathJumps {
             }
         }
         if (needsJump && !canWalkInstead) {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Standard jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Standard jump detected');
             Client.setKey('space', true);
             return true;
         }
@@ -254,7 +264,7 @@ class PathJumps {
         const rise = nextY - Math.floor(Player.getY() - 0.001);
         if (rise < 1 || rise > 2) return false;
 
-        if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Predictive climb jump');
+        if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Predictive climb jump');
         Client.setKey('space', true);
         return true;
     }
@@ -297,7 +307,7 @@ class PathJumps {
                 const distToEdgeSq = Math.pow(pX - (dropStartNode.x + 0.5), 2) + Math.pow(pZ - (dropStartNode.z + 0.5), 2);
 
                 if (distToEdgeSq <= 1.35 * 1.35) {
-                    if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Gap jump detected');
+                    if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Gap jump detected');
                     Client.setKey('space', true);
                     return true;
                 }
@@ -344,7 +354,7 @@ class PathJumps {
         if (!player) return this.reset();
 
         if (!player.onGround()) {
-            if (!Movement.isRecovering() && !this.isPlayerInFluid()) {
+            if (!isRecovering() && !this.isPlayerInFluid()) {
                 Client.setKey('space', false);
             }
             return;
@@ -362,7 +372,7 @@ class PathJumps {
         if (this.checkSnowJump(lookahead)) return;
         if (this.checkObstacleJump(lookahead)) return;
 
-        if (!Movement.isRecovering()) {
+        if (!isRecovering()) {
             Client.setKey('space', false);
         }
         this.lastLookaheadPositions = lookahead.map((d) => d.vec.y());
@@ -372,9 +382,15 @@ class PathJumps {
         this.lastLookaheadPositions = [];
         this.currentLookaheadVecs = [];
         this.jumpSuppressTicks = 0;
+        this.invalidateNearestIndex();
         this.blockCache.clear();
         this.cacheFrame = 0;
         Client.setKey('space', false);
+    }
+
+    invalidateNearestIndex() {
+        this.lastNearestPath = null;
+        this.lastNearestIndex = -1;
     }
 
     suppressJump(ticks = 5) {

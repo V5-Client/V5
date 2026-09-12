@@ -1,4 +1,4 @@
-import { Chat } from '../../utils/Chat';
+import { chatDebug, chatFailsafe } from '../../utils/Chat';
 import { ClientboundSetEntityMotionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
@@ -65,7 +65,7 @@ class VelocityFailsafe extends Failsafe {
         const roundedVelocity = Math.round(velocity);
 
         if (blockBelow && !blockBelow.includes('air') && (roundedVelocity === 1 || roundedVelocity === 0)) {
-            Chat.messageDebug('disabling fall velocity packet');
+            chatDebug('disabling fall velocity packet');
             this._setDisabled(1000);
         }
 
@@ -82,10 +82,10 @@ class VelocityFailsafe extends Failsafe {
     onTrigger(speed) {
         const { pressure, severity, color } = VELOCITY_TIERS.find((t) => speed < t.threshold) || VELOCITY_TIERS[VELOCITY_TIERS.length - 1];
 
-        Chat.messageFailsafe(`&c&lVelocity failsafe triggered! Velocity: ${speed.toFixed(0)}`);
+        chatFailsafe(`&c&lVelocity failsafe triggered! Velocity: ${speed.toFixed(0)}`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
         FailsafeUtils.sendFailsafeEmbed('Velocity', severity, `Velocity change detected: ${speed.toFixed(0)}`, color);
     }
 }
 
-export default new VelocityFailsafe();
+new VelocityFailsafe();

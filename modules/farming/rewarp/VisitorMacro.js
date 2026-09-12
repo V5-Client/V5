@@ -1,10 +1,10 @@
 import { bazaarUtil } from '../../../utils/BazaarUtil';
-import { Chat } from '../../../utils/Chat';
+import { chat } from '../../../utils/Chat';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
-import { Guis } from '../../../utils/player/Inventory';
+import { clickItem, clickSlot, closeInventory, findFirstItem } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
-import { TabListUtils } from '../../../utils/TabListUtils';
+import { readVisitors } from '../../../utils/TabListUtils';
 import { farmingDelays } from '../FarmingDelays';
 import { rewarpSettings } from './RewarpSettings';
 
@@ -19,7 +19,6 @@ const STATES = {
 const INTERACT_DISTANCE = 3;
 const OPEN_TIMEOUT_MS = 1000;
 const VISITOR_TIMEOUT_MS = 15_000;
-const TELEPORT_RETRY_MS = 1000;
 const VISITOR_BLACKLIST = ['Vinyl Collector', 'Gold Forger', 'Rhys'];
 const cleanText = (value) => ChatLib.removeFormatting(String(value ?? '')).trim();
 
@@ -41,14 +40,14 @@ function parseRequiredItems(lore) {
 class VisitorMacro {
     start() {
         this.running = true;
-        this.visitors = TabListUtils.readVisitors();
+        this.visitors = readVisitors();
         if (!this.visitors.length) {
-            Chat.message('&eNo visitors found.');
+            chat('&eNo visitors found.');
             this.running = false;
             return false;
         }
 
-        Chat.message(`&aFound ${this.visitors.length} visitors.`);
+        chat(`&aFound ${this.visitors.length} visitors.`);
         this.visitorIndex = 0;
         this.firstSeek = true;
         this.declineCurrentVisitor = false;
@@ -89,14 +88,14 @@ class VisitorMacro {
     }
 
     advanceToNextVisitor() {
-        Guis.closeInv();
+        closeInventory();
         this.visitorIndex++;
-        this.visitors.push(...TabListUtils.readVisitors().filter((visitor) => !this.visitors.includes(visitor)));
+        this.visitors.push(...readVisitors().filter((visitor) => !this.visitors.includes(visitor)));
         this.firstSeek = true;
         this.declineCurrentVisitor = false;
         this.visitorStartedAt = Date.now();
         if (this.visitorIndex >= this.visitors.length) {
-            Chat.message('&aAll stored visitors completed.');
+            chat('&aAll stored visitors completed.');
             return this.stop();
         }
         this.transition(STATES.SEEKING);
@@ -166,21 +165,21 @@ class VisitorMacro {
         if (!Client.isInGui()) return this.retry(STATES.SEEKING);
 
         if (this.declineCurrentVisitor) {
-            if (!Guis.clickItem('Refuse Offer', false, 'LEFT')) return this.retry(STATES.SEEKING);
+            if (!clickItem('Refuse Offer', false, 'LEFT')) return this.retry(STATES.SEEKING);
             return this.advanceVisitor();
         }
 
         const container = Player.getContainer();
-        const offerSlot = Guis.findFirst(container, 'Accept Offer');
+        const offerSlot = findFirstItem(container, 'Accept Offer');
         if (offerSlot < 0) return;
         const lore = container.getStackInSlot(offerSlot).getLore() || [];
         if (lore.some((line) => cleanText(line).includes('Click to give!'))) {
-            Guis.clickSlot(offerSlot, false, 'LEFT');
+            clickSlot(offerSlot, false, 'LEFT');
             return this.advanceVisitor();
         }
 
         if (VISITOR_BLACKLIST.includes(this.visitors[this.visitorIndex])) {
-            if (!Guis.clickItem('Refuse Offer', false, 'LEFT')) return this.retry(STATES.SEEKING);
+            if (!clickItem('Refuse Offer', false, 'LEFT')) return this.retry(STATES.SEEKING);
             return this.advanceVisitor();
         }
 
@@ -221,8 +220,8 @@ class VisitorMacro {
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         Rotations.stop();
         Client.stopMovement();
-        Guis.closeInv();
-        Chat.message('&eVisitor timed out, skipping.');
+        closeInventory();
+        chat('&eVisitor timed out, skipping.');
         bazaarUtil.cancel();
         this.advanceVisitor();
     }

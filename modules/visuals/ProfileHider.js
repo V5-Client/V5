@@ -1,6 +1,5 @@
-import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { getConfigFile } from '../../utils/Utils';
 
 class ProfileHider extends ModuleBase {
     constructor() {
@@ -14,49 +13,37 @@ class ProfileHider extends ModuleBase {
         this.HIDE_USERNAME = true;
         this.USERNAME = null;
 
-        this.addToggle(
-            'Custom Username',
-            (v) => {
-                this.HIDE_USERNAME = v;
-                this.updateMixin();
-            },
-            'Allows for custom usernames',
-            true
-        );
-        this.addTextInput(
-            'Username',
-            ' ',
-            (v) => {
-                this.USERNAME = v;
-                this.updateMixin();
-            },
-            'The username you want to use'
-        );
+        this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
+        this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
+
+        Client.setNameProcessor(null);
+        this.on('tick', () => this.updateName());
+        register('gameUnload', () => Client.setNameReplacement(null, null));
+    }
+
+    onEnable() {
+        this.defaultName = this.getUsername();
+        this.updateName();
+    }
+
+    onDisable() {
+        Client.setNameReplacement(null, null);
+    }
+
+    updateName() {
+        const username = this.HIDE_USERNAME ? Player.getName() : null;
+        Client.setNameReplacement(username, this.USERNAME?.trim() || this.defaultName || 'Failed to get username');
     }
 
     getUsername() {
         try {
-            const saved = Utils.getConfigFile('AuthCache/do_not_share_this_file')?.username;
+            const saved = getConfigFile('AuthCache/do_not_share_this_file')?.username;
             if (saved) return saved;
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             console.error('Failed to load saved username');
         }
         return null;
-    }
-
-    updateMixin() {
-        if (!this.defaultName) this.defaultName = this.getUsername();
-        Mixin.set('profileHiderReplacement', (this.HIDE_USERNAME && this.USERNAME?.trim()) || this.defaultName || 'Hidden');
-    }
-
-    onEnable() {
-        this.updateMixin();
-        Mixin.set('profileHiderEnabled', true);
-    }
-
-    onDisable() {
-        Mixin.set('profileHiderEnabled', false);
     }
 }
 

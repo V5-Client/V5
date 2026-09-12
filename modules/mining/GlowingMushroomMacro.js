@@ -5,13 +5,13 @@
 // love it
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { manager } from '../../utils/SkyblockEvents';
-import { MacroState } from '../../utils/MacroState';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { getModule } from '../../utils/MacroState';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
-import { NukerUtils } from '../../utils/NukerUtils';
-import { Utils } from '../../utils/Utils';
+import { getVisiblePoint, isLineClear } from '../../utils/Raytrace';
+import { queueNuke } from '../../utils/NukerUtils';
+import { area } from '../../utils/Utils';
 import { getTrackedGlowingMushrooms, isGlowingMushroomBlock } from '../visuals/GlowingMushroomESP';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
@@ -61,7 +61,7 @@ class GlowingMushroomMacro extends ModuleBase {
         this.reachableCount = 0;
         this.blacklistedMushrooms = new Map();
         this.on('tick', () => this.runLoop(this.loopToken));
-        manager.subscribe('fasttravellocked', () => {
+        registerSkyblockEvent('fasttravellocked', () => {
             if (!this.enabled || !this.warpStartedAt) return;
 
             this.message("&cYou haven't unlocked the Glowing Mushroom Cave warp.");
@@ -125,7 +125,7 @@ class GlowingMushroomMacro extends ModuleBase {
     }
 
     ensureEspEnabled() {
-        const espModule = MacroState.getModule('Glowing Mushroom ESP');
+        const espModule = getModule('Glowing Mushroom ESP');
         if (!espModule || espModule.enabled) return;
 
         this.autoEnabledEsp = true;
@@ -135,7 +135,7 @@ class GlowingMushroomMacro extends ModuleBase {
     restoreEspState() {
         if (!this.autoEnabledEsp) return;
 
-        const espModule = MacroState.getModule('Glowing Mushroom ESP');
+        const espModule = getModule('Glowing Mushroom ESP');
         if (espModule?.enabled) espModule.toggle(false);
         this.autoEnabledEsp = false;
     }
@@ -212,7 +212,7 @@ class GlowingMushroomMacro extends ModuleBase {
     }
 
     ensureFarmingIslands() {
-        if (Utils.area() === 'The Farming Islands') {
+        if (area() === 'The Farming Islands') {
             this.warpStartedAt = 0;
             return true;
         }
@@ -399,7 +399,7 @@ class GlowingMushroomMacro extends ModuleBase {
 
         for (const target of targets) {
             if (!isGlowingMushroomBlock(target.x, target.y, target.z)) continue;
-            NukerUtils.nukeQueueAdd([target.x, target.y, target.z], 1);
+            queueNuke([target.x, target.y, target.z], 1);
             onDone(1);
             return;
         }
@@ -475,12 +475,12 @@ class GlowingMushroomMacro extends ModuleBase {
             };
 
             if (!this.isPointWithinReach(point, eye)) continue;
-            if (!Raytrace.isLineClear(eye.x(), eye.y(), eye.z(), point.x, point.y, point.z, mushroom.x, mushroom.y, mushroom.z)) continue;
+            if (!isLineClear(eye.x(), eye.y(), eye.z(), point.x, point.y, point.z, mushroom.x, mushroom.y, mushroom.z)) continue;
 
             return point;
         }
 
-        const fallback = Raytrace.getVisiblePoint(mushroom.x, mushroom.y, mushroom.z, true);
+        const fallback = getVisiblePoint(mushroom.x, mushroom.y, mushroom.z, true);
         if (!fallback) return null;
 
         const point = { x: fallback[0], y: fallback[1], z: fallback[2] };

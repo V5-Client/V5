@@ -12,6 +12,66 @@ on:
                 type: string
 
 jobs:
+    publish:
+        if: ${{ github.repository == 'V5-Client/V5' && github.ref == 'refs/heads/main' }}
+        runs-on: blacksmith-2vcpu-ubuntu-2404
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+              with:
+                  ref: ${{ inputs.sha || github.sha }}
+
+            - name: Build release ZIP
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  workdir="$(mktemp -d)"
+                  trap 'rm -rf "$workdir"' EXIT
+                  source_dir="$workdir/source"
+                  mkdir -p "$source_dir"
+                  cp -a . "$source_dir"/
+                  rm -rf "$source_dir/.git" "$source_dir/.github" "$source_dir/.vscode"
+                  rm -f \
+                    "$source_dir/.gitignore" \
+                    "$source_dir/.prettierrc.json" \
+                    "$source_dir/jsconfig.json" \
+                    "$source_dir/typings.d.ts"
+                  (cd "$source_dir" && zip -qr "$GITHUB_WORKSPACE/V5-Mojmap.zip" .)
+
+            - name: Publish GitHub release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  SHA: ${{ inputs.sha || github.sha }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  version=$(jq -er '.version' metadata.json)
+                  prefix="${version//./\\.}-r"
+                  tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[] | select(.target_commitish == \"$SHA\") | .tag_name" | sed -nE "s/^${prefix}[0-9]+$/&/p" | head -n1)
+                  if [ -z "$tag" ]; then
+                    revision=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' | sed -nE "s/^${prefix}([0-9]+)$/\1/p" | sort -n | tail -n1)
+                    tag="${version}-r$(( ${revision:-0} + 1 ))"
+                    gh release create "$tag" --target "$SHA" --title "$tag" --generate-notes
+                  fi
+                  gh release upload "$tag" V5-Mojmap.zip --clobber
+
+            - name: Setup Node
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: 22
+
+            - name: Install Wrangler
+              run: npm install -g wrangler@4.110.0 --prefer-offline
+
+            - name: Upload release ZIP to R2
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+              run: wrangler r2 object put v5-builds/V5-Mojmap.zip --file V5-Mojmap.zip --remote
+
     notify-discord:
         runs-on: blacksmith-2vcpu-ubuntu-2404
 
@@ -21,22 +81,6 @@ jobs:
               with:
                   fetch-depth: 0
                   ref: ${{ inputs.sha || github.sha }}
-
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 22
-
-            - name: Cache global npm
-              uses: actions/cache@v4
-              with:
-                  path: ~/.npm
-                  key: npm-global-${{ runner.os }}
-                  restore-keys: |
-                      npm-global-${{ runner.os }}
-
-            - name: Install latest Wrangler
-              run: npm install -g wrangler@latest --prefer-offline
 
             - name: Prepare Data
               shell: bash
@@ -86,38 +130,6 @@ jobs:
                   [[ -z "${EXT_LIST:-}" ]] && EXT_LIST="No specific types"
                   EXT_LIST="${EXT_LIST:0:1024}"
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
-
-            - name: Build Release ZIP
-              if: ${{ endsWith(github.repository, '/V5') }}
-              shell: bash
-              run: |
-                  set -euo pipefail
-
-                  workdir="$(mktemp -d)"
-                  trap 'rm -rf "$workdir"' EXIT
-
-                  source_dir="$workdir/source"
-                  mkdir -p "$source_dir"
-
-                  cp -a . "$source_dir"/
-                  rm -rf "$source_dir/.git" "$source_dir/.github" "$source_dir/.vscode"
-                  rm -f \
-                    "$source_dir/.gitignore" \
-                    "$source_dir/.prettierrc.json" \
-                    "$source_dir/jsconfig.json" \
-                    "$source_dir/typings.d.ts"
-
-                  (
-                    cd "$source_dir"
-                    zip -qr "$GITHUB_WORKSPACE/V5-Mojmap.zip" .
-                  )
-            - name: Upload Release zip to R2
-              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-              run: |
-                  wrangler r2 object put v5-builds/V5-Mojmap.zip --file V5-Mojmap.zip --remote
 
             - name: Send to Discord
               env:

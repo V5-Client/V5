@@ -2,17 +2,17 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Mousemat } from '../../utils/player/Mousemat';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Mouse } from '../../utils/Ungrab';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { getPestCooldown, getTabListNames, stripTabFormatting } from '../../utils/TabListUtils';
+import { regrab, ungrab } from '../../utils/Ungrab';
+import { getConfigFile, getGardenPestStatus, randomInt, writeConfigFile } from '../../utils/Utils';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
 import { farmingDelays } from './FarmingDelays';
 import { rewarpHandler } from './rewarp/RewarpHandler';
 import { rewarpSettings } from './rewarp/RewarpSettings';
 import { getNearbyPest } from '../visuals/PestESP';
 import { loadoutHandler } from './LoadoutHandler';
-import { manager } from '../../utils/SkyblockEvents';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 
 const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
@@ -26,11 +26,18 @@ const RESTORING_PEST = 'Restoring Pest';
 const REWARPING = 'Rewarping';
 
 export class FarmingMacro extends ModuleBase {
+    state = null;
+    lastDirection = null;
+    yaw = 0;
+    leftYaw = 0;
+    laneChanging = false;
+    ignoreTicks = 0;
+
     constructor(options, commandPrefix) {
         super({ subcategory: 'Farming', isMacro: true, ...options, autoDisableOnWorldUnload: true });
 
         this.pointsPath = `FarmingMacro/${commandPrefix.replaceAll(' ', '_')}_points.json`;
-        this.points = Utils.getConfigFile(this.pointsPath) || {};
+        this.points = getConfigFile(this.pointsPath) || {};
 
         this.bindToggleKey();
         const rewarpStart = this.addButton('Set Rewarp Start', () => this.saveRewarpPoint('start'), 'Stand at the position reached by the rewarp command.');
@@ -44,13 +51,13 @@ export class FarmingMacro extends ModuleBase {
         ]);
 
         this.on('tick', () => this.handleTick());
-        manager.subscribe('sprayonatorunavailable', () => {
+        registerSkyblockEvent('sprayonatorunavailable', () => {
             if (this.enabled && farmingSettings.useSprayonator) this.sprayonatorUnavailable = true;
         });
     }
 
     onEnable() {
-        if ((farmingSettings.killNearbyPests || rewarpSettings.pestKiller) && Guis.findItemInHotbar('Vacuum') < 0) {
+        if ((farmingSettings.killNearbyPests || rewarpSettings.pestKiller) && findItemInHotbar('Vacuum') < 0) {
             this.message('&cNo Vacuum found in hotbar.');
             this.toggle(false);
             return;
@@ -73,15 +80,13 @@ export class FarmingMacro extends ModuleBase {
         this.sprayonatorAction = null;
         this.mode = FARMING;
         this.stallGraceTicks = 0;
-        Mouse.ungrab();
+        ungrab();
         this.startDelayTicks = 1;
         const player = Player.getPlayer();
         if (!player) return;
 
         this.farmingSlot = Player.getHeldItemIndex();
-        loadoutHandler.select(
-            TabListUtils.getPestCooldown() <= loadoutHandler.pestSpawnSwapCooldown ? loadoutHandler.pestSpawningSlot : loadoutHandler.farmingSlot
-        );
+        loadoutHandler.select(getPestCooldown() <= loadoutHandler.pestSpawnSwapCooldown ? loadoutHandler.pestSpawningSlot : loadoutHandler.farmingSlot);
         this.startFarming(player);
     }
 
@@ -90,13 +95,13 @@ export class FarmingMacro extends ModuleBase {
         Mousemat.stop();
         Rotations.stop();
         Client.unpressKeys();
-        Mouse.regrab();
+        regrab();
         this.mode = FARMING;
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
         this.stallGraceTicks = 0;
-        if (this.sprayonatorAction) Guis.setItemSlot(this.sprayonatorOriginalSlot);
+        if (this.sprayonatorAction) setItemSlot(this.sprayonatorOriginalSlot);
         this.sprayonatorAction = null;
         farmingSettings.restoreSlot();
     }
@@ -135,7 +140,7 @@ export class FarmingMacro extends ModuleBase {
         if (farmingSettings.killNearbyPests && !rewarpSettings.pestKiller && this.handlePest(player)) return;
 
         const looping = rewarpSettings.looping;
-        if (rewarpSettings.pestKiller && Utils.getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold) {
+        if (rewarpSettings.pestKiller && getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold) {
             const pestColumnClear = this.isPestColumnClear(player);
             if (looping || pestColumnClear) {
                 const returnPoint = { x: player.getX(), y: player.getY(), z: player.getZ() };
@@ -144,14 +149,14 @@ export class FarmingMacro extends ModuleBase {
             }
         }
         if (!looping && this.isAtPoint(player, this.points.end)) {
-            return this.beginRewarp(this.points.start, rewarpSettings.pestKiller && Utils.getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold);
+            return this.beginRewarp(this.points.start, rewarpSettings.pestKiller && getGardenPestStatus().gardenPests >= rewarpSettings.pestThreshold);
         }
         if (looping && this.shouldRunBarnTasks()) {
-            ChatLib.command('sethome');
+            if (rewarpSettings.shouldRunVisitorMacro() || rewarpSettings.philipContactMethod === 'Pathfind') ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
         }
 
-        const slot = TabListUtils.getPestCooldown() <= loadoutHandler.pestSpawnSwapCooldown ? loadoutHandler.pestSpawningSlot : loadoutHandler.farmingSlot;
+        const slot = getPestCooldown() <= loadoutHandler.pestSpawnSwapCooldown ? loadoutHandler.pestSpawningSlot : loadoutHandler.farmingSlot;
         if (!loadoutHandler.select(slot)) return Client.unpressKeys();
 
         if (this.trySprayonator()) return;
@@ -169,26 +174,30 @@ export class FarmingMacro extends ModuleBase {
         this.invokeFarmState();
     }
 
+    onFarmStart(player) {}
+    updateFarmState(player) {}
+    invokeFarmState() {}
+
     trySprayonator() {
         const now = Date.now();
         if (this.sprayonatorUnavailable || !farmingSettings.useSprayonator || now < this.nextSprayCheckAt || now < this.nextTabCheckAt || !this.hasNoSpray()) {
             return false;
         }
 
-        const slot = Guis.findItemInHotbar('Sprayonator');
+        const slot = findItemInHotbar('Sprayonator');
         if (slot < 0) return false;
 
         this.sprayonatorOriginalSlot = this.farmingSlot;
         const action = {};
         this.sprayonatorAction = action;
         Client.unpressKeys();
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         ScheduleTask(farmingDelays.ticks('sprayonatorAction'), () => {
             if (this.sprayonatorAction !== action) return;
             Client.rightClick();
             ScheduleTask(farmingDelays.ticks('sprayonatorAction'), () => {
                 if (this.sprayonatorAction !== action) return;
-                Guis.setItemSlot(this.sprayonatorOriginalSlot);
+                setItemSlot(this.sprayonatorOriginalSlot);
                 this.startDelayTicks = Math.max(this.startDelayTicks, SPRAY_RESTORE_DELAY_TICKS);
                 this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
                 this.sprayonatorAction = null;
@@ -198,7 +207,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     hasNoSpray() {
-        return TabListUtils.getNames().some((line) => /\bSpray:\s*None\b/.test(TabListUtils.stripFormatting(line?.getName?.() ?? line)));
+        return getTabListNames().some((line) => /\bSpray:\s*None\b/.test(stripTabFormatting(line?.getName?.() ?? line)));
     }
 
     beginRewarp(rewarpStartPoint = this.points.start, runPestKiller = false) {
@@ -223,7 +232,7 @@ export class FarmingMacro extends ModuleBase {
     finishRewarp(player) {
         if (!loadoutHandler.select(loadoutHandler.farmingSlot)) return;
         if (Player.getHeldItemIndex() !== this.farmingSlot) {
-            Guis.setItemSlot(this.farmingSlot);
+            setItemSlot(this.farmingSlot);
             return;
         }
         this.mode = FARMING;
@@ -352,7 +361,7 @@ export class FarmingMacro extends ModuleBase {
         if (!player) return;
 
         this.points[name] = { x: player.getX(), y: player.getY(), z: player.getZ() };
-        Utils.writeConfigFile(this.pointsPath, this.points);
+        writeConfigFile(this.pointsPath, this.points);
         this.message(`&aRewarp ${name} saved.`);
         if (this.rewarpPointsOverlap()) this.message('Rewarp point currently overlap. The macro will not work.');
     }
@@ -376,7 +385,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     getLaneSwitchDelayTicks() {
-        return Math.round(Utils.randomInt(this.laneSwitchDelayMin, this.laneSwitchDelayMax) / 50);
+        return Math.round(randomInt(this.laneSwitchDelayMin, this.laneSwitchDelayMax) / 50);
     }
 
     addLaneSwitchDelaySettings() {

@@ -1,6 +1,6 @@
 import { FarmingMacro } from './FarmingMacro';
 import { farmingSettings } from './FarmingSettings';
-import { Utils } from '../../utils/Utils';
+import { randomFloat } from '../../utils/Utils';
 
 const STATES = {
     LEFT: 'Left',
@@ -51,7 +51,7 @@ class SShapeCropMacro extends FarmingMacro {
         this.state = this.lastDirection;
         this.ignoreTicks = 10;
         this.yaw = this.snapYaw(player.getYRot(), 0);
-        const pitch = farmingSettings.useMousemat ? (this.pitchMin + this.pitchMax) / 2 : Utils.randomFloat(this.pitchMin, this.pitchMax);
+        const pitch = farmingSettings.useMousemat ? (this.pitchMin + this.pitchMax) / 2 : randomFloat(this.pitchMin, this.pitchMax);
         this.rotateTo(this.yaw, pitch);
     }
 

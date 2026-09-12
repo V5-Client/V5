@@ -1,30 +1,24 @@
-import { manager } from '../utils/SkyblockEvents';
-import { MacroState } from '../utils/MacroState';
-import { finiteNumber } from '../utils/NumberUtils';
+import { registerSkyblockEvent } from '../utils/SkyblockEvents';
+import { isFailsafeMacroRunning } from '../utils/MacroState';
+import { finiteNumber } from '../utils/Math';
 export class Failsafe {
     registered = false;
     disabled = false;
     _disabledUntil = 0;
-    _disabledTimer = null;
+    _disabledGeneration = 0;
 
     constructor() {
         this._registerListeners();
     }
 
-    shouldTrigger() {
-        return true;
-    }
     isActive() {
-        return MacroState.isFailsafeMacroRunning();
+        return isFailsafeMacroRunning();
     }
     onTrigger() {}
     reset() {
         this.disabled = false;
         this._disabledUntil = 0;
-        if (this._disabledTimer) {
-            clearTimeout(this._disabledTimer);
-            this._disabledTimer = null;
-        }
+        this._disabledGeneration++;
     }
 
     _setDisabled(durationMs) {
@@ -36,12 +30,11 @@ export class Failsafe {
         this._disabledUntil = end;
         this.disabled = true;
 
-        if (this._disabledTimer) clearTimeout(this._disabledTimer);
-
-        this._disabledTimer = setTimeout(() => {
+        const generation = ++this._disabledGeneration;
+        setTimeout(() => {
+            if (generation !== this._disabledGeneration) return;
             if (Date.now() >= this._disabledUntil) {
                 this.disabled = false;
-                this._disabledTimer = null;
             }
         }, durationMs);
     }
@@ -52,7 +45,7 @@ export class Failsafe {
         register('worldLoad', () => {
             this._setDisabled(1000);
         });
-        ['serverchange', 'death', 'warp'].forEach((event) => manager.subscribe(event, () => this._setDisabled(1000)));
+        ['serverchange', 'death', 'warp'].forEach((event) => registerSkyblockEvent(event, () => this._setDisabled(1000)));
     }
 
     _getReactionDelay(settings) {

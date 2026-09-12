@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickItem, getGuiName } from '../../utils/player/Inventory';
 
 class AuctionHelper extends ModuleBase {
     constructor() {
@@ -25,21 +25,21 @@ class AuctionHelper extends ModuleBase {
     }
 
     onTick() {
-        const guiName = Guis.guiName();
+        const guiName = getGuiName();
 
         if (this.auto2Day) {
-            if (guiName === 'Create BIN Auction' && Guis.clickItem('Duration: 6 Hours', false, 'LEFT', true, true)) {
+            if (guiName === 'Create BIN Auction' && clickItem('Duration: 6 Hours', false, 'LEFT', true, true)) {
                 this.selectingDuration = true;
-            } else if (this.selectingDuration && Guis.clickItem('2 Days', false, 'LEFT', true, true)) {
+            } else if (this.selectingDuration && clickItem('2 Days', false, 'LEFT', true, true)) {
                 this.selectingDuration = false;
             }
         }
 
         if (!this.quickCreate) return;
         if (guiName === 'Confirm BIN Auction') {
-            if (Guis.clickItem('Confirm BIN Auction', false, 'LEFT', true, true)) this.lastBinConfirmAt = Date.now();
+            if (clickItem('Confirm BIN Auction', false, 'LEFT', true, true)) this.lastBinConfirmAt = Date.now();
         } else if (guiName === 'BIN Auction View' && Date.now() - this.lastBinConfirmAt < 1000) {
-            Guis.clickItem('Go Back', false, 'LEFT', true, true);
+            clickItem('Go Back', false, 'LEFT', true, true);
         }
     }
 }

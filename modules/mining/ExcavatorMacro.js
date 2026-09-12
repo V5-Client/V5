@@ -1,9 +1,9 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MathUtils } from '../../utils/Math';
-import { Guis } from '../../utils/player/Inventory';
+import { fastDistance } from '../../utils/Math';
+import { clickItem, clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 class ExcavatorMacro extends ModuleBase {
     constructor() {
@@ -73,7 +73,7 @@ class ExcavatorMacro extends ModuleBase {
             }
 
             if (this.inExcavator) {
-                if (Guis.guiName() !== 'Fossil Excavator') {
+                if (getGuiName() !== 'Fossil Excavator') {
                     this.message('Excavator closed.');
                     this.toggle(false);
                     return;
@@ -92,15 +92,15 @@ class ExcavatorMacro extends ModuleBase {
 
                     break;
                 case this.STATES.SETUP:
-                    if (Guis.guiName() !== 'Fossil Excavator') return;
+                    if (getGuiName() !== 'Fossil Excavator') return;
                     this.inExcavator = true;
 
                     if (!this.clickDelay()) return;
-                    Guis.clickItem('Start Excavator', true, 'MIDDLE');
+                    clickItem('Start Excavator', true, 'MIDDLE');
                     this.state = this.STATES.EXCAVATING;
                     break;
                 case this.STATES.EXCAVATING:
-                    if (Guis.guiName() !== 'Fossil Excavator') return;
+                    if (getGuiName() !== 'Fossil Excavator') return;
 
                     const brownSlots = [];
                     const container = Player.getContainer();
@@ -116,7 +116,7 @@ class ExcavatorMacro extends ModuleBase {
                         }
 
                         if (slot?.type?.getRegistryName()?.includes('yellow_stained')) {
-                            Guis.closeInv();
+                            closeInventory();
                             this.inExcavator = false;
                             this.state = this.STATES.OPENING;
                             return;
@@ -124,7 +124,7 @@ class ExcavatorMacro extends ModuleBase {
 
                         if (slot?.type?.getRegistryName()?.includes('lime_stained')) {
                             if (!this.clickDelay()) return;
-                            Guis.clickSlot(i);
+                            clickSlot(i);
                             this.blacklistSlot(i, 10);
                             return;
                         }
@@ -133,12 +133,11 @@ class ExcavatorMacro extends ModuleBase {
                     }
 
                     if (brownSlots.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * brownSlots.length);
-                        const randomBrownSlot = brownSlots[randomIndex];
+                        const randomBrownSlot = brownSlots[Math.floor(Math.random() * brownSlots.length)];
 
                         if (!this.clickDelay()) return;
 
-                        Guis.clickSlot(randomBrownSlot);
+                        clickSlot(randomBrownSlot);
                         this.blacklistSlot(randomBrownSlot, 10);
                         return;
                     }
@@ -148,8 +147,8 @@ class ExcavatorMacro extends ModuleBase {
     }
 
     handleAutoTravel() {
-        if (Utils.area() !== 'Dwarven Mines') {
-            if (Player.getContainer()) Guis.closeInv();
+        if (area() !== 'Dwarven Mines') {
+            if (Player.getContainer()) closeInventory();
             if (Pathfinder.isPathing()) Pathfinder.resetPath();
             Rotations.stop();
 
@@ -165,10 +164,10 @@ class ExcavatorMacro extends ModuleBase {
 
         this.warpCooldownTicks = 0;
 
-        const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), 19, 120, 227);
+        const distance = fastDistance(Player.getX(), Player.getY(), Player.getZ(), 19, 120, 227);
 
         if (distance > 3) {
-            if (Player.getContainer()) Guis.closeInv();
+            if (Player.getContainer()) closeInventory();
             Rotations.stop();
 
             if (!Pathfinder.isPathing()) {

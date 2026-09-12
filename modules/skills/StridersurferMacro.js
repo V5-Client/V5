@@ -1,12 +1,11 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ArmorStandEntity } from '../../utils/Constants';
-import { MacroState } from '../../utils/MacroState';
-import { MathUtils } from '../../utils/Math';
+import { getModuleActiveHours } from '../../utils/MacroState';
+import { formatRoundedNumber, wrapTo180 } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatRoundedNumber } from '../../utils/NumberUtils';
-import { Guis } from '../../utils/player/Inventory';
+import { clickItem, closeInventory, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
-import { Mouse } from '../../utils/Ungrab';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 const STEPS = {
     WAITING_FOR_BITE: 0,
@@ -110,7 +109,7 @@ class StridersurferMacro extends ModuleBase {
                     if (this.hasBiteWaitTimedOut()) {
                         const rodSlot = this.getRodSlot();
                         if (rodSlot !== -1) {
-                            Guis.setItemSlot(rodSlot);
+                            setItemSlot(rodSlot);
                             this.biteWaitStartedAt = 0;
                             this.transitionTo(STEPS.RECOVERY_SWAP_BACK_TO_ROD, 1 + this.randomTickDelay());
                         }
@@ -132,10 +131,10 @@ class StridersurferMacro extends ModuleBase {
 
                 const closeStridersurfer = this.getNearbyStridersurfer(armorStands);
                 if (closeStridersurfer) {
-                    this.previousYaw = MathUtils.wrapTo180(Player.getPlayer().getYRot());
+                    this.previousYaw = wrapTo180(Player.getPlayer().getYRot());
                     this.previousPitch = Player.getPlayer().getXRot();
                     this.stridersurferTarget = closeStridersurfer;
-                    Guis.setItemSlot(this.getAxeSlot());
+                    setItemSlot(this.getAxeSlot());
                     this.transitionTo(STEPS.SNAP_TO_STRIDER, 0);
                     return;
                 }
@@ -143,7 +142,7 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.CAST_ROD);
                 break;
             case STEPS.RECOVERY_SWAP_BACK_TO_ROD:
-                Guis.setItemSlot(this.getRodSlot());
+                setItemSlot(this.getRodSlot());
                 this.transitionTo(STEPS.RECOVERY_RECAST_ROD, 1 + this.randomTickDelay());
                 break;
             case STEPS.RECOVERY_RECAST_ROD:
@@ -152,7 +151,7 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.WAITING_FOR_BITE, 1 + this.randomTickDelay());
                 break;
             case STEPS.EQUIP_FLAY:
-                Guis.setItemSlot(this.getFlaySlot());
+                setItemSlot(this.getFlaySlot());
 
                 if (this.shouldSwapPet(this.petNameKill)) {
                     this.startPetSwap(this.petNameKill, 'kill');
@@ -168,12 +167,12 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.EQUIP_AXE_AFTER_OPEN, 1);
                 break;
             case STEPS.EQUIP_AXE_AFTER_OPEN:
-                Guis.setItemSlot(this.getAxeSlot());
+                setItemSlot(this.getAxeSlot());
                 Client.setKey('shift', true);
                 this.transitionTo(STEPS.RE_EQUIP_FLAY, 7 + this.randomTickDelay());
                 break;
             case STEPS.RE_EQUIP_FLAY:
-                Guis.setItemSlot(this.getFlaySlot());
+                setItemSlot(this.getFlaySlot());
                 Client.setKey('shift', true);
                 this.transitionTo(STEPS.FINISH_KILL_COMBO);
                 break;
@@ -183,12 +182,12 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.RESET_STANCE, 0);
                 break;
             case STEPS.RESET_STANCE:
-                Guis.setItemSlot(this.getAxeSlot());
+                setItemSlot(this.getAxeSlot());
                 Client.setKey('shift', false);
                 this.transitionTo(STEPS.EQUIP_ROD, 4 + this.randomTickDelay());
                 break;
             case STEPS.EQUIP_ROD:
-                Guis.setItemSlot(this.getRodSlot());
+                setItemSlot(this.getRodSlot());
                 this.transitionTo(STEPS.CAST_ROD, 1 + this.randomTickDelay());
                 break;
             case STEPS.CAST_ROD:
@@ -207,8 +206,8 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.CLICK_PET_SLOT, 4 + this.randomTickDelay());
                 break;
             case STEPS.CLICK_PET_SLOT:
-                if (!this.shouldSwapPet(this.pendingPetName) || !Guis.clickItem(this.pendingPetName, false, 'LEFT', true, false)) {
-                    Guis.closeInv();
+                if (!this.shouldSwapPet(this.pendingPetName) || !clickItem(this.pendingPetName, false, 'LEFT', true, false)) {
+                    closeInventory();
                 }
 
                 if (this.pendingPetPhase === 'kill') {
@@ -353,7 +352,7 @@ class StridersurferMacro extends ModuleBase {
                 const distance = this.distanceFromEyes(entity, eyes);
                 return distance !== null && distance <= 3;
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
                 return false;
             }
         });
@@ -407,12 +406,12 @@ class StridersurferMacro extends ModuleBase {
                     const name = typeof entity.getName === 'function' ? entity.getName() : null;
                     if (name && String(name).includes('Stridersurfer')) return acc + 1;
                 } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
+                    console.error(e);
                 }
                 return acc;
             }, 0);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return null;
         }
     }
@@ -428,9 +427,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
-        if (elapsedMs <= 0) return 0;
-        return elapsedMs / 3600000;
+        return getModuleActiveHours(this.name);
     }
 
     getStepDescription() {
@@ -477,7 +474,7 @@ class StridersurferMacro extends ModuleBase {
         this.clearStriderState();
         this.transitionTo(STEPS.EQUIP_ROD);
         Client.setKey('shift', false);
-        Mouse.ungrab();
+        ungrab();
     }
 
     onDisable() {
@@ -486,7 +483,7 @@ class StridersurferMacro extends ModuleBase {
         Rotations.stop();
         this.lastStriderCount = null;
         this.biteWaitStartedAt = 0;
-        Mouse.regrab();
+        regrab();
     }
 }
 

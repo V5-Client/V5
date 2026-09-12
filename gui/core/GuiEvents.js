@@ -1,4 +1,4 @@
-import { Utils } from '../../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { categoryManager } from '../categories/CategoryManager';
 import { SearchBar } from '../categories/CategorySearchBar';
@@ -58,7 +58,13 @@ const handleMouseRelease = () => {
     GuiState.applyPendingGuiScale();
 };
 
+let renderRegistration = null;
+
 const handleGuiClosed = () => {
+    if (renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
     GuiState.dragging = false;
     categoryManager?.handleMouseRelease();
     TextInput.finalizeAllTyping({ playSound: false });
@@ -68,7 +74,7 @@ const handleGuiClosed = () => {
     saveSettings();
 };
 
-export const openGui = () => {
+const openGui = () => {
     GuiState.isOpening = true;
     GuiState.openStartTime = Date.now();
     loadSettings();
@@ -81,7 +87,7 @@ GuiState.myGui.registerClicked((mouseX, mouseY, button) => {
     if (button === 0) handleClick(mouseX, mouseY);
 });
 
-GuiState.myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
+GuiState.myGui.registerMouseDragged((mouseX, mouseY, button) => {
     if (button === 0) handleMouseDrag(mouseX, mouseY);
 });
 
@@ -89,16 +95,17 @@ GuiState.myGui.registerMouseReleased(handleMouseRelease);
 GuiState.myGui.registerClosed(handleGuiClosed);
 GuiState.myGui.registerScrolled(handleScroll);
 
-NVG.registerV5Render(() => {
-    if (GuiState.myGui.isOpen()) {
-        const { x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(Client.getMouseX(), Client.getMouseY());
-        drawGUI(mouseX, mouseY);
-    }
+const renderGui = () => {
+    const { x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(Client.getMouseX(), Client.getMouseY());
+    drawGUI(mouseX, mouseY);
+};
+GuiState.myGui.registerOpened(() => {
+    if (!renderRegistration) renderRegistration = Render2D.registerV5Render(renderGui);
 });
 
 const handleKeybind = () => {
     const keyName = 'GUI';
-    const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+    const existingKeybinds = getConfigFile('keybinds.json') || {};
     let savedKeycode = existingKeybinds[keyName];
 
     if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1) savedKeycode = Keyboard.KEY_NONE;
@@ -106,9 +113,9 @@ const handleKeybind = () => {
     const GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_core');
 
     register('gameUnload', () => {
-        const allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const allKeybinds = getConfigFile('keybinds.json') || {};
         allKeybinds[keyName] = GUIKeyBind.getKeyCode();
-        Utils.writeConfigFile('keybinds.json', allKeybinds);
+        writeConfigFile('keybinds.json', allKeybinds);
     });
 
     GUIKeyBind.registerKeyPress(() => {

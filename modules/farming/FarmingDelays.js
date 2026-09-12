@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { randomInt } from '../../utils/Utils';
 
 class FarmingDelays extends ModuleBase {
     constructor() {
@@ -35,7 +35,7 @@ class FarmingDelays extends ModuleBase {
 
     random(key) {
         const range = this.ranges[key];
-        return Utils.randomInt(range.low, range.high);
+        return randomInt(range.low, range.high);
     }
 
     ticks(key) {

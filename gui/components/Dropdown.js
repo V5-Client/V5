@@ -191,10 +191,10 @@ export class MultiToggle {
             borderColor: THEME.BORDER,
         });
 
-        NVG.save();
-        NVG.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
+        Render2D.save();
+        Render2D.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
         drawText(selectedText, selectX + 10, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
-        NVG.restore();
+        Render2D.restore();
 
         drawRoundedRectangle({
             x: arrowX,
@@ -207,12 +207,9 @@ export class MultiToggle {
 
         const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
-        const arrowWidth = getTextWidth(arrow, arrowFontSize);
-
-        const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
         const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 2 - 3;
 
-        drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, textColor);
+        drawText(arrow, arrowX + arrowSize / 2, centeredArrowY, arrowFontSize, textColor, 18);
 
         const componentRect = {
             x: this.x,

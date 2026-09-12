@@ -4,21 +4,20 @@ import { isGuiClickSoundEnabled, setGuiClickSoundEnabled } from './Utils';
 
 const initProfileSettings = () => {
     let guiScaleSetting;
-    let discordCat = Categories.categories.find((category) => category.name === 'Discord');
-    if (!discordCat) {
-        discordCat = {
-            name: 'Discord',
+    let themeCat = Categories.categories.find((category) => category.name === 'Theme');
+    if (!themeCat) {
+        themeCat = {
+            name: 'Theme',
             items: [],
             subcategories: [],
             directComponents: [],
-            hiddenInSidebar: true,
         };
-        Categories.categories.push(discordCat);
-    } else if (!discordCat.directComponents) {
-        discordCat.directComponents = [];
+        Categories.categories.push(themeCat);
+    } else if (!themeCat.directComponents) {
+        themeCat.directComponents = [];
     }
 
-    const hasScrollSpeed = discordCat.directComponents.some((component) => component.title === 'GUI Scroll Speed');
+    const hasScrollSpeed = themeCat.directComponents.some((component) => component.title === 'GUI Scroll Speed');
     if (!hasScrollSpeed) {
         Categories.addSettingsSlider(
             'GUI Scroll Speed',
@@ -30,11 +29,11 @@ const initProfileSettings = () => {
             },
             'Adjusts how fast the GUI panels scroll.',
             'GUI',
-            'Discord'
+            'Theme'
         );
     }
 
-    const hasGuiScale = discordCat.directComponents.some((component) => component.title === 'GUI Scale');
+    const hasGuiScale = themeCat.directComponents.some((component) => component.title === 'GUI Scale');
     if (!hasGuiScale) {
         guiScaleSetting = Categories.addSettingsSlider(
             'GUI Scale',
@@ -47,11 +46,11 @@ const initProfileSettings = () => {
             },
             'Adjusts the size of the V5 GUI.',
             'GUI',
-            'Discord'
+            'Theme'
         );
     }
 
-    const hasClickSound = discordCat.directComponents.some((component) => component.title === 'GUI Click Sound');
+    const hasClickSound = themeCat.directComponents.some((component) => component.title === 'GUI Click Sound');
     if (!hasClickSound) {
         Categories.addSettingsToggle(
             'GUI Click Sound',
@@ -61,7 +60,7 @@ const initProfileSettings = () => {
             'Plays a click sound when interacting with GUI.',
             isGuiClickSoundEnabled(),
             'GUI',
-            'Discord'
+            'Theme'
         );
     }
 };

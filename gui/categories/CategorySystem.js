@@ -38,6 +38,12 @@ export const Categories = {
             directComponents: [],
             hiddenInSidebar: true,
         },
+        {
+            name: 'Changelog',
+            items: [],
+            subcategories: [],
+            hiddenInSidebar: true,
+        },
     ],
     selected: 'Dashboard',
     selectedItem: null,
@@ -65,6 +71,7 @@ export const Categories = {
 
     hoverStates: {},
     guiScrollSpeed: 25,
+    dataRevision: 0,
 
     getVisibleCategories() {
         return Categories.categories.filter((category) => !category.hiddenInSidebar);
@@ -98,6 +105,7 @@ export const Categories = {
         } else {
             category.items.push(newItem);
         }
+        Categories.dataRevision++;
     },
 
     findItem(categoryName, itemName) {
@@ -121,6 +129,7 @@ export const Categories = {
 
         if (description !== undefined) component.description = description;
         item.components.push(component);
+        Categories.dataRevision++;
         return component;
     },
 
@@ -184,11 +193,8 @@ export const Categories = {
         component.sectionName = sectionName;
         if (description !== undefined) component.description = description;
         settingsCat.directComponents.push(component);
+        Categories.dataRevision++;
         return component;
-    },
-
-    addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
-        Categories.attachSettingsComponent(component, sectionName, categoryName);
     },
 
     addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null, categoryName = 'Settings') {
@@ -251,19 +257,6 @@ export const Categories = {
 
     addSettingsButton(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
         return Categories.attachSettingsComponent(new Button(title, 0, 0, undefined, callback), sectionName, categoryName, description);
-    },
-
-    addSettingsPopup(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        return Categories.attachSettingsComponent(new Popup(title, 0, 0, undefined, undefined, callback), sectionName, categoryName, description);
-    },
-
-    addSettingsSeparator(title, categoryName = 'Settings') {
-        return Categories.attachSettingsComponent(new Separator(title), null, categoryName);
-    },
-
-    getSettingsComponents(categoryName = 'Settings') {
-        const settingsCat = Categories.categories.find((c) => c.name === categoryName);
-        return settingsCat?.directComponents || [];
     },
 };
 

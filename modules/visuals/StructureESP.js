@@ -3,6 +3,9 @@ import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundBlockUpdatePacket, ClientboundLevelChunkWithLightPacket } from '../../utils/Packets';
 
+const FAIRY_COLOR = new RenderColor(180, 70, 255, 110);
+const STRUCTURE_COLOR = new RenderColor(0, 255, 200, 100);
+
 class StructureESP extends ModuleBase {
     constructor() {
         super({
@@ -55,6 +58,10 @@ class StructureESP extends ModuleBase {
             const playerZ = Player.getZ();
             const maxDistance = Math.max(16, (Client.getMinecraft().options.getEffectiveRenderDistance() - 1) * 16);
 
+            const fairyPositions = [];
+            const structurePositions = [];
+            const names = [];
+            const namePositions = [];
             for (let i = 0; i + 2 < blocks.length; i += 3) {
                 const name = String(labels[i / 3]);
                 const x = blocks[i] + 0.5;
@@ -66,13 +73,15 @@ class StructureESP extends ModuleBase {
                 const distance = Math.hypot(dx, dy, dz);
                 const scale = distance > maxDistance ? maxDistance / distance : 1;
                 const pos = new Vec3d(playerX + dx * scale, playerY + dy * scale, playerZ + dz * scale);
-                const color = name === 'Fairy Grotto' ? new RenderColor(180, 70, 255, 110) : new RenderColor(0, 255, 200, 100);
-
-                RenderUtils.drawSizedBox(pos, 8, 8, 8, color, true, 1, false);
-                RenderUtils.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);
+                (name === 'Fairy Grotto' ? fairyPositions : structurePositions).push(pos);
+                names.push(name);
+                namePositions.push(pos.add(0, 8.5, 0));
             }
+            Render3D.drawSizedBoxes(fairyPositions, 8, 8, 8, FAIRY_COLOR, true, 1, false);
+            Render3D.drawSizedBoxes(structurePositions, 8, 8, 8, STRUCTURE_COLOR, true, 1, false);
+            Render3D.drawTexts(names, namePositions, 7.5, true, false, true);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 }

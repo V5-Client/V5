@@ -29,7 +29,7 @@ class AutoConversation extends ModuleBase {
                     try {
                         value = clickEvent.command();
                     } catch (e) {
-                        console.error('V5 Caught error' + e + e.stack);
+                        console.error(e);
                     }
 
                     if (value) commands.push(value);

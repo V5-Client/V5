@@ -1,5 +1,5 @@
-import { BufferedInputStream, FileOutputStream, URL } from './Constants';
-import { finiteNumber } from './NumberUtils';
+import { BufferedInputStream, FileOutputStream, JavaArray, JavaByte, URL } from './Constants';
+import { finiteNumber } from './Math';
 
 const DEFAULT_DOWNLOAD_BUFFER_SIZE = 8192;
 
@@ -13,7 +13,7 @@ function closeQuietly(resource) {
     try {
         resource.close();
     } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
+        console.error(e);
     }
 }
 
@@ -29,7 +29,7 @@ function resolveDestinationPath(destination) {
     return destination && typeof destination.getAbsolutePath === 'function' ? destination.getAbsolutePath() : String(destination);
 }
 
-export function ensureDirectory(dir) {
+function ensureDirectory(dir) {
     if (!dir) return;
     if (typeof dir.mkdirs !== 'function' || typeof dir.exists !== 'function') return;
     if (!dir.exists()) dir.mkdirs();
@@ -51,7 +51,7 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
         output = new FileOutputStream(resolveDestinationPath(destinationFile));
 
         const normalizedBufferSize = resolveBufferSize(bufferSize);
-        const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, normalizedBufferSize);
+        const data = JavaArray.newInstance(JavaByte.TYPE, normalizedBufferSize);
         let total = 0;
         let count;
         let lastReported = -1;
@@ -76,7 +76,7 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
     }
 }
 
-export function streamDownloadToFileAsync(url, destination, options = {}) {
+export function downloadFile(url, destination, options = {}) {
     options = options || {};
     const { onProgress = null, onError = null, onComplete = null, bufferSize = DEFAULT_DOWNLOAD_BUFFER_SIZE } = options;
 
@@ -86,48 +86,11 @@ export function streamDownloadToFileAsync(url, destination, options = {}) {
             if (onComplete) onComplete();
         } catch (e) {
             if (onError) onError(e);
-            else console.error('V5 Caught error' + e + e.stack);
+            else console.error(e);
         }
     });
 
     t.setDaemon(true);
     t.start();
     return t;
-}
-
-export const downloadFile = streamDownloadToFileAsync;
-
-export function findFileRecursive(rootDir, fileName) {
-    if (!rootDir || typeof rootDir.listFiles !== 'function') return null;
-    const files = rootDir.listFiles();
-    if (!files) return null;
-
-    for (const file of files) {
-        if (file.isDirectory()) {
-            const nested = findFileRecursive(file, fileName);
-            if (nested) return nested;
-            continue;
-        }
-
-        if (file.getName() === fileName) return file;
-    }
-
-    return null;
-}
-
-export function deleteRecursive(target) {
-    if (!target || !target.exists()) return;
-
-    if (target.isDirectory()) {
-        const children = target.listFiles();
-        if (children) {
-            for (const child of children) deleteRecursive(child);
-        }
-    }
-
-    try {
-        target.delete();
-    } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
-    }
 }

@@ -1,20 +1,19 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ClipContext, MCHand, Vec3d } from '../../utils/Constants';
-import { MacroState } from '../../utils/MacroState';
+import { getModuleActiveHours } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatRoundedNumber } from '../../utils/NumberUtils';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
-import { PathExecutor } from '../../utils/pathfinder/PathExecutor';
-import { MathUtils } from '../../utils/Math';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { FastEtherwarp } from '../../utils/FastEtherwarp';
+import { destroyPathExecutor } from '../../utils/pathfinder/PathExecutor';
+import { angleToPlayer, fastDistance, formatRoundedNumber } from '../../utils/Math';
+import { area } from '../../utils/Utils';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
-import { RotationGCD } from '../../utils/player/RotationGCD';
+import { applyToPlayer } from '../../utils/player/RotationGCD';
 import { PeltQOLModule } from './PeltQOL';
-import { Mouse } from '../../utils/Ungrab';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 // this is complete codex vibecoded slop, but it works so who cares!
 
@@ -206,7 +205,7 @@ class PeltMacro extends ModuleBase {
 
     onEnable() {
         PeltQOLModule.ensureForceEnabled();
-        Mouse.ungrab();
+        ungrab();
         this.status = 'Calling Trevor';
         this.resetMobTracking();
         this.resetAreaTravelState();
@@ -219,11 +218,11 @@ class PeltMacro extends ModuleBase {
 
     handleTick() {
         PeltQOLModule.ensureForceEnabled();
-        const areaName = Utils.area();
+        const areaName = area();
         this.syncMobJumpHold(this.enabled && this.shouldHoldMobJump());
         if (!this.enabled || !areaName) return;
         if (areaName != 'The Farming Islands') {
-            this.restartTrevorHunt(areaName);
+            this.restartTrevorHunt();
             return;
         }
         if (this.consumePendingTrevorTarget()) return;
@@ -308,9 +307,7 @@ class PeltMacro extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
-        if (elapsedMs <= 0) return 0;
-        return elapsedMs / 3600000;
+        return getModuleActiveHours(this.name);
     }
 
     findPeltMob() {
@@ -369,7 +366,7 @@ class PeltMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return null;
         try {
-            const ep = player.getEyePos?.();
+            const ep = player.getEyePosition?.();
             if (ep) {
                 const ex = Number(ep.x());
                 const ey = Number(ep.y());
@@ -486,9 +483,9 @@ class PeltMacro extends ModuleBase {
     stopPathing() {
         this.mobPathActive = false;
         this.mobPathToken++;
-        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
-        PathExecutor.destroy();
+        destroyPathExecutor();
     }
 
     stopMovement() {
@@ -498,9 +495,9 @@ class PeltMacro extends ModuleBase {
     }
 
     prepareForTravel() {
-        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
         Pathfinder.resetPath();
-        PathExecutor.destroy();
+        destroyPathExecutor();
         this.cancelRestartSequence();
         this.cancelTravelSequence();
         this.resetAreaTravelState();
@@ -508,8 +505,8 @@ class PeltMacro extends ModuleBase {
     }
 
     getAOTESlot() {
-        const aotvSlot = Guis.findItemInHotbar('Aspect of the Void');
-        return aotvSlot !== -1 ? aotvSlot : Guis.findItemInHotbar('Aspect of the End');
+        const aotvSlot = findItemInHotbar('Aspect of the Void');
+        return aotvSlot !== -1 ? aotvSlot : findItemInHotbar('Aspect of the End');
     }
 
     isAOTETravelMode(mode = this.travelMode) {
@@ -554,7 +551,7 @@ class PeltMacro extends ModuleBase {
                     this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
                     return true;
                 }
-                const started = EtherwarpPathfinder.findPath(goal, {
+                const started = FastEtherwarp.findPath(goal, {
                     silent: true,
                     restoreSlot: true,
                     onSuccess: () => {
@@ -602,7 +599,7 @@ class PeltMacro extends ModuleBase {
             sequenceToken: this.travelSequenceToken,
         };
 
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
 
         if (atTrapWarp) {
             this.status = `AOTEing ${target.name}`;
@@ -648,10 +645,10 @@ class PeltMacro extends ModuleBase {
             if (this.travelState?.sequenceToken !== token) return;
             if (!direction || !Number.isFinite(direction.yaw) || !Number.isFinite(direction.pitch)) return;
 
-            RotationGCD.applyToPlayer(direction.yaw, direction.pitch);
+            applyToPlayer(direction.yaw, direction.pitch);
 
-            const yaw = Number.parseFloat(Player.getYaw());
-            const pitch = Number.parseFloat(Player.getPitch());
+            const yaw = Player.getYaw();
+            const pitch = Player.getPitch();
             if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return;
 
             Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
@@ -731,7 +728,7 @@ class PeltMacro extends ModuleBase {
     }
 
     getMobDistance(entity) {
-        return MathUtils.fastDistance(entity.getX(), entity.getY(), entity.getZ(), Player.getX(), Player.getY(), Player.getZ());
+        return fastDistance(entity.getX(), entity.getY(), entity.getZ(), Player.getX(), Player.getY(), Player.getZ());
     }
 
     getGoalKey(goal) {
@@ -793,7 +790,7 @@ class PeltMacro extends ModuleBase {
 
     /**
      * Resolves a PathManager-valid etherwarp landing near the anchor (see RatMacro / getEtherwarpLandingCandidates).
-     * Sort origin uses the player's support block when available so the native finder matches EtherwarpPathfinder start.
+     * Sort origin uses the player's support block when available so the native finder matches FastEtherwarp start.
      * Picks the first candidate (native order) with valid LOS; one raycast per candidate until one passes.
      */
     resolveEtherwarpLandingGoal(anchorX, anchorY, anchorZ, options = {}) {
@@ -805,7 +802,7 @@ class PeltMacro extends ModuleBase {
         const az = Math.floor(Number(anchorZ));
         if (![ax, ay, az].every(Number.isFinite)) return null;
 
-        const support = EtherwarpPathfinder.getPlayerSupportBlock();
+        const support = FastEtherwarp.getPlayerSupportBlock();
         const sortOrigin = support || {
             x: Math.floor(Player.getX()),
             y: Math.floor(Player.getY()),
@@ -844,7 +841,7 @@ class PeltMacro extends ModuleBase {
     }
 
     resetAreaTravelState() {
-        if (this.areaTravelState) EtherwarpPathfinder.cancel(true);
+        if (this.areaTravelState) FastEtherwarp.cancel(true);
         this.areaTravelState = null;
         this.areaTravelToken++;
         this.areaPathRequestToken++;
@@ -886,7 +883,7 @@ class PeltMacro extends ModuleBase {
     trackCurrentMob(mobId) {
         if (this.currentMobId !== mobId) {
             this.resetEtherwarpLandingBlacklist();
-            if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+            if (FastEtherwarp.isPathing()) FastEtherwarp.cancel(true);
             this.resetAreaTravelState();
             this.currentMobId = mobId;
             this.mobShots = 0;
@@ -939,8 +936,8 @@ class PeltMacro extends ModuleBase {
 
         ScheduleTask(120, () => {
             if (!this.enabled || token !== this.restartToken) return;
-            let area = Utils.area();
-            if (area == 'unknown') {
+            const areaName = area();
+            if (areaName == 'unknown') {
                 ChatLib.command('play skyblock');
                 ScheduleTask(120, () => {
                     if (!this.enabled || token !== this.restartToken) return;
@@ -987,7 +984,7 @@ class PeltMacro extends ModuleBase {
         if (this.useEtherwarpPathfinder) {
             const etherGoal = this.resolvePeltMobEtherwarpGoal(mob);
             if (etherGoal) {
-                const started = EtherwarpPathfinder.findPath(etherGoal, {
+                const started = FastEtherwarp.findPath(etherGoal, {
                     silent: true,
                     restoreSlot: true,
                     onSuccess: () => {
@@ -1029,18 +1026,18 @@ class PeltMacro extends ModuleBase {
 
         this.mobRepositionUntil = 0;
         this.mobShots = 0;
-        if (this.mobPathActive || Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) this.stopPathing();
+        if (this.mobPathActive || Pathfinder.isPathing() || FastEtherwarp.isPathing()) this.stopPathing();
         return false;
     }
 
     handleVisibleMob(entity) {
-        if (Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) {
+        if (Pathfinder.isPathing() || FastEtherwarp.isPathing()) {
             this.stopPathing();
         }
 
         this.status = 'Shooting Mob';
         const aimPoint = this.getAimPoint(entity);
-        Guis.setItemSlot(this.weaponSlot);
+        setItemSlot(this.weaponSlot);
         if (!Rotations.active) Rotations.trackEntity(entity);
 
         if (Date.now() - this.lastShotAt < SHOOT_COOLDOWN_MS) return;
@@ -1106,7 +1103,7 @@ class PeltMacro extends ModuleBase {
     }
 
     isAimedAt(point) {
-        const angleData = MathUtils.angleToPlayer(point);
+        const angleData = angleToPlayer(point);
         return angleData.yawAbs <= AIM_TOLERANCE && angleData.pitchAbs <= AIM_TOLERANCE;
     }
 
@@ -1120,7 +1117,7 @@ class PeltMacro extends ModuleBase {
         this.resetAreaTravelState();
         this.resetMobTracking();
         this.stopMovement();
-        Mouse.regrab();
+        regrab();
     }
 }
 

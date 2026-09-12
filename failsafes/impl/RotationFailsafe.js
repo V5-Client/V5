@@ -1,5 +1,5 @@
-import { Chat } from '../../utils/Chat';
-import { MathUtils } from '../../utils/Math';
+import { chatDebug, chatFailsafe } from '../../utils/Chat';
+import { getAngleDifference } from '../../utils/Math';
 import { ClientboundPlayerPositionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
@@ -37,12 +37,12 @@ class RotationFailsafe extends Failsafe {
             const dz = Math.abs(newZ - fromZ);
             const posDistance = Math.hypot(dx, dy, dz);
 
-            const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, newYaw));
+            const yawDiff = Math.abs(getAngleDifference(currYaw, newYaw));
             const pitchDiff = Math.abs(newPitch - currPitch);
 
             // todo: this isnt what a null rotation packet is, which retard made these failsafes?
             if (yawDiff === 0 && pitchDiff === 0) {
-                Chat.messageDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
+                chatDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)');
                 return;
             }
 
@@ -68,10 +68,10 @@ class RotationFailsafe extends Failsafe {
 
         const { pressure, severity, color } = tiers.find((t) => totalRotation < t.limit);
 
-        Chat.messageFailsafe(`&c&lYou were rotated by the server!`, false);
-        Chat.messageFailsafe(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
-        Chat.messageFailsafe(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
-        Chat.messageFailsafe(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
+        chatFailsafe(`&c&lYou were rotated by the server!`, false);
+        chatFailsafe(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
+        chatFailsafe(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
+        chatFailsafe(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
 
         FailsafeUtils.sendFailsafeEmbed(
@@ -85,4 +85,4 @@ class RotationFailsafe extends Failsafe {
     }
 }
 
-export default new RotationFailsafe();
+new RotationFailsafe();

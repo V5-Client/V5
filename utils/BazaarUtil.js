@@ -1,5 +1,5 @@
-import { Guis } from './player/Inventory';
-import { Sign } from './Sign';
+import { clickSlot, closeInventory, getGuiName } from './player/Inventory';
+import { setSignLine } from './Sign';
 import { farmingDelays } from '../modules/farming/FarmingDelays';
 
 const TIMEOUT = 10_000;
@@ -41,10 +41,10 @@ class BazaarUtil {
 
         switch (this.state) {
             case 'bazaar': {
-                if (!this.clean(Guis.guiName()).includes('bazaar')) return;
+                if (!this.clean(getGuiName()).includes('bazaar')) return;
                 const slot = this.findSlot(this.itemName, 10, 42);
                 if (slot === -1) return;
-                if (!Guis.clickSlot(slot)) return this.finish(false);
+                if (!clickSlot(slot)) return this.finish(false);
                 this.setState('buy instantly');
                 return;
             }
@@ -54,7 +54,7 @@ class BazaarUtil {
                 return this.clickNamed('Custom Amount', 'sign');
             case 'sign':
                 if (!this.isSignOpen()) return;
-                Sign.setLine(1, this.amount);
+                setSignLine(1, this.amount);
                 Client.currentGui.close();
                 this.setState('confirm amount');
                 return;
@@ -65,7 +65,7 @@ class BazaarUtil {
                 if (!Number.isFinite(price)) return;
                 if (!Number.isFinite(this.maxPrice) || price > this.maxPrice) return this.finish(false);
                 this.confirmSlot = slot;
-                if (!Guis.clickSlot(slot)) return this.finish(false);
+                if (!clickSlot(slot)) return this.finish(false);
                 this.setState('warning', 500);
                 return;
             }
@@ -74,11 +74,11 @@ class BazaarUtil {
                     this.setState('warning change');
                     return;
                 }
-                Guis.closeInv();
+                closeInventory();
                 return this.finish(true);
             case 'warning change':
                 if (this.isSlotNamed(this.confirmSlot, 'Warning')) return;
-                if (!Guis.clickSlot(this.confirmSlot)) return this.finish(false);
+                if (!clickSlot(this.confirmSlot)) return this.finish(false);
                 return this.finish(true);
         }
     }
@@ -86,7 +86,7 @@ class BazaarUtil {
     clickNamed(name, nextState) {
         const slot = this.findSlot(name);
         if (slot === -1) return false;
-        if (!Guis.clickSlot(slot)) return false;
+        if (!clickSlot(slot)) return false;
         this.setState(nextState);
         return true;
     }
@@ -133,7 +133,7 @@ class BazaarUtil {
         this.state = 'idle';
         this.callback = null;
         this.confirmSlot = -1;
-        if (Client.isInGui()) Guis.closeInv();
+        if (Client.isInGui()) closeInventory();
         if (typeof callback === 'function') callback(success);
     }
 }

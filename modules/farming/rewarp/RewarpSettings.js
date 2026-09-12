@@ -1,6 +1,9 @@
 import { ModuleBase } from '../../../utils/ModuleBase';
-import { Guis } from '../../../utils/player/Inventory';
-import { TabListUtils } from '../../../utils/TabListUtils';
+import { Slider } from '../../../gui/components/Slider';
+import { ToggleButton } from '../../../gui/components/Toggle';
+import { MultiToggle } from '../../../gui/components/Dropdown';
+import { stripItemFormatting } from '../../../utils/player/Inventory';
+import { findTabListIndex, getTabListNames, readVisitors } from '../../../utils/TabListUtils';
 
 class RewarpSettings extends ModuleBase {
     constructor() {
@@ -19,6 +22,7 @@ class RewarpSettings extends ModuleBase {
         this.maxVisitorPrice = 500_000;
         this.declinePurchaseFailures = false;
         this.autoPhilipBonus = false;
+        this.philipContactMethod = '/call (recommended)';
         this.pestKiller = false;
         this.pestThreshold = 5;
 
@@ -35,60 +39,65 @@ class RewarpSettings extends ModuleBase {
         );
         const triggerRadius = this.addSlider('Rewarp Trigger Radius', 0.5, 5, this.triggerRadius, (value) => (this.triggerRadius = value));
         this.addRewarpButtons(triggerRadius);
-        this.addToggle(
-            'Run Visitor Macro',
-            (value) => {
-                this.runVisitorMacro = !!value;
-                [minimumVisitors, maxVisitorPrice, declinePurchaseFailures].forEach((setting) => (setting.visible = !!value));
-            },
+        const visitorPopup = this.addPopup('Visitor Macro Settings', null, 'Configure the Visitor Macro run before rewarping.');
+        visitorPopup.addComponent(
+            new ToggleButton('Run Visitor Macro', 0, 0, undefined, undefined, (value) => (this.runVisitorMacro = !!value), this.runVisitorMacro),
             'Runs at the barn before rewarping when enough visitors are waiting.'
         );
-        const minimumVisitors = this.addSlider(
-            'Minimum Visitors',
-            1,
-            5,
-            this.minimumVisitors,
-            (value) => (this.minimumVisitors = Math.round(value)),
+        visitorPopup.addComponent(
+            new Slider('Minimum Visitors', 1, 5, 0, 0, undefined, undefined, this.minimumVisitors, (value) => {
+                this.minimumVisitors = Math.round(value);
+            }),
             'Runs Visitor Macro when at least this many visitors are waiting.'
         );
-        minimumVisitors.visible = false;
-        const maxVisitorPrice = this.addSlider(
-            'Max Visitor Price (k)',
-            0,
-            5_000,
-            this.maxVisitorPrice / 1_000,
-            (value) => (this.maxVisitorPrice = Number(value) * 1_000),
+        visitorPopup.addComponent(
+            new Slider('Max Visitor Price (k)', 0, 5_000, 0, 0, undefined, undefined, this.maxVisitorPrice / 1_000, (value) => {
+                this.maxVisitorPrice = Number(value) * 1_000;
+            }),
             'Cancels a Bazaar purchase when its total price is above this amount in thousands.'
         );
-        maxVisitorPrice.visible = false;
-        const declinePurchaseFailures = this.addToggle(
-            'Decline Failed Purchases',
-            (value) => (this.declinePurchaseFailures = !!value),
+        visitorPopup.addComponent(
+            new ToggleButton(
+                'Decline Failed Purchases',
+                0,
+                0,
+                undefined,
+                undefined,
+                (value) => (this.declinePurchaseFailures = !!value),
+                this.declinePurchaseFailures
+            ),
             'Declines visitors when a Bazaar purchase fails.'
         );
-        declinePurchaseFailures.visible = false;
-        this.addToggle(
-            'Auto Philip Bonus',
-            (value) => (this.autoPhilipBonus = !!value),
+
+        const philipPopup = this.addPopup('Auto Philip Bonus Settings', null, 'Configure automatic Buzzing Bonus renewal.');
+        philipPopup.addComponent(
+            new ToggleButton('Auto Philip Bonus', 0, 0, undefined, undefined, (value) => (this.autoPhilipBonus = !!value), this.autoPhilipBonus),
             'Empties a vacuum bag with Philip when Buzzing Bonus is inactive and it holds 40 or more pests.'
         );
-        this.addToggle(
-            'Pest Killer',
-            (value) => {
-                this.pestKiller = !!value;
-                pestThreshold.visible = !!value;
-            },
+        philipPopup.addComponent(
+            new MultiToggle(
+                'Contact Method',
+                0,
+                0,
+                ['Pathfind', 'Abiphone', '/call (recommended)'],
+                true,
+                (options) => (this.philipContactMethod = options.find((option) => option.enabled)?.name || '/call (recommended)'),
+                this.philipContactMethod
+            ),
+            'How to contact Philip. Abiphone requires one in the hotbar.'
+        );
+
+        const pestPopup = this.addPopup('Pest Killer Settings', null, 'Configure when Pest Killer runs.');
+        pestPopup.addComponent(
+            new ToggleButton('Pest Killer', 0, 0, undefined, undefined, (value) => (this.pestKiller = !!value), this.pestKiller),
             'Pauses farming to clear pests when the configured threshold is reached.'
         );
-        const pestThreshold = this.addSlider(
-            'Pest Threshold',
-            1,
-            8,
-            this.pestThreshold,
-            (value) => (this.pestThreshold = Math.round(value)),
+        pestPopup.addComponent(
+            new Slider('Pest Threshold', 1, 8, 0, 0, undefined, undefined, this.pestThreshold, (value) => {
+                this.pestThreshold = Math.round(value);
+            }),
             'Starts Pest Killer at this many alive pests.'
         );
-        pestThreshold.visible = false;
     }
 
     addRewarpButtons(...buttons) {
@@ -97,16 +106,16 @@ class RewarpSettings extends ModuleBase {
     }
 
     shouldRunVisitorMacro() {
-        return this.runVisitorMacro && TabListUtils.readVisitors().length >= this.minimumVisitors;
+        return this.runVisitorMacro && readVisitors().length >= this.minimumVisitors;
     }
 
     shouldRunPhilipBonus() {
-        if (!this.autoPhilipBonus || TabListUtils.findIndex(TabListUtils.getNames(), 'Bonus: INACTIVE') === -1) return false;
+        if (!this.autoPhilipBonus || findTabListIndex(getTabListNames(), 'Bonus: INACTIVE') === -1) return false;
         const vacuum = Player.getInventory()
             ?.getItems?.()
-            .find((item) => String(Guis.stripFormatting(item?.getName?.() || '')).includes('Vacuum'));
+            .find((item) => String(stripItemFormatting(item?.getName?.() || '')).includes('Vacuum'));
         const vacuumLine = String(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || '');
-        return (Number.parseInt(Guis.stripFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
+        return (Number.parseInt(stripItemFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
     }
 }
 

@@ -1,140 +1,102 @@
 import { System } from '../Constants';
-import { ServerboundClientCommandPacket, ClientboundPingPacket, ClientboundLoginPacket, ClientboundAwardStatsPacket } from '../Packets';
+import { ClientboundAwardStatsPacket, ClientboundLoginPacket, ClientboundPingPacket, ServerboundClientCommandPacket } from '../Packets';
 
-class NetworkMonitor {
-    constructor() {
-        this.lastTpsNano = 0;
-        this.currentTps = 20;
-        this.tpsSamples = [];
-        this.tpsWindowSize = 40;
-        this.tpsTrimFraction = 0.25;
-        this.tpsEmaAlpha = 0.2;
+const TPS_WINDOW_SIZE = 40;
+const TPS_TRIM_FRACTION = 0.25;
+const TPS_EMA_ALPHA = 0.2;
+const MAX_PING_HISTORY = 20;
+const JITTER_CAP_MS = 10;
 
-        this.pingSamples = [];
-        this.maxHistory = 20;
-        this.waitingForPing = false;
-        this.pingStartNano = 0;
-        this.avgPing = 0;
-        this.minPingMs = Infinity;
-        this.jitterCapMs = 10;
+let lastTpsNano = 0;
+let currentTps = 20;
+let tpsSamples = [];
+let pingSamples = [];
+let waitingForPing = false;
+let pingStartNano = 0;
+let averagePing = 0;
+let minimumPing = Infinity;
+
+const addSample = (samples, value, maxSize) => {
+    samples.push(value);
+    if (samples.length > maxSize) samples.shift();
+};
+
+const averageTps = () => {
+    if (!tpsSamples.length) return currentTps;
+    const trim = Math.min(Math.floor(tpsSamples.length * TPS_TRIM_FRACTION), Math.floor((tpsSamples.length - 1) / 2));
+    const samples = trim ? [...tpsSamples].sort((a, b) => a - b).slice(trim, -trim) : tpsSamples;
+    return samples.reduce((sum, value) => sum + value, 0) / samples.length;
+};
+
+const estimateJitter = () => {
+    if (!pingSamples.length || !Number.isFinite(minimumPing)) return 0;
+    const sorted = [...pingSamples].sort((a, b) => a - b);
+    return Math.min(Math.max(0, (sorted[Math.floor(sorted.length / 2)] - Math.min(minimumPing, sorted[0])) / 2), JITTER_CAP_MS);
+};
+
+const recordTpsPacket = () => {
+    const now = System.nanoTime();
+    if (lastTpsNano > 0) {
+        const elapsed = Math.max(1, (now - lastTpsNano) / 1_000_000 - estimateJitter());
+        addSample(tpsSamples, Math.min(20, 1000 / elapsed), TPS_WINDOW_SIZE);
+        currentTps += (averageTps() - currentTps) * TPS_EMA_ALPHA;
     }
+    lastTpsNano = now;
+};
 
-    addSample(list, value, maxSize) {
-        list.push(value);
-        if (list.length > maxSize) list.shift();
-    }
+const requestPing = () => {
+    if (!Player.getPlayer() || waitingForPing) return;
+    Client.sendPacket(new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.REQUEST_STATS));
+    pingStartNano = System.nanoTime();
+    waitingForPing = true;
+};
 
-    calculateTpsAverage() {
-        if (this.tpsSamples.length === 0) return this.currentTps;
+const resolvePing = () => {
+    if (!waitingForPing) return;
+    const elapsed = (System.nanoTime() - pingStartNano) / 1_000_000;
+    waitingForPing = false;
+    addSample(pingSamples, elapsed, MAX_PING_HISTORY);
+    minimumPing = Math.min(minimumPing, elapsed);
+    averagePing = pingSamples.reduce((sum, value) => sum + value, 0) / pingSamples.length;
+};
 
-        const trimCount = Math.min(Math.floor(this.tpsSamples.length * this.tpsTrimFraction), Math.floor((this.tpsSamples.length - 1) / 2));
+const reset = () => {
+    lastTpsNano = 0;
+    currentTps = 20;
+    tpsSamples = [];
+    pingSamples = [];
+    averagePing = 0;
+    waitingForPing = false;
+    minimumPing = Infinity;
+};
 
-        if (trimCount === 0) {
-            const total = this.tpsSamples.reduce((sum, value) => sum + value, 0);
-            return total / this.tpsSamples.length;
-        }
+register('worldLoad', reset);
+register('packetReceived', recordTpsPacket).setFilteredClass(ClientboundPingPacket);
+register('packetReceived', resolvePing).setFilteredClass(ClientboundAwardStatsPacket);
+register('packetReceived', () => (waitingForPing = false)).setFilteredClass(ClientboundLoginPacket);
+register('step', requestPing).setDelay(1);
 
-        const sorted = [...this.tpsSamples].sort((a, b) => a - b);
-        const trimmed = sorted.slice(trimCount, sorted.length - trimCount);
-        const trimmedTotal = trimmed.reduce((sum, value) => sum + value, 0);
-        return trimmedTotal / trimmed.length;
-    }
+export const getPing = () => Math.round(averagePing);
 
-    calculateJitterEstimate() {
-        if (this.pingSamples.length === 0 || !Number.isFinite(this.minPingMs)) return 0;
-        const sorted = [...this.pingSamples].sort((a, b) => a - b);
-        const median = sorted[Math.floor(sorted.length / 2)];
-        const baseline = Math.min(this.minPingMs, sorted[0]);
-        const jitter = Math.max(0, (median - baseline) / 2);
-        return Math.min(jitter, this.jitterCapMs);
-    }
-
-    recordTpsPacket() {
-        const now = System.nanoTime();
-        if (this.lastTpsNano > 0) {
-            let deltaMs = (now - this.lastTpsNano) / 1_000_000;
-            deltaMs = Math.max(1, deltaMs - this.calculateJitterEstimate());
-            const instant = Math.min(20, 1000 / deltaMs);
-            this.addSample(this.tpsSamples, instant, this.tpsWindowSize);
-            const robustTps = this.calculateTpsAverage();
-            this.currentTps += (robustTps - this.currentTps) * this.tpsEmaAlpha;
-        }
-        this.lastTpsNano = now;
-    }
-
-    sendPingRequest() {
-        if (!Player.getPlayer()) return;
-        if (!this.waitingForPing) {
-            Client.sendPacket(new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.REQUEST_STATS));
-            this.pingStartNano = System.nanoTime();
-            this.waitingForPing = true;
-        }
-    }
-
-    resolvePing() {
-        if (this.waitingForPing) {
-            const elapsedMs = (System.nanoTime() - this.pingStartNano) / 1_000_000;
-            this.waitingForPing = false;
-
-            this.addSample(this.pingSamples, elapsedMs, this.maxHistory);
-            this.minPingMs = Math.min(this.minPingMs, elapsedMs);
-
-            const totalPing = this.pingSamples.reduce((sum, value) => sum + value, 0);
-            this.avgPing = totalPing / this.pingSamples.length;
-        }
-    }
-
-    reset() {
-        this.lastTpsNano = 0;
-        this.currentTps = 20;
-        this.tpsSamples = [];
-        this.pingSamples = [];
-        this.avgPing = 0;
-        this.waitingForPing = false;
-        this.minPingMs = Infinity;
-    }
+export function getTPS() {
+    const tps = Number(currentTps);
+    return Number.parseFloat((Number.isFinite(tps) ? Math.max(0, Math.min(20, tps)) : 20).toFixed(2));
 }
 
-const monitor = new NetworkMonitor();
+export function getTpsColor(tps) {
+    if (tps > 19.8) return 0x00aa00;
+    if (tps > 19) return 0x55ff55;
+    if (tps > 17.5) return 0xffaa00;
+    if (tps > 12) return 0xff5555;
+    return 0xaa0000;
+}
 
-register('worldLoad', () => monitor.reset());
+export function getPingColor(ping) {
+    if (ping < 50) return 0x55ff55;
+    if (ping < 100) return 0x00aa00;
+    if (ping < 149) return 0xffff55;
+    if (ping < 249) return 0xffaa00;
+    return 0xff5555;
+}
 
-register('packetReceived', () => {
-    monitor.recordTpsPacket();
-}).setFilteredClass(ClientboundPingPacket);
-
-register('packetReceived', () => {
-    monitor.resolvePing();
-}).setFilteredClass(ClientboundAwardStatsPacket);
-
-register('packetReceived', () => {
-    monitor.waitingForPing = false;
-}).setFilteredClass(ClientboundLoginPacket);
-
-register('step', () => {
-    monitor.sendPingRequest();
-}).setDelay(1);
-
-export const ServerInfo = {
-    getPing: () => Math.round(monitor.avgPing),
-    getTPS: () => {
-        const raw = Number(monitor.currentTps);
-        const safe = Number.isFinite(raw) ? Math.max(0, Math.min(20, raw)) : 20;
-        return Number.parseFloat(safe.toFixed(2));
-    },
-    getTpsColor: (tps) => {
-        if (tps > 19.8) return 0x00aa00;
-        if (tps > 19) return 0x55ff55;
-        if (tps > 17.5) return 0xffaa00;
-        if (tps > 12) return 0xff5555;
-        return 0xaa0000;
-    },
-    getPingColor: (ping) => {
-        if (ping < 50) return 0x55ff55;
-        if (ping < 100) return 0x00aa00;
-        if (ping < 149) return 0xffff55;
-        if (ping < 249) return 0xffaa00;
-        return 0xff5555;
-    },
-    getServerInfo: () => ({ ping: ServerInfo.getPing(), tps: ServerInfo.getTPS() }),
-};
+export const getServerInfo = () => ({ ping: getPing(), tps: getTPS() });

@@ -1,8 +1,8 @@
 import { ArmorStandEntity, MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 import { ServerboundInteractPacket } from '../../utils/Packets';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 
 class MinionCollector extends ModuleBase {
     constructor() {
@@ -19,10 +19,10 @@ class MinionCollector extends ModuleBase {
         this.lastCollection = 0;
 
         this.when(
-            () => this.enabled && Utils.area() === 'Private Island',
+            () => this.enabled && area() === 'Private Island',
             'tick',
             () => {
-                this.clickSlot();
+                this._clickSlot();
 
                 if (this.inMinion) return;
                 this.scanAndQueue();
@@ -82,20 +82,20 @@ class MinionCollector extends ModuleBase {
         this.rightClickMinion(entity);
     }
 
-    clickSlot() {
+    _clickSlot() {
         if (!this.inMinion) return;
 
-        const name = Guis.guiName();
+        const name = getGuiName();
         if (!name || !name.includes('Minion')) return;
 
         if (this.lastCollection === 0) {
-            Guis.clickSlot(48);
+            clickSlot(48);
             this.lastCollection = Date.now();
             return;
         }
 
         if (Date.now() - this.lastCollection >= 500) {
-            Guis.closeInv();
+            closeInventory();
             this.inMinion = false;
             this.lastCollection = 0;
         }

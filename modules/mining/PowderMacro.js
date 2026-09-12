@@ -1,9 +1,9 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
-import { MathUtils } from '../../utils/Math';
+import { wrapTo180 } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
-import { RotationGCD } from '../../utils/player/RotationGCD';
-import { manager } from '../../utils/SkyblockEvents';
+import { angleDifference, applyToPlayer } from '../../utils/player/RotationGCD';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
 
 const CHEST_BLOCK_IDS = new Set([54, 146]);
 const CHEST_SEARCH_RADIUS = 3;
@@ -82,8 +82,8 @@ class PowderMacro extends ModuleBase {
     }
 
     registerSkyblockEvents() {
-        manager.subscribe('chestspawn', () => this.onChestSpawn());
-        manager.subscribe('chestopen', () => this.onChestOpen());
+        registerSkyblockEvent('chestspawn', () => this.onChestSpawn());
+        registerSkyblockEvent('chestopen', () => this.onChestOpen());
     }
 
     onChestSpawn() {
@@ -92,7 +92,7 @@ class PowderMacro extends ModuleBase {
         if (!player) return;
 
         this.savedRotation = {
-            yaw: MathUtils.wrapTo180(player.getYRot()),
+            yaw: wrapTo180(player.getYRot()),
             pitch: player.getXRot(),
         };
 
@@ -127,7 +127,7 @@ class PowderMacro extends ModuleBase {
         Client.setKey('shift', true);
 
         this.pivot = {
-            yaw: MathUtils.wrapTo180(player.getYRot()),
+            yaw: wrapTo180(player.getYRot()),
             pitch: player.getXRot(),
         };
         this.startTime = Date.now();
@@ -169,7 +169,7 @@ class PowderMacro extends ModuleBase {
                     break;
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
 
         setTimeout(() => this.rotateLoop(token), TICK_INTERVAL_MS);
@@ -185,7 +185,7 @@ class PowderMacro extends ModuleBase {
         const targetYaw = this.pivot.yaw + Math.cos(angle) * this.width;
         const targetPitch = Math.min(this.pivot.pitch + dPitch, this.maxPitch);
 
-        RotationGCD.applyToPlayer(targetYaw, targetPitch);
+        applyToPlayer(targetYaw, targetPitch);
     }
 
     tickChest() {
@@ -205,10 +205,10 @@ class PowderMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
 
-        const current = { yaw: MathUtils.wrapTo180(player.getYRot()), pitch: player.getXRot() };
+        const current = { yaw: wrapTo180(player.getYRot()), pitch: player.getXRot() };
         const target = this.savedRotation ?? this.pivot;
 
-        const diffYaw = RotationGCD.angleDifference(target.yaw, current.yaw);
+        const diffYaw = angleDifference(target.yaw, current.yaw);
         const diffPitch = target.pitch - current.pitch;
         const distance = Math.hypot(diffYaw, diffPitch);
 
@@ -216,7 +216,7 @@ class PowderMacro extends ModuleBase {
             this.syncLoopAngle(current);
             this.setState(State.MINING);
         } else {
-            RotationGCD.applyToPlayer(current.yaw + diffYaw * RETURN_SPEED, current.pitch + diffPitch * RETURN_SPEED);
+            applyToPlayer(current.yaw + diffYaw * RETURN_SPEED, current.pitch + diffPitch * RETURN_SPEED);
         }
     }
 

@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, getGuiName } from '../../utils/player/Inventory';
 
 class AutoHarp extends ModuleBase {
     constructor() {
@@ -15,7 +15,7 @@ class AutoHarp extends ModuleBase {
         this.notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => ({ slot, clicked: false, DELAY: 0 }));
 
         this.on('tick', () => {
-            const invName = Guis.guiName();
+            const invName = getGuiName();
             if (!invName?.includes('Harp')) return;
 
             const container = Player.getContainer();
@@ -40,7 +40,7 @@ class AutoHarp extends ModuleBase {
                     note.clicked = true;
                 }
 
-                Guis.clickSlot(note.slot, false, 'MIDDLE');
+                clickSlot(note.slot, false, 'MIDDLE');
             });
         });
 
