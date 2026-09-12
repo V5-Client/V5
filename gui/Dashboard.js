@@ -57,11 +57,14 @@ authButton = new Button('Checking...', 0, 0, 'Authenticate', () => {
     authButton.setButtonText('Waiting for browser...');
     V5Auth.authenticate().whenComplete((token, error) => {
         if (error) console.error('V5 authentication failed: ' + error);
-        if (token) returnDiscord(token);
+        if (token) {
+            returnDiscord(token);
+            V5Irc.reconnect();
+        }
         refreshAuth(token);
     });
 });
-authButton.description = 'Authenticate V5 through Discord.';
+authButton.description = 'Authenticate V5 with Discord.';
 refreshAuth();
 
 const normalizeLocation = (value) => {
