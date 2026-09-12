@@ -1,6 +1,7 @@
 import { convertToVector } from './Utils';
 
 const RAD_TO_DEG = 180 / Math.PI;
+const DEG_TO_RAD = Math.PI / 180;
 const point = (x, y, z) => ({ x: x || 0, y: y || 0, z: z || 0 });
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const horizontalDistance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
