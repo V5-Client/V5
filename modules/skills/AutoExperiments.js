@@ -1,4 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+import { DataComponents } from '../../utils/Constants';
 import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 const SLOTS = {
@@ -248,6 +249,8 @@ class AutoExperiments extends ModuleBase {
     }
 
     handleSuperpairs(items) {
+        if (ChatLib.removeFormatting(items[4]?.getName() ?? '') === 'Remaining Clicks: 0') return closeInventory();
+
         // Read the backing inventory: SkyHanni replaces getItem() results with remembered cards.
         const slots = Client.getMinecraft().player.containerMenu.slots;
         items = items.slice();
@@ -540,7 +543,10 @@ class AutoExperiments extends ModuleBase {
     }
 
     getSuperpairsKey(item) {
-        return `${item.getType().getRegistryName()}|${item.getDamage()}|${item.getStackSize()}|${item.getNBT().toString()}`;
+        const nbt = item.getNBT().toString();
+        const customData = String(item.toMC()?.get?.(DataComponents.CUSTOM_DATA)?.copyTag?.() || '');
+        const skyblockId = customData.match(/\bid\s*[:=]\s*"?([^",}\s]+)/i)?.[1];
+        return `${item.getType().getRegistryName()}|${item.getDamage()}|${item.getStackSize()}|${skyblockId || nbt}`;
     }
 
     isDye(item) {
