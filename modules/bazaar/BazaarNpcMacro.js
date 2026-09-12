@@ -59,7 +59,7 @@ class BazaarNpcMacro extends ModuleBase {
             'Maximum Order Spend (M)',
             0.1,
             100,
-            1,
+            5,
             (millions) => (this.maxSpend = millions * 1_000_000),
             'Per order. Total committed coins can be the Order Limit times this value.'
         );
@@ -68,7 +68,7 @@ class BazaarNpcMacro extends ModuleBase {
             'Minimum Profit per Item',
             0,
             100_000,
-            1,
+            0,
             (coins) => (this.minProfitPerItem = coins),
             'Minimum coins earned on each item after buying it from Bazaar and selling it to NPC.'
         );
@@ -77,7 +77,7 @@ class BazaarNpcMacro extends ModuleBase {
             'Minimum Item Profit/hr (K)',
             0,
             10_000,
-            0,
+            100,
             (thousands) => (this.minItemProfitPerHour = thousands * 1_000),
             'Minimum estimated hourly profit for each item.'
         );
@@ -86,7 +86,7 @@ class BazaarNpcMacro extends ModuleBase {
             'Minimum Profit (%)',
             0,
             100,
-            1,
+            5,
             (percent) => (this.minProfitPercent = percent),
             'Minimum profit as a percentage of the NPC sell value.'
         );
