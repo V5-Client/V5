@@ -679,6 +679,7 @@ class BazaarNpcMacro extends ModuleBase {
 
     finishOrderCancellation() {
         const target = this.target;
+        if (this.hasInventoryIncrease()) return this.setAction(this.openTrades, 'Selling claimed items', 500, 0);
         if (this.cancelQuantity <= 0) return this.orderCheckQueue.length ? this.checkNextOrder() : this.inspectOrder();
         const quantity = Math.min(MAX_ORDER_ITEMS, this.cancelQuantity, Math.floor(this.maxSpend / target.expectedOrderPrice));
         this.cancelQuantity = 0;
@@ -735,7 +736,8 @@ class BazaarNpcMacro extends ModuleBase {
         }
 
         this.lastCheckedInventory = this.inventorySnapshot();
-        this.setAction(this.openOrders, 'Checking order prices', 500, 0);
+        const nextAction = this.cancelQuantity > 0 ? this.finishOrderCancellation : this.orderQueue.length ? this.placeNextOrder : this.openOrders;
+        this.setAction(nextAction, 'Resuming Bazaar', 500, 0);
     }
 
     onChat(event) {
