@@ -1,8 +1,10 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { getEnabledMacros, getLastDisableMeta, getModule, getModuleDuration } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatDurationMs, Timer } from '../../utils/TimeUtils';
-import { getConfigFile, writeConfigFile } from '../../utils/Utils';
+import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
+import { formatDurationMs } from '../../utils/TimeUtils';
+import { area, getConfigFile, writeConfigFile } from '../../utils/Utils';
+import { closeInventory } from '../../utils/player/Inventory';
 import { Webhook } from '../../utils/Webhooks';
 
 const STATE = {
@@ -12,6 +14,30 @@ const STATE = {
     RETURNING: 'Returning',
     PAUSED: 'Paused',
 };
+
+const RECOVERY_STATE = {
+    WAITING: 'Waiting to reconnect',
+    CONNECTING: 'Connecting to Hypixel',
+    LEAVING_LIMBO: 'Leaving Limbo',
+    SETTLING: 'Waiting for lobby',
+    JOINING_SKYBLOCK: 'Joining SkyBlock',
+};
+
+const HYPIXEL_ADDRESS = 'mc.hypixel.net';
+const RECONNECT_DELAY = 5_000;
+const CONNECT_TIMEOUT = 15_000;
+const LOBBY_SETTLE_TIME = 4_000;
+const LOBBY_TIMEOUT = 20_000;
+const SKYBLOCK_JOIN_TIMEOUT = 30_000;
+const OUTSIDE_SKYBLOCK_TIMEOUT = 8_000;
+const LIMBO_PATTERN =
+    /you were spawned in limbo|you (?:have been sent|are being sent|were sent) to limbo|you are (?:currently )?in limbo|sending you to limbo|you are afk\. move around to return from afk|a kick occurred in your connection/i;
+const UNSAFE_RECONNECT_PATTERN = /\bbanned\b|cheating|boosting|security alert|logged in from another location/i;
+const clean = (value) =>
+    ChatLib.removeFormatting(String(value ?? ''))
+        .trim()
+        .replace(/^[^a-z0-9]+/i, '')
+        .toLowerCase();
 
 class MacroScheduler extends ModuleBase {
     constructor() {
@@ -36,11 +62,25 @@ class MacroScheduler extends ModuleBase {
         this.returnStep = 0;
         this.overlayShown = false;
         this.pausedRemainingMs = 0;
-
-        this.worldUnloadTimer = new Timer();
+        this.autoReconnect = true;
+        this.recoveryState = null;
+        this.recoveryAt = 0;
+        this.recoveryDeadline = 0;
+        this.recoveryMacros = [];
+        this.recoverySessionRemainingMs = 0;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
+        this.outsideSkyblockSince = 0;
 
         const sectionName = 'Scheduler';
         this.addDirectToggle('Enable Scheduler', (v) => this.toggle(!!v), 'Toggles the scheduler.', true, sectionName);
+        this.addDirectToggle(
+            'Auto Reconnect',
+            (value) => (this.autoReconnect = !!value),
+            'Recovers tracked macros from Limbo or disconnects, returns to SkyBlock, and resumes them.',
+            true,
+            sectionName
+        );
         this.addDirectRangeSlider(
             'Macro Duration (m)',
             10,
@@ -70,7 +110,7 @@ class MacroScheduler extends ModuleBase {
             {
                 title: 'Scheduler',
                 data: {
-                    Status: () => this.state,
+                    Status: () => this.recoveryState || this.state,
                     'Time Left': () => this.formatTimeLeft(),
                     Active: () => this.getActiveMacroDisplay(),
                 },
@@ -79,6 +119,13 @@ class MacroScheduler extends ModuleBase {
 
         this.loadState();
         register('gameUnload', () => this.saveState());
+        this.on('chat', (event) => this.onChat(event));
+        this.on('worldLoad', () => this.onWorldLoad());
+        this.on('worldUnload', () => this.onWorldUnload());
+        this.on('packetReceived', (packet) => this.onDisconnectPacket(packet)).setFilteredClasses([
+            ClientboundLoginDisconnectPacket,
+            ClientboundDisconnectPacket,
+        ]);
         this.on('step', () => this.tick()).setFps(20);
     }
 
@@ -129,6 +176,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     onDisable() {
+        this.resetRecovery();
         this.saveState();
         OverlayManager.resetTime(this.oid);
         this.overlayShown = false;
@@ -138,6 +186,7 @@ class MacroScheduler extends ModuleBase {
     tick() {
         if (!this.enabled) return;
         this.updateOverlay();
+        if (this.recoveryState) return this.tickRecovery();
 
         switch (this.state) {
             case STATE.IDLE:
@@ -180,8 +229,18 @@ class MacroScheduler extends ModuleBase {
 
     handleRunning() {
         const now = Date.now();
-        const enabled = this.getSchedulableMacros();
+        if (this.autoReconnect) {
+            if (!World.isLoaded()) return this.beginReconnect('Lost connection to Hypixel.', false);
+            if (this.isInSkyblock()) {
+                this.outsideSkyblockSince = 0;
+            } else if (!this.outsideSkyblockSince) {
+                this.outsideSkyblockSince = now;
+            } else if (now - this.outsideSkyblockSince >= OUTSIDE_SKYBLOCK_TIMEOUT) {
+                return this.beginLimboRecovery('Detected that the session is no longer in SkyBlock.');
+            }
+        }
 
+        const enabled = this.getSchedulableMacros();
         if (enabled.length === 0) {
             this.pauseSession();
             return;
@@ -193,22 +252,236 @@ class MacroScheduler extends ModuleBase {
             this.saveState();
         }
 
-        if (now >= this.timerEnd) {
-            this.endSession();
+        if (now >= this.timerEnd) this.endSession();
+    }
+
+    onChat(event) {
+        if (!this.autoReconnect || this.state !== STATE.RUNNING) return;
+        const message = event?.message?.getUnformattedText?.() ?? event?.message?.getString?.() ?? '';
+        if (LIMBO_PATTERN.test(message)) this.beginLimboRecovery('Detected Limbo.');
+    }
+
+    onWorldLoad() {
+        if (!this.recoveryState) return;
+        if (this.recoveryState !== RECOVERY_STATE.CONNECTING && this.recoveryState !== RECOVERY_STATE.LEAVING_LIMBO) return;
+        if (this.recoveryState === RECOVERY_STATE.LEAVING_LIMBO && !this.recoverySawWorldUnload) return;
+
+        this.lobbyConfirmed = true;
+        this.recoveryState = RECOVERY_STATE.SETTLING;
+        this.recoveryAt = Date.now() + LOBBY_SETTLE_TIME;
+        this.recoveryDeadline = Date.now() + LOBBY_TIMEOUT;
+    }
+
+    onWorldUnload() {
+        if (this.recoveryState) {
+            this.recoverySawWorldUnload = true;
             return;
         }
+        if (!this.autoReconnect || this.state !== STATE.RUNNING) return;
+        this.beginReconnect('Macro world closed; waiting for a possible Hypixel transfer.', false, CONNECT_TIMEOUT);
+        this.recoverySawWorldUnload = true;
+    }
 
-        if (!World.isLoaded()) {
-            if (!this.worldUnloadTimer.running) this.worldUnloadTimer.setDelayRandom(7000, 13000);
-        } else {
-            this.worldUnloadTimer.reset();
+    onDisconnectPacket(packet) {
+        if (!this.autoReconnect || this.state !== STATE.RUNNING) return;
+        const reason = packet?.reason?.();
+        const text = reason?.getString?.() || reason?.toString?.() || 'Disconnected from Hypixel.';
+        if (UNSAFE_RECONNECT_PATTERN.test(text)) {
+            if (this.prepareRecovery()) this.abortRecovery(`Not reconnecting after disconnect: ${text}`);
+            return;
         }
+        this.beginReconnect(`Disconnected: ${text}`, false);
+    }
 
-        if (this.worldUnloadTimer.hasReachedDelay()) {
-            this.worldUnloadTimer.reset();
-            this.message('&eConnecting to Hypixel...');
-            Client.connect('mc.hypixel.net');
+    prepareRecovery() {
+        if (this.recoveryState) return true;
+        if (!this.enabled || !this.autoReconnect || this.state !== STATE.RUNNING) return false;
+
+        const enabled = this.getSchedulableMacros();
+        this.recoveryMacros = [...new Set([...this.trackedMacros, ...enabled])].filter((name) => {
+            const module = getModule(name);
+            return module && module.isMacro && !module.isParentManaged;
+        });
+        if (!this.recoveryMacros.length) return false;
+
+        this.recoverySessionRemainingMs = Math.max(0, this.timerEnd - Date.now());
+        Client.unpressKeys();
+        closeInventory();
+        this.recoveryMacros.forEach((name) => {
+            const module = getModule(name);
+            if (module?.enabled) module.toggle(false, true, 'scheduler-reconnect');
+        });
+        return true;
+    }
+
+    beginReconnect(reason, disconnectLoadedWorld, delay = RECONNECT_DELAY) {
+        if (!this.prepareRecovery()) return;
+        this.recoveryState = RECOVERY_STATE.WAITING;
+        this.recoveryAt = Date.now() + delay;
+        this.recoveryDeadline = 0;
+        this.lobbyConfirmed = false;
+        this.outsideSkyblockSince = 0;
+        this.message(`&e${reason} Checking again in ${Math.ceil(delay / 1_000)} seconds...`);
+        if (disconnectLoadedWorld && World.isLoaded()) this.disconnect('Scheduler: reconnecting to Hypixel');
+    }
+
+    beginLimboRecovery(reason) {
+        if (this.recoveryState === RECOVERY_STATE.LEAVING_LIMBO || !this.prepareRecovery()) return;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
+        this.outsideSkyblockSince = 0;
+        this.recoveryState = RECOVERY_STATE.LEAVING_LIMBO;
+        this.recoveryAt = Date.now() + LOBBY_SETTLE_TIME;
+        this.recoveryDeadline = Date.now() + LOBBY_TIMEOUT;
+        this.message(`&e${reason} Running /lobby...`);
+        ChatLib.command('lobby');
+    }
+
+    tickRecovery() {
+        if (!this.autoReconnect) return this.abortRecovery('Auto Reconnect was disabled while recovering.');
+        const now = Date.now();
+
+        switch (this.recoveryState) {
+            case RECOVERY_STATE.WAITING:
+                if (World.isLoaded()) {
+                    if (this.isInSkyblock()) return this.completeRecovery();
+                    if (this.joinSkyblockFromLobby()) return;
+                    return this.beginLimboRecovery('Still connected to Hypixel outside SkyBlock.');
+                }
+                if (now < this.recoveryAt) return;
+                this.connectToHypixel();
+                return;
+            case RECOVERY_STATE.CONNECTING:
+                if (World.isLoaded()) {
+                    this.lobbyConfirmed = true;
+                    this.recoveryState = RECOVERY_STATE.SETTLING;
+                    this.recoveryAt = now + LOBBY_SETTLE_TIME;
+                    this.recoveryDeadline = now + LOBBY_TIMEOUT;
+                    return;
+                }
+                if (now >= this.recoveryDeadline) this.scheduleReconnect('&eConnection timed out; retrying...');
+                return;
+            case RECOVERY_STATE.LEAVING_LIMBO:
+                if (!World.isLoaded()) {
+                    if (now >= this.recoveryDeadline) this.beginReconnect('The /lobby command did not load a lobby.', false);
+                    return;
+                }
+                if (this.isInSkyblock()) return this.completeRecovery();
+                if (now < this.recoveryAt) return;
+                if (this.joinSkyblockFromLobby()) return;
+                if (now >= this.recoveryDeadline) this.beginReconnect('The /lobby command did not leave Limbo.', true);
+                return;
+            case RECOVERY_STATE.SETTLING:
+                if (!World.isLoaded()) {
+                    if (now >= this.recoveryDeadline) this.scheduleReconnect('&eLobby did not load; retrying...');
+                    return;
+                }
+                if (this.isInSkyblock()) return this.completeRecovery();
+                if (now < this.recoveryAt) return;
+                if (this.joinSkyblockFromLobby()) return;
+                if (now >= this.recoveryDeadline) this.beginLimboRecovery('Connected outside the main lobby and SkyBlock.');
+                return;
+            case RECOVERY_STATE.JOINING_SKYBLOCK:
+                if (this.isInSkyblock()) return this.completeRecovery();
+                if (now < this.recoveryDeadline) return;
+                if (World.isLoaded()) {
+                    if (this.recoverySawWorldUnload) {
+                        this.beginLimboRecovery('The /skyblock transfer did not reach SkyBlock.');
+                    } else {
+                        this.lobbyConfirmed = true;
+                        this.recoveryState = RECOVERY_STATE.SETTLING;
+                        this.recoveryAt = now + 1_000;
+                        this.recoveryDeadline = now + LOBBY_TIMEOUT;
+                    }
+                } else {
+                    this.scheduleReconnect('&eSkyBlock did not load; reconnecting...');
+                }
         }
+    }
+
+    connectToHypixel() {
+        this.recoveryState = RECOVERY_STATE.CONNECTING;
+        this.recoveryDeadline = Date.now() + CONNECT_TIMEOUT;
+        this.message('&eConnecting to Hypixel...');
+        Client.connect(HYPIXEL_ADDRESS);
+    }
+
+    scheduleReconnect(message) {
+        if (message) this.message(message);
+        this.recoveryState = RECOVERY_STATE.WAITING;
+        this.recoveryAt = Date.now() + RECONNECT_DELAY;
+        this.recoveryDeadline = 0;
+    }
+
+    isInMainLobby() {
+        if (!World.isLoaded() || this.isInSkyblock()) return false;
+        return (Player.getInventory()?.getItems() || []).slice(0, 9).some((item) => {
+            const name = clean(item?.getName?.());
+            const type = clean(item?.getType?.()?.getRegistryName?.());
+            return name.includes('game menu') || type.includes('compass');
+        });
+    }
+
+    joinSkyblockFromLobby() {
+        if (!this.lobbyConfirmed && !this.isInMainLobby()) return false;
+        this.recoverySawWorldUnload = false;
+        this.recoveryState = RECOVERY_STATE.JOINING_SKYBLOCK;
+        this.recoveryDeadline = Date.now() + SKYBLOCK_JOIN_TIMEOUT;
+        this.message('&eMain lobby detected. Running /skyblock...');
+        ChatLib.command('skyblock');
+        return true;
+    }
+
+    isInSkyblock() {
+        if (!World.isLoaded()) return false;
+        if ((Player.getInventory()?.getItems() || []).some((item) => clean(item?.getName?.()).startsWith('skyblock menu'))) return true;
+        try {
+            if (clean(Scoreboard.getTitle()).includes('skyblock')) return true;
+        } catch (error) {}
+        try {
+            const currentArea = area();
+            if (typeof currentArea === 'string' && currentArea.trim() && !/^(?:unknown|limbo)$/i.test(currentArea.trim())) return true;
+        } catch (error) {}
+        try {
+            return (TabList.getNames?.() || []).some((line) => /^(?:area|profile|purse|bits):/i.test(clean(line)));
+        } catch (error) {
+            return false;
+        }
+    }
+
+    completeRecovery() {
+        if (!this.isInSkyblock()) return;
+        const macros = [...this.recoveryMacros];
+        const remaining = this.recoverySessionRemainingMs;
+        this.resetRecovery();
+        this.trackedMacros = macros;
+        this.timerEnd = Date.now() + remaining;
+        this.startTrackedMacros();
+        this.saveState();
+        this.message(`&aBack in SkyBlock. Resumed ${macros.length} tracked macro${macros.length === 1 ? '' : 's'}.`);
+        this.sendSchedulerConnectEmbed();
+    }
+
+    abortRecovery(message) {
+        const remaining = this.recoverySessionRemainingMs;
+        this.resetRecovery();
+        this.pausedRemainingMs = remaining;
+        this.timerEnd = 0;
+        this.state = STATE.PAUSED;
+        this.saveState();
+        this.updateOverlay();
+        this.message(`&c${message} Scheduler paused.`);
+    }
+
+    resetRecovery() {
+        this.recoveryState = null;
+        this.recoveryAt = 0;
+        this.recoveryDeadline = 0;
+        this.recoveryMacros = [];
+        this.recoverySessionRemainingMs = 0;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
+        this.outsideSkyblockSince = 0;
     }
 
     pauseSession() {
@@ -256,7 +529,7 @@ class MacroScheduler extends ModuleBase {
                 return;
             }
             this.message('&eConnecting to Hypixel...');
-            Client.connect('mc.hypixel.net');
+            Client.connect(HYPIXEL_ADDRESS);
             this.returnStep = 1;
             this.timerEnd = now + 12000;
             this.saveState();
@@ -267,7 +540,7 @@ class MacroScheduler extends ModuleBase {
             if (!World.isLoaded()) {
                 if (now < this.timerEnd) return;
                 this.message('&eRetrying connection...');
-                Client.connect('mc.hypixel.net');
+                Client.connect(HYPIXEL_ADDRESS);
                 this.timerEnd = now + 12000;
                 this.saveState();
                 return;
@@ -280,21 +553,40 @@ class MacroScheduler extends ModuleBase {
 
         if (this.returnStep === 2) {
             if (now < this.timerEnd) return;
-            this.message('&eJoining Skyblock...');
-            ChatLib.command('play skyblock');
+            if (this.isInSkyblock()) return this.finishScheduledReturn();
+            this.message('&eJoining SkyBlock with /skyblock...');
+            ChatLib.command('skyblock');
             this.returnStep = 3;
-            this.timerEnd = Date.now() + 3000;
+            this.timerEnd = Date.now() + SKYBLOCK_JOIN_TIMEOUT;
             this.saveState();
             return;
         }
 
         if (this.returnStep === 3) {
+            if (this.isInSkyblock()) return this.finishScheduledReturn();
             if (now < this.timerEnd) return;
-            this.message('&aStarting macros.');
-            this.startTrackedMacros();
-            this.sendSchedulerConnectEmbed();
-            this.beginSession();
+            if (!World.isLoaded()) {
+                this.returnStep = 0;
+                this.timerEnd = 0;
+            } else if (this.isInMainLobby()) {
+                this.message('&eRetrying /skyblock...');
+                ChatLib.command('skyblock');
+                this.timerEnd = now + SKYBLOCK_JOIN_TIMEOUT;
+            } else {
+                this.message('&eLeaving Limbo with /lobby...');
+                ChatLib.command('lobby');
+                this.returnStep = 2;
+                this.timerEnd = now + LOBBY_SETTLE_TIME;
+            }
+            this.saveState();
         }
+    }
+
+    finishScheduledReturn() {
+        this.message('&aStarting macros.');
+        this.startTrackedMacros();
+        this.sendSchedulerConnectEmbed();
+        this.beginSession();
     }
 
     beginSession() {
@@ -314,13 +606,13 @@ class MacroScheduler extends ModuleBase {
         this.stopTrackedMacros();
         this.sendSchedulerDisconnectEmbed(cleanBreakTime);
 
-        const reason = `Scheduler: Resting for ${cleanBreakTime}`;
-        this.disconnect(reason);
-
         this.state = STATE.RESTING;
         this.timerEnd = Date.now() + this.breakDurationMs;
         this.saveState();
         this.updateOverlay();
+
+        const reason = `Scheduler: Resting for ${cleanBreakTime}`;
+        this.disconnect(reason);
     }
 
     beginReturn() {
@@ -465,6 +757,7 @@ class MacroScheduler extends ModuleBase {
 
     formatTimeLeft() {
         if (this.state === STATE.IDLE) return 'Waiting';
+        if (this.recoveryState) return `Paused (${formatDurationMs(this.recoverySessionRemainingMs)})`;
 
         const remaining = this.state === STATE.PAUSED ? Math.max(0, this.pausedRemainingMs) : Math.max(0, this.timerEnd - Date.now());
         const timeStr = formatDurationMs(remaining);
