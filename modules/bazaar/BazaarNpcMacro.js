@@ -2,8 +2,10 @@ import requestV2 from '../../utils/Request';
 import { chat } from '../../utils/Chat';
 import { DataComponents } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
 import { setSignLine } from '../../utils/Sign';
 import { v5Command } from '../../utils/V5Commands';
+import { area } from '../../utils/Utils';
 import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 
 // This entire macro is AI generated, good luck!
@@ -17,6 +19,23 @@ const GUI_TIMEOUT = 10_000;
 const STUCK_RETRY_DELAY = 1_000;
 const COMMAND_CAPACITY = 10;
 const COMMAND_RESTORE_TIME = 1_050; // +50ms to tolerate server lag, if server lags too much it can still kick for spam tho
+const HYPIXEL_ADDRESS = 'mc.hypixel.net';
+const RECONNECT_DELAY = 5_000;
+const CONNECT_TIMEOUT = 15_000;
+const LOBBY_SETTLE_TIME = 4_000;
+const LOBBY_TIMEOUT = 20_000;
+const SKYBLOCK_JOIN_TIMEOUT = 30_000;
+const OUTSIDE_SKYBLOCK_TIMEOUT = 8_000;
+const RECONNECT_STATES = {
+    WAITING: 'Waiting to reconnect',
+    CONNECTING: 'Connecting to Hypixel',
+    LEAVING_LIMBO: 'Leaving Limbo',
+    SETTLING: 'Waiting for lobby',
+    JOINING_SKYBLOCK: 'Joining SkyBlock',
+};
+const LIMBO_PATTERN =
+    /you were spawned in limbo|you (?:have been sent|are being sent|were sent) to limbo|you are (?:currently )?in limbo|sending you to limbo|you are afk\. move around to return from afk|a kick occurred in your connection/i;
+const UNSAFE_RECONNECT_PATTERN = /\bbanned\b|cheating|boosting|security alert|logged in from another location/i;
 const clean = (value) =>
     ChatLib.removeFormatting(String(value ?? ''))
         .trim()
@@ -38,7 +57,7 @@ class BazaarNpcMacro extends ModuleBase {
             subcategory: 'Bazaar',
             description: 'Places profitable Bazaar buy orders and sells the fills to NPC.',
             tooltip: 'Requires Cookie Buff access to /bz. Only sellable items added after enabling are sold in /trades.',
-            autoDisableOnWorldUnload: true,
+            autoDisableOnWorldUnload: false,
             isMacro: true,
         });
         this.bindToggleKey();
@@ -97,6 +116,13 @@ class BazaarNpcMacro extends ModuleBase {
             (value) => (this.itemNameBlacklist = String(value).split(',').map(clean).filter(Boolean)),
             'Case-insensitive item names to exclude, separated by commas.'
         );
+        this.autoReconnect = false;
+        this.addToggle(
+            'Auto Reconnect',
+            (enabled) => (this.autoReconnect = !!enabled),
+            'Leaves Limbo with /lobby, enters SkyBlock with /skyblock, reconnects after real disconnects, and resumes this macro.',
+            false
+        );
         this.createOverlay([
             {
                 title: 'Status',
@@ -118,12 +144,24 @@ class BazaarNpcMacro extends ModuleBase {
 
         this.on('tick', () => this.tick());
         this.on('chat', (event) => this.onChat(event));
+        this.on('worldLoad', () => this.onWorldLoad());
+        this.on('worldUnload', () => this.onWorldUnload());
+        this.on('packetReceived', (packet) => this.onDisconnectPacket(packet)).setFilteredClasses([
+            ClientboundLoginDisconnectPacket,
+            ClientboundDisconnectPacket,
+        ]);
         v5Command('bazaar npc cleanup', () => this.startCleanup());
         this.commandTokens = COMMAND_CAPACITY;
         this.commandRefillAt = Date.now();
         this.cleanupOnEnable = false;
         this.cleanupInventory = null;
         this.cleanupFinished = false;
+        this.reconnectState = null;
+        this.reconnectAt = 0;
+        this.reconnectDeadline = 0;
+        this.outsideSkyblockSince = 0;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
         this.reset();
     }
 
@@ -132,6 +170,7 @@ class BazaarNpcMacro extends ModuleBase {
         const cleanupInventory = this.cleanupInventory;
         this.cleanupOnEnable = false;
         this.cleanupInventory = null;
+        this.resetReconnect();
         this.reset();
         const inventory = Player.getInventory();
         if (!inventory) return this.fail('Could not snapshot your inventory.');
@@ -157,6 +196,7 @@ class BazaarNpcMacro extends ModuleBase {
         else if (cleanupFinished) this.cleanupInventory = null;
         this.requestToken++;
         closeInventory();
+        this.resetReconnect();
         this.reset();
         this.cleanupFinished = false;
         this.message(cleanupFinished ? '&aCleanup complete; no buy orders remain.' : '&cDisabled');
@@ -197,6 +237,7 @@ class BazaarNpcMacro extends ModuleBase {
         this.orderMissingSince = 0;
         this.cleanupMode = false;
         this.inventoryReady = false;
+        this.outsideSkyblockSince = 0;
         this.requestToken = (this.requestToken || 0) + 1;
     }
 
@@ -222,7 +263,19 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     tick() {
+        if (this.reconnectState) return this.tickReconnect();
+        if (this.autoReconnect && !World.isLoaded()) return this.beginReconnect('Lost connection to Hypixel.', false);
+
         const now = Date.now();
+        if (this.autoReconnect) {
+            if (this.isInSkyblock()) {
+                this.outsideSkyblockSince = 0;
+            } else if (!this.outsideSkyblockSince) {
+                this.outsideSkyblockSince = now;
+            } else if (now - this.outsideSkyblockSince >= OUTSIDE_SKYBLOCK_TIMEOUT) {
+                return this.beginLimboRecovery('Detected that the macro is no longer in SkyBlock.');
+            }
+        }
         if (this.deadline && now >= this.deadline) return this.restart(`Timed out while ${this.status.toLowerCase()}.`);
         if (this.retryAction && now >= this.retryAt) {
             this.retryAt = now + STUCK_RETRY_DELAY;
@@ -254,26 +307,14 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     commandAndWait(command, action, status, delay = 0, timeout = GUI_TIMEOUT) {
-        const previousGui = getGuiName();
         const run = () => {
             const wait = this.runCommand(command);
             if (wait) return this.setAction(run, status, wait, 0);
-            this.setAction(waitForGui, status, delay, timeout, retry);
-        };
-        const waitForGui = () => {
-            action.call(this);
-            if (this.action === waitForGui || !this.retryAction) return;
-            const nextRetry = this.retryAction;
-            this.retryAction = () => {
-                const nextAction = this.action;
-                nextRetry?.call(this);
-                if (this.action === nextAction && getGuiName() === previousGui) run();
-            };
-            this.retryAt = Date.now() + STUCK_RETRY_DELAY;
+            this.setAction(action, status, delay, timeout, retry);
         };
         const retry = () => {
-            waitForGui();
-            if (this.action === waitForGui && this.retryAction === retry) run();
+            action.call(this);
+            if (this.action === action && this.retryAction === retry) run();
         };
         run();
     }
@@ -574,7 +615,7 @@ class BazaarNpcMacro extends ModuleBase {
             this.orderQueue = [];
             this.claimedTargets.add(completed.target);
             clickSlot(completed.slot);
-            return this.setAction(this.inspectOrder, 'Claiming items', Math.max(250, this.clickDelay), 0);
+            return this.setAction(this.openTrades, 'Claiming items', Math.max(250, this.clickDelay), 0);
         }
         if (!this.orderLimitReached && !this.orderSlotsChecked && this.openOrderCount < this.maxBuyOrders) {
             this.orderSlotsChecked = true;
@@ -599,7 +640,7 @@ class BazaarNpcMacro extends ModuleBase {
             this.target = claimable.target;
             this.claimedTargets.add(claimable.target);
             clickSlot(claimable.slot);
-            return this.setAction(this.inspectOrder, 'Claiming items', Math.max(250, this.clickDelay), 0);
+            return this.setAction(this.openTrades, 'Claiming items', Math.max(250, this.clickDelay), 0);
         }
         if (hasNewItems) return this.setAction(this.openTrades, 'Selling claimed items', 500);
         this.orderQueue = [];
@@ -624,7 +665,7 @@ class BazaarNpcMacro extends ModuleBase {
         }
         if (claimSlot !== undefined) {
             clickSlot(claimSlot);
-            return this.setAction(this.inspectOrder, 'Claiming items', Math.max(250, this.clickDelay), 0);
+            return this.setAction(this.openTrades, 'Claiming items', Math.max(250, this.clickDelay), 0);
         }
         if (buySlots.length) return this.clickAndWait(buySlots[0], this.cancelCleanupOrder, 'Opening buy order');
         if (hasNewItems) return this.setAction(this.openTrades, 'Selling claimed items', 500);
@@ -785,6 +826,10 @@ class BazaarNpcMacro extends ModuleBase {
 
     onChat(event) {
         const message = event?.message?.getUnformattedText?.() ?? event?.message?.getString?.() ?? '';
+        if (this.autoReconnect && LIMBO_PATTERN.test(message)) {
+            this.beginLimboRecovery('Detected Limbo.');
+            return;
+        }
         if (/^\[Bazaar\] You reached your maximum of [\d,]+ Bazaar orders!$/.test(message)) {
             this.orderLimitReached = true;
             this.orderQueue = [];
@@ -809,6 +854,212 @@ class BazaarNpcMacro extends ModuleBase {
             this.message('&eNot enough coins for more orders; monitoring the placed orders.');
             this.setAction(this.openOrders, 'Checking orders', this.clickDelay, 0);
         }
+    }
+
+    onWorldLoad() {
+        if (!this.reconnectState) return;
+        if (this.reconnectState !== RECONNECT_STATES.CONNECTING && this.reconnectState !== RECONNECT_STATES.LEAVING_LIMBO) return;
+        if (this.reconnectState === RECONNECT_STATES.LEAVING_LIMBO && !this.recoverySawWorldUnload) return;
+
+        this.lobbyConfirmed = true;
+        this.reconnectState = RECONNECT_STATES.SETTLING;
+        this.reconnectAt = Date.now() + LOBBY_SETTLE_TIME;
+        this.reconnectDeadline = Date.now() + LOBBY_TIMEOUT;
+    }
+
+    onWorldUnload() {
+        if (this.reconnectState) {
+            this.recoverySawWorldUnload = true;
+            return;
+        }
+        if (this.autoReconnect) {
+            this.beginReconnect('SkyBlock world closed; waiting for a possible Hypixel transfer.', false, CONNECT_TIMEOUT);
+            this.recoverySawWorldUnload = true;
+        } else this.toggle(false);
+    }
+
+    onDisconnectPacket(packet) {
+        const reason = packet?.reason?.();
+        const text = reason?.getString?.() || reason?.toString?.() || 'Disconnected from Hypixel.';
+        if (!this.autoReconnect) return;
+        if (UNSAFE_RECONNECT_PATTERN.test(text)) return this.fail(`Not reconnecting after disconnect: ${text}`);
+        this.beginReconnect(`Disconnected: ${text}`, false);
+    }
+
+    beginReconnect(reason, disconnectLoadedWorld, delay = RECONNECT_DELAY) {
+        if (!this.enabled || !this.autoReconnect) return;
+        this.requestToken++;
+        this.action = null;
+        this.retryAction = null;
+        this.deadline = 0;
+        this.nextActionAt = 0;
+        this.reconnectState = RECONNECT_STATES.WAITING;
+        this.reconnectAt = Date.now() + delay;
+        this.reconnectDeadline = 0;
+        this.lobbyConfirmed = false;
+        this.status = RECONNECT_STATES.WAITING;
+        Client.unpressKeys();
+        closeInventory();
+        this.message(`&e${reason} Checking again in ${Math.ceil(delay / 1_000)} seconds...`);
+        if (disconnectLoadedWorld && World.isLoaded()) this.disconnect('Bazaar to NPC: reconnecting to Hypixel');
+    }
+
+    tickReconnect() {
+        if (!this.autoReconnect) return this.fail('Auto Reconnect was disabled while reconnecting.');
+        const now = Date.now();
+        this.status = this.reconnectState;
+
+        switch (this.reconnectState) {
+            case RECONNECT_STATES.WAITING:
+                if (World.isLoaded()) {
+                    if (this.isInSkyblock()) return this.resumeAfterReconnect();
+                    if (this.joinSkyblockFromLobby()) return;
+                    return this.beginLimboRecovery('Still connected to Hypixel outside SkyBlock.');
+                }
+                if (now < this.reconnectAt) return;
+                this.connectToHypixel();
+                return;
+            case RECONNECT_STATES.CONNECTING:
+                if (World.isLoaded()) {
+                    this.lobbyConfirmed = true;
+                    this.reconnectState = RECONNECT_STATES.SETTLING;
+                    this.reconnectAt = now + LOBBY_SETTLE_TIME;
+                    this.reconnectDeadline = now + LOBBY_TIMEOUT;
+                    return;
+                }
+                if (now >= this.reconnectDeadline) this.scheduleReconnect('&eConnection timed out; retrying...');
+                return;
+            case RECONNECT_STATES.LEAVING_LIMBO:
+                if (!World.isLoaded()) {
+                    if (now >= this.reconnectDeadline) this.beginReconnect('The /lobby command did not load a lobby.', false);
+                    return;
+                }
+                if (this.isInSkyblock()) return this.resumeAfterReconnect();
+                if (now < this.reconnectAt) return;
+                if (this.joinSkyblockFromLobby()) return;
+                if (now >= this.reconnectDeadline) this.beginReconnect('The /lobby command did not leave Limbo.', true);
+                return;
+            case RECONNECT_STATES.SETTLING:
+                if (!World.isLoaded()) {
+                    if (now >= this.reconnectDeadline) this.scheduleReconnect('&eLobby did not load; retrying...');
+                    return;
+                }
+                if (this.isInSkyblock()) return this.resumeAfterReconnect();
+                if (now < this.reconnectAt) return;
+                if (this.joinSkyblockFromLobby()) return;
+                if (now >= this.reconnectDeadline) this.beginLimboRecovery('Connected outside the main lobby and SkyBlock.');
+                return;
+            case RECONNECT_STATES.JOINING_SKYBLOCK:
+                if (this.isInSkyblock()) return this.resumeAfterReconnect();
+                if (now < this.reconnectDeadline) return;
+                if (World.isLoaded()) {
+                    if (this.recoverySawWorldUnload) {
+                        this.beginLimboRecovery('The /skyblock transfer did not reach SkyBlock.');
+                    } else {
+                        this.lobbyConfirmed = true;
+                        this.reconnectState = RECONNECT_STATES.SETTLING;
+                        this.reconnectAt = now + 1_000;
+                        this.reconnectDeadline = now + LOBBY_TIMEOUT;
+                    }
+                } else {
+                    this.scheduleReconnect('&eSkyBlock did not load; reconnecting...');
+                }
+        }
+    }
+
+    beginLimboRecovery(reason) {
+        if (!this.enabled || !this.autoReconnect || this.reconnectState === RECONNECT_STATES.LEAVING_LIMBO) return;
+        this.requestToken++;
+        this.action = null;
+        this.retryAction = null;
+        this.deadline = 0;
+        this.nextActionAt = 0;
+        this.outsideSkyblockSince = 0;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
+        this.reconnectState = RECONNECT_STATES.LEAVING_LIMBO;
+        this.reconnectAt = Date.now() + LOBBY_SETTLE_TIME;
+        this.reconnectDeadline = Date.now() + LOBBY_TIMEOUT;
+        this.status = RECONNECT_STATES.LEAVING_LIMBO;
+        Client.unpressKeys();
+        closeInventory();
+        this.message(`&e${reason} Running /lobby...`);
+        ChatLib.command('lobby');
+    }
+
+    connectToHypixel() {
+        this.reconnectState = RECONNECT_STATES.CONNECTING;
+        this.reconnectDeadline = Date.now() + CONNECT_TIMEOUT;
+        this.message('&eConnecting to Hypixel...');
+        Client.connect(HYPIXEL_ADDRESS);
+    }
+
+    scheduleReconnect(message) {
+        if (message) this.message(message);
+        this.reconnectState = RECONNECT_STATES.WAITING;
+        this.reconnectAt = Date.now() + RECONNECT_DELAY;
+        this.reconnectDeadline = 0;
+    }
+
+    isInMainLobby() {
+        if (!World.isLoaded() || this.isInSkyblock()) return false;
+        return (Player.getInventory()?.getItems() || []).slice(0, 9).some((item) => {
+            const name = clean(item?.getName?.());
+            const type = clean(item?.getType?.()?.getRegistryName?.());
+            return name.includes('game menu') || type.includes('compass');
+        });
+    }
+
+    joinSkyblockFromLobby() {
+        if (!this.lobbyConfirmed && !this.isInMainLobby()) return false;
+        closeInventory();
+        this.recoverySawWorldUnload = false;
+        this.reconnectState = RECONNECT_STATES.JOINING_SKYBLOCK;
+        this.reconnectDeadline = Date.now() + SKYBLOCK_JOIN_TIMEOUT;
+        this.message('&eMain lobby detected. Running /skyblock...');
+        ChatLib.command('skyblock');
+        return true;
+    }
+
+    isInSkyblock() {
+        if (!World.isLoaded()) return false;
+        if ((Player.getInventory()?.getItems() || []).some((item) => clean(item?.getName?.()).startsWith('skyblock menu'))) return true;
+        try {
+            if (clean(Scoreboard.getTitle()).includes('skyblock')) return true;
+        } catch (error) {}
+        try {
+            const currentArea = area();
+            if (typeof currentArea === 'string' && currentArea.trim() && !/^(?:unknown|limbo)$/i.test(currentArea.trim())) return true;
+        } catch (error) {}
+        try {
+            return (TabList.getNames?.() || []).some((line) => /^(?:area|profile|purse|bits):/i.test(clean(line)));
+        } catch (error) {
+            return false;
+        }
+    }
+
+    resumeAfterReconnect() {
+        const startingInventory = this.startingInventory;
+        const lastCheckedInventory = this.lastCheckedInventory;
+        const cleanupMode = this.cleanupMode;
+        closeInventory();
+        this.resetReconnect();
+        this.reset();
+        this.startingInventory = startingInventory;
+        this.lastCheckedInventory = lastCheckedInventory;
+        this.cleanupMode = cleanupMode;
+        this.inventoryReady = true;
+        this.message('&aReconnected to SkyBlock. Resuming Bazaar to NPC...');
+        this.setAction(this.openOrders, 'Resuming Bazaar', 2_000, 0);
+    }
+
+    resetReconnect() {
+        this.reconnectState = null;
+        this.reconnectAt = 0;
+        this.reconnectDeadline = 0;
+        this.outsideSkyblockSince = 0;
+        this.recoverySawWorldUnload = false;
+        this.lobbyConfirmed = false;
     }
 
     findSlot(name, exact = false) {
