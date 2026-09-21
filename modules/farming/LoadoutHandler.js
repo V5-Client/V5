@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 import { ScheduleTask } from '../../utils/ScheduleTask';
+import { farmingDelays } from './FarmingDelays';
 
 const LOADOUT_SLOTS = [14, 15, 16, 23, 24, 25, 32, 33, 34, 41, 42, 43];
 
@@ -17,7 +18,6 @@ class LoadoutHandler extends ModuleBase {
         this.pestSpawningSlot = 1;
         this.pestKillingSlot = 1;
         this.visitorSlot = 1;
-        this.postSwapDelay = 4;
         this.pestSpawnSwapCooldown = 140;
         this.currentSlot = null;
         this.targetSlot = null;
@@ -35,8 +35,6 @@ class LoadoutHandler extends ModuleBase {
             (value) => (this.pestSpawnSwapCooldown = Math.round(value)),
             'Switches to the pest spawning loadout at or below this cooldown in seconds.'
         );
-        this.addSlider('Post Swap Delay', 1, 20, this.postSwapDelay, (value) => (this.postSwapDelay = Math.round(value)));
-
         register('tick', () => this.tick());
     }
 
@@ -59,7 +57,7 @@ class LoadoutHandler extends ModuleBase {
         this.switching = true;
         ScheduleTask(5, () => {
             if (getGuiName()?.includes('(1/3) Loadouts')) closeInventory();
-            ScheduleTask(this.postSwapDelay, () => (this.switching = false));
+            ScheduleTask(farmingDelays.postSwapDelay, () => (this.switching = false));
         });
     }
 }
