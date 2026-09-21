@@ -1,5 +1,7 @@
-import { Chat } from './Chat';
-import { File, MessageType, System, SystemTray, Toolkit, TrayIcon, globalAssetsDir } from './Constants';
+import { chatDebug } from './Chat';
+import { File, ProcessBuilder, System, SystemTray, Toolkit, TrayIcon, globalAssetsDir } from './Constants';
+
+const MessageType = TrayIcon.MessageType;
 
 class AlertManager {
     constructor() {
@@ -7,9 +9,7 @@ class AlertManager {
         this.appName = 'V5 Client';
         this.setupTray();
 
-        register('gameUnload', () => {
-            this.cleanup();
-        });
+        register('gameUnload', () => this.cleanup());
     }
 
     setupTray() {
@@ -17,8 +17,7 @@ class AlertManager {
 
         try {
             const tray = SystemTray.getSystemTray();
-            const existingIcons = tray.getTrayIcons();
-            const existingIcon = Array.from(existingIcons).find((icon) => icon.getToolTip() === this.appName);
+            const existingIcon = Array.from(tray.getTrayIcons()).find((icon) => icon.getToolTip() === this.appName);
 
             if (existingIcon) {
                 this.trayIcon = existingIcon;
@@ -33,39 +32,33 @@ class AlertManager {
             this.trayIcon.setToolTip(this.appName);
             tray.add(this.trayIcon);
         } catch (e) {
-            Chat.messageDebug('Desktop tray initialization failed: ' + e);
-            console.error('V5 Caught error' + e + e.stack);
+            chatDebug('Desktop tray initialization failed: ' + e);
+            console.error(e);
         }
     }
 
     cleanup() {
-        if (this.trayIcon) {
-            try {
-                SystemTray.getSystemTray().remove(this.trayIcon);
-            } catch (e) {
-                Chat.messageDebug('Tray cleanup failed: ' + e);
-                console.error('V5 Caught error' + e + e.stack);
-            }
-            this.trayIcon = null;
+        if (!this.trayIcon) return;
+
+        try {
+            SystemTray.getSystemTray().remove(this.trayIcon);
+        } catch (e) {
+            chatDebug('Tray cleanup failed: ' + e);
+            console.error(e);
         }
+        this.trayIcon = null;
     }
 
     dispatch(content) {
         const platform = System.getProperty('os.name').toLowerCase();
 
-        if (platform.includes('win')) {
-            this.sendWin(content);
-        } else if (platform.includes('mac')) {
-            this.sendMac(content);
-        } else if (platform.includes('nix') || platform.includes('nux')) {
-            this.sendLinux(content);
-        }
+        if (platform.includes('win')) this.sendWin(content);
+        else if (platform.includes('mac')) this.sendMac(content);
+        else if (platform.includes('nix') || platform.includes('nux')) this.sendLinux(content);
     }
 
     sendWin(msg) {
-        if (this.trayIcon) {
-            this.trayIcon.displayMessage(this.appName, msg, MessageType.WARNING);
-        }
+        if (this.trayIcon) this.trayIcon.displayMessage(this.appName, msg, MessageType.WARNING);
     }
 
     sendMac(msg) {
@@ -80,11 +73,10 @@ class AlertManager {
 
     runCmd(args) {
         try {
-            const pb = new java.lang.ProcessBuilder(args.map(String));
-            pb.start();
+            new ProcessBuilder(args.map(String)).start();
         } catch (e) {
-            Chat.messageDebug('Notification command failed: ' + e);
-            console.error('V5 Caught error' + e + e.stack);
+            chatDebug('Notification command failed: ' + e);
+            console.error(e);
         }
     }
 }

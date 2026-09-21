@@ -1,58 +1,67 @@
-import { Chat } from './Chat';
-import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
-import { Executor } from './ThreadExecutor';
-import { Utils } from './Utils';
+import {
+    Arrays,
+    CLIENT_VERSION,
+    Consumer,
+    FileInputStream,
+    JavaArray,
+    JavaByte,
+    JavaLong,
+    OutputStreamWriter,
+    ScreenshotRecorder,
+    System,
+    URL,
+} from './Constants';
+import { executeAsync } from './ThreadExecutor';
+import { area, getConfigFile, subArea, writeConfigFile } from './Utils';
+
+function closeQuietly(resource) {
+    if (!resource) return;
+    try {
+        resource.close();
+    } catch (e) {
+        console.error(e);
+    }
+}
 
 class DiscordNotifier {
     constructor() {
         this.endpoint = null;
         this.mentionId = null;
-        this.active = false;
-        this.clientVersion = CLIENT_VERSION;
         this.sendLoadEmbeds = true;
         this.sendFailsafeEmbeds = true;
 
         this.loadSettings();
-        this.initTriggers();
+        register('gameLoad', () => this.onStartup());
     }
 
     loadSettings() {
         try {
-            const cfg = Utils.getConfigFile('webhook.json');
+            const cfg = getConfigFile('webhook.json');
             if (cfg) {
                 this.endpoint = cfg.url || null;
                 this.mentionId = cfg.userId || null;
-                this.active = !!this.endpoint;
-
-                if (this.active) return { url: this.endpoint, userId: this.mentionId };
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            Chat.messageDebug('Failed to initialize webhook settings.');
+            console.error(e);
         }
     }
 
     persistSettings() {
-        try {
-            Utils.writeConfigFile('webhook.json', {
-                url: this.endpoint,
-                userId: this.mentionId,
-            });
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        }
-    }
-
-    initTriggers() {
-        register('gameLoad', () => this.onStartup());
+        writeConfigFile('webhook.json', {
+            url: this.endpoint,
+            userId: this.mentionId,
+        });
     }
 
     updateEndpoint(url) {
-        if (!url || !url.startsWith('https://discord.com/api/webhooks/')) return;
+        const canonical = String(url ?? '')
+            .trim()
+            .split(/[?#]/)[0];
+        if (canonical && !/^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s/]+\/?$/.test(canonical)) return false;
 
-        this.endpoint = url;
-        this.active = true;
+        this.endpoint = String(url ?? '').trim() || null;
         this.persistSettings();
+        return true;
     }
 
     updateMention(id) {
@@ -62,7 +71,7 @@ class DiscordNotifier {
 
     takeScreenshot(title = null, description = null, color, footer, ping = false) {
         const mc = Client.getMinecraft();
-        const buffer = mc.getMainRenderTarget();
+        const buffer = Client.getMainRenderTarget();
         const gameDir = mc.gameDirectory;
 
         try {
@@ -76,13 +85,13 @@ class DiscordNotifier {
                             const files = screenshotDir.listFiles();
                             if (!files || files.length === 0) return;
 
-                            const latestFile = java.util.Arrays.stream(files)
+                            const latestFile = Arrays.stream(files)
                                 .filter((f) => f.getName().endsWith('.png'))
                                 .max(java.util.Comparator.comparingLong((f) => f.lastModified()))
                                 .orElse(null);
                             if (!latestFile) return;
 
-                            const finalTitle = title || 'Screenshot captured from ' + Utils.area();
+                            const finalTitle = title || 'Screenshot captured from ' + area();
 
                             this.uploadScreenshot(latestFile, finalTitle, description, color, footer, ping);
                         });
@@ -95,17 +104,23 @@ class DiscordNotifier {
     }
 
     publish(embeds, shouldMention = true) {
-        if (!this.endpoint || !this.active) return;
+        if (!this.endpoint) return;
 
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
-        Executor.execute(() => {
+        executeAsync(() => {
+            let connection = null;
+            let writer = null;
+            let response = null;
+
             try {
-                const connection = new URL(this.endpoint).openConnection();
+                connection = new URL(this.endpoint).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'application/json');
-                connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
+                connection.setRequestProperty('User-Agent', 'V5-Client/' + CLIENT_VERSION);
                 connection.setDoOutput(true);
 
                 const body = {
@@ -118,28 +133,32 @@ class DiscordNotifier {
                     body.content = '<@' + this.mentionId + '>';
                 }
 
-                const writer = new java.io.OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
+                writer = new OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
                 writer.write(JSON.stringify(body));
                 writer.close();
+                writer = null;
 
-                connection.getInputStream().close();
+                response = connection.getInputStream();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                Chat.messageDebug('Webhook transmission failed: ' + e);
+                console.error(e);
+            } finally {
+                closeQuietly(response);
+                closeQuietly(writer);
+                if (connection) connection.disconnect();
             }
         });
     }
 
     onStartup() {
         if (!this.sendLoadEmbeds) return;
-        const areaName = Utils.area();
-        const subAreaName = Utils.subArea();
+        const areaName = area();
+        const subAreaName = subArea();
 
         const embed = {
             title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
             color: 0x3498db,
             timestamp: new Date().toISOString(),
-            footer: { text: 'V5 Client ' + this.clientVersion },
+            footer: { text: 'V5 Client ' + CLIENT_VERSION },
         };
 
         if (areaName) {
@@ -151,40 +170,30 @@ class DiscordNotifier {
         this.publish([embed]);
     }
 
-    setLoadEmbeds(value) {
-        this.sendLoadEmbeds = value;
-    }
-
-    setFailsafeEmbeds(value) {
-        this.sendFailsafeEmbeds = !!value;
-    }
-
-    publishFailsafe(embeds, shouldMention = true) {
-        if (!this.sendFailsafeEmbeds) return;
-        this.publish(embeds, shouldMention);
-    }
-
-    takeFailsafeScreenshot(title = null, description = null, color, footer, ping = false) {
-        if (!this.sendFailsafeEmbeds) return;
-        this.takeScreenshot(title, description, color, footer, ping);
-    }
-
     uploadScreenshot(file, title = 'Screenshot Captured', description, color = 0x3498db, footer = 'V5 Client', ping = false) {
-        if (!this.endpoint || !this.active) return;
+        if (!this.endpoint) return;
 
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
-        Executor.execute(() => {
+        executeAsync(() => {
+            let connection = null;
+            let out = null;
+            let writer = null;
+            let fis = null;
+            let response = null;
+
             try {
-                const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
-                const connection = new URL(this.endpoint).openConnection();
+                const boundary = '----------' + JavaLong.toString(System.currentTimeMillis(), 16);
+                connection = new URL(this.endpoint).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
                 connection.setDoOutput(true);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'multipart/form-data; boundary=' + boundary);
 
-                const out = connection.getOutputStream();
-                const writer = new java.io.PrintWriter(new java.io.OutputStreamWriter(out, 'UTF-8'), true);
+                out = connection.getOutputStream();
+                writer = new java.io.PrintWriter(new OutputStreamWriter(out, 'UTF-8'), true);
 
                 writer.append('--' + boundary).append('\r\n');
                 writer.append('Content-Disposition: form-data; name="payload_json"').append('\r\n');
@@ -204,7 +213,7 @@ class DiscordNotifier {
                                 url: 'attachment://' + filename,
                             },
                             timestamp: new Date().toISOString(),
-                            footer: { text: footer + ' ' + this.clientVersion },
+                            footer: { text: footer + ' ' + CLIENT_VERSION },
                         },
                     ],
                 };
@@ -216,38 +225,33 @@ class DiscordNotifier {
                 writer.append('Content-Type: image/png').append('\r\n\r\n');
                 writer.flush();
 
-                const fis = new java.io.FileInputStream(file);
-                const buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
+                fis = new FileInputStream(file);
+                const buffer = JavaArray.newInstance(JavaByte.TYPE, 4096);
                 let bytesRead;
                 while ((bytesRead = fis.read(buffer)) !== -1) {
                     out.write(buffer, 0, bytesRead);
                 }
                 out.flush();
-                fis.close();
 
                 writer
                     .append('\r\n')
                     .append('--' + boundary + '--')
                     .append('\r\n');
                 writer.close();
-                connection.getInputStream().close();
+                writer = null;
+                out = null;
+                response = connection.getInputStream();
             } catch (e) {
                 console.error('Webhook upload failed: ' + e);
+            } finally {
+                closeQuietly(response);
+                closeQuietly(fis);
+                closeQuietly(writer);
+                closeQuietly(out);
+                if (connection) connection.disconnect();
             }
         });
     }
 }
 
-export const notifier = new DiscordNotifier();
-
-export const Webhook = {
-    setWebhook: (url) => notifier.updateEndpoint(url),
-    setUserId: (id) => notifier.updateMention(id),
-    sendEmbed: (e, p) => notifier.publish(e, p),
-    sendFailsafeEmbed: (e, p) => notifier.publishFailsafe(e, p),
-    getData: () => notifier.loadSettings(),
-    sendLoadEmbeds: (v) => notifier.setLoadEmbeds(v),
-    sendFailsafeEmbeds: (v) => notifier.setFailsafeEmbeds(v),
-    sendScreenshot: (t, d, c, f, p) => notifier.takeScreenshot(t, d, c, f, p),
-    sendFailsafeScreenshot: (t, d, c, f, p) => notifier.takeFailsafeScreenshot(t, d, c, f, p),
-};
+export const Webhook = new DiscordNotifier();

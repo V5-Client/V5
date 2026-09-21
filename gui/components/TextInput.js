@@ -1,4 +1,4 @@
-import { DataFlavor, Toolkit } from '../../utils/Constants';
+import { DataFlavor, IS_MC_26_3, ScriptKey, Toolkit } from '../../utils/Constants';
 import {
     FontSizes,
     PADDING,
@@ -12,6 +12,9 @@ import {
     getTextWidth,
     isInside,
     playClickSound,
+    setTextInputArea,
+    startTextInput,
+    stopTextInput,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 import { GuiState } from '../core/GuiState';
@@ -100,6 +103,7 @@ export class TextInput {
             width: boxWidth,
             height: boxHeight,
         };
+        if (this.isTyping) setTextInputArea(this.inputRect);
 
         drawRoundedRectangle({
             x: boxX,
@@ -127,8 +131,8 @@ export class TextInput {
             this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
         }
 
-        NVG.save();
-        NVG.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
+        Render2D.save();
+        Render2D.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
 
         const textDrawX = boxX + valuePadding - this.scrollX;
         const textDrawY = boxY + boxHeight / 2;
@@ -154,7 +158,7 @@ export class TextInput {
             }
         }
 
-        NVG.restore();
+        Render2D.restore();
 
         const componentRect = {
             x: this.x,
@@ -191,6 +195,7 @@ export class TextInput {
             if (!this.isTyping) {
                 this.isTyping = true;
                 TypingState.isTyping = true;
+                startTextInput(GuiState.myGui, this.inputRect);
                 playClickSound();
             }
             activeTextInput = this;
@@ -207,21 +212,13 @@ export class TextInput {
     handleKeyType(char, keyCode) {
         if (!this.isTyping) return false;
 
-        const BACKSPACE = 259;
-        const ENTER = 257;
-        const ESCAPE = 256;
-        const SPACE = 32;
-        const LEFT_ARROW = 263;
-        const RIGHT_ARROW = 262;
-        const KEY_V = 86;
-
-        if (keyCode === ENTER || keyCode === ESCAPE) {
+        if (keyCode === ScriptKey.ENTER || keyCode === ScriptKey.ESCAPE) {
             this.handleInputFinish();
             return true;
         }
 
         const ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-        if (ctrlDown && keyCode === KEY_V) {
+        if (ctrlDown && keyCode === ScriptKey.V) {
             try {
                 const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
                 if (clipboard !== null && clipboard !== undefined) {
@@ -232,26 +229,26 @@ export class TextInput {
                     }
                 }
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
             return true;
         }
 
-        if (keyCode === LEFT_ARROW) {
+        if (keyCode === ScriptKey.LEFT) {
             if (this.cursorIndex > 0) {
                 this.cursorIndex -= 1;
             }
             return true;
         }
 
-        if (keyCode === RIGHT_ARROW) {
+        if (keyCode === ScriptKey.RIGHT) {
             if (this.cursorIndex < this.text.length) {
                 this.cursorIndex += 1;
             }
             return true;
         }
 
-        if (keyCode === BACKSPACE) {
+        if (keyCode === ScriptKey.BACKSPACE) {
             if (this.cursorIndex > 0) {
                 this.text = this.text.slice(0, this.cursorIndex - 1) + this.text.slice(this.cursorIndex);
                 this.cursorIndex -= 1;
@@ -259,14 +256,15 @@ export class TextInput {
             return true;
         }
 
-        if (keyCode === SPACE) {
+        if (!IS_MC_26_3 && keyCode === ScriptKey.SPACE) {
             this.text = this.text.slice(0, this.cursorIndex) + ' ' + this.text.slice(this.cursorIndex);
             this.cursorIndex += 1;
             return true;
         }
 
-        if (char && char.length === 1) {
-            const charToAppend = getTypedCharacter(char);
+        const charString = String(char || '');
+        if (charString && charString.codePointAt(0) >= ScriptKey.SPACE) {
+            const charToAppend = getTypedCharacter(charString);
 
             this.text = this.text.slice(0, this.cursorIndex) + charToAppend + this.text.slice(this.cursorIndex);
             this.cursorIndex += 1;
@@ -279,6 +277,7 @@ export class TextInput {
     handleInputFinish({ playSound = true } = {}) {
         const wasTyping = this.isTyping;
         this.isTyping = false;
+        if (wasTyping) stopTextInput(GuiState.myGui);
         if (activeTextInput === this) {
             activeTextInput = null;
         }

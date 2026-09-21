@@ -1,6 +1,6 @@
-import { finiteNumber } from '../../NumberUtils';
+import { finiteNumber } from '../../Math';
 
-export function getCurrentMotion() {
+function getCurrentMotion() {
     if (!Player.getPlayer()) {
         return { x: 0, y: 0, z: 0 };
     }

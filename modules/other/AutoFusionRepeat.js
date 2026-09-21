@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickItem } from '../../utils/player/Inventory';
 
 class AutoFusionRepeat extends ModuleBase {
     constructor() {
@@ -12,8 +12,8 @@ class AutoFusionRepeat extends ModuleBase {
         this.bindToggleKey();
 
         this.on('tick', () => {
-            if (Guis.clickItem('Repeat Previous Fusion', false, 'LEFT', true, true)) return;
-            Guis.clickItem('Fusion', false, 'LEFT', true, true);
+            if (clickItem('Repeat Previous Fusion', false, 'LEFT', true, true)) return;
+            clickItem('Fusion', false, 'LEFT', true, true);
         });
     }
 }

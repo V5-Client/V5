@@ -10,7 +10,19 @@ import {
     getTypedCharacter,
     isInside,
     playClickSound,
+    setTextInputArea,
+    startTextInput,
+    stopTextInput,
 } from './Utils';
+import { ScriptKey } from '../utils/Constants';
+import { getLookingAt } from '../utils/Raytrace';
+import {
+    ServerboundInteractPacket,
+    ServerboundPlayerActionPacket,
+    ServerboundSwingPacket,
+    ServerboundUseItemOnPacket,
+    ServerboundUseItemPacket,
+} from '../utils/Packets';
 
 const ROW_HEIGHT = 30;
 const MINE_ROW_HEIGHT = 20;
@@ -19,6 +31,7 @@ const ROUTE_MENU_VISIBLE_ROWS = 10;
 const routeEditorGui = new Gui();
 
 let oreMiner = null;
+let renderRegistration = null;
 let routeName = 'route';
 let scrollY = 0;
 let expandedWaypoint = -1;
@@ -27,6 +40,8 @@ let status = '';
 let routesOpen = false;
 let routeNames = [];
 let routeScroll = 0;
+let mineableEditMode = false;
+let mineableEditStatus = '';
 let fields = { x: '', y: '', z: '', warp: '' };
 let layout = { buttons: [], inputs: {}, rows: [], list: null, routeButton: null, routeMenu: null };
 
@@ -48,9 +63,11 @@ const routeNameFromPath = (path) => {
 };
 
 const commitField = () => {
-    if (!activeField || !oreMiner) return;
+    if (!activeField) return;
     const field = activeField;
     activeField = null;
+    stopTextInput(routeEditorGui);
+    if (!oreMiner) return;
 
     if (field === 'route') {
         routeName = routeName.trim() || 'route';
@@ -100,12 +117,131 @@ const addWaypoint = (type) => {
     status = `Added ${type === 'tp' ? 'Tp' : type === 'walk' ? 'Walk' : 'Warp'} waypoint at your current position.`;
 };
 
-const addMineable = (type) => {
+const nearestMovementWaypoint = () => {
+    let nearest = -1;
+    let nearestDistance = Infinity;
+    (oreMiner?.loadedWaypoints || []).forEach((waypoint, index) => {
+        if (waypoint.type === 'Warp') return;
+        const dx = Player.getX() - (waypoint.pos.x + 0.5);
+        const dy = Player.getY() - (waypoint.pos.y + 1);
+        const dz = Player.getZ() - (waypoint.pos.z + 0.5);
+        const distance = dx * dx + dy * dy + dz * dz;
+        if (distance < nearestDistance) {
+            nearest = index;
+            nearestDistance = distance;
+        }
+    });
+    return nearest;
+};
+
+const lookedAtBlock = () => {
+    const pos = getLookingAt(10)?.getPos?.();
+    return pos ? { x: pos.getX(), y: pos.getY(), z: pos.getZ() } : null;
+};
+
+const findMineable = (pos) => {
+    if (!pos) return null;
+    for (let waypointIndex = 0; waypointIndex < (oreMiner?.loadedWaypoints?.length || 0); waypointIndex++) {
+        const mineIndex = oreMiner.loadedWaypoints[waypointIndex].minableBlocks.findIndex(
+            (block) => block.x === pos.x && block.y === pos.y && block.z === pos.z
+        );
+        if (mineIndex !== -1) return { waypointIndex, mineIndex, block: oreMiner.loadedWaypoints[waypointIndex].minableBlocks[mineIndex] };
+    }
+    return null;
+};
+
+const beginMineableEdit = () => {
     commitField();
-    const before = currentWaypoint()?.minableBlocks.length || 0;
-    oreMiner.addMineBlock(type, oreMiner.selectedWaypoint);
-    const after = currentWaypoint()?.minableBlocks.length || 0;
-    status = after > before ? 'Added the block under your crosshair.' : 'Look at a block within 10 blocks.';
+    if (nearestMovementWaypoint() === -1) {
+        status = 'Add a Tp or Walk waypoint first.';
+        return;
+    }
+    mineableEditMode = true;
+    mineableEditStatus = 'Left-click a block to add it.';
+    Client.currentGui.close();
+};
+
+const cycleMineable = () => {
+    const pos = lookedAtBlock();
+    if (!pos) {
+        mineableEditStatus = 'Look at a block within 10 blocks.';
+        return;
+    }
+
+    let match = findMineable(pos);
+    const waypointIndex = match?.waypointIndex ?? nearestMovementWaypoint();
+    if (waypointIndex === -1) return;
+
+    oreMiner.recordUndo();
+    if (!match) {
+        const block = { ...pos };
+        oreMiner.loadedWaypoints[waypointIndex].minableBlocks.push(block);
+        match = { waypointIndex, mineIndex: oreMiner.loadedWaypoints[waypointIndex].minableBlocks.length - 1, block };
+        mineableEditStatus = `Added Mine [${match.waypointIndex}][${match.mineIndex}].`;
+    } else if (!match.block.oneTap && !match.block.rOneTap) {
+        match.block.oneTap = true;
+        delete match.block.rOneTap;
+        mineableEditStatus = `Changed [${match.waypointIndex}][${match.mineIndex}] to 1 Tap.`;
+    } else if (match.block.oneTap) {
+        delete match.block.oneTap;
+        match.block.rOneTap = true;
+        mineableEditStatus = `Changed [${match.waypointIndex}][${match.mineIndex}] to R Tap.`;
+    } else {
+        delete match.block.oneTap;
+        delete match.block.rOneTap;
+        mineableEditStatus = `Changed [${match.waypointIndex}][${match.mineIndex}] to Mine.`;
+    }
+
+    oreMiner.selectedWaypoint = match.waypointIndex;
+    expandedWaypoint = match.waypointIndex;
+};
+
+const undoMineable = () => {
+    const match = findMineable(lookedAtBlock());
+    if (!match) {
+        if (!oreMiner.undoStack.length) {
+            mineableEditStatus = 'Nothing to undo.';
+            return;
+        }
+        oreMiner.undoRouteEdit();
+        mineableEditStatus = 'Undid the previous route edit.';
+        return;
+    }
+
+    oreMiner.recordUndo();
+    if (match.block.rOneTap) {
+        delete match.block.rOneTap;
+        match.block.oneTap = true;
+        mineableEditStatus = `Changed [${match.waypointIndex}][${match.mineIndex}] back to 1 Tap.`;
+    } else if (match.block.oneTap) {
+        delete match.block.oneTap;
+        mineableEditStatus = `Changed [${match.waypointIndex}][${match.mineIndex}] back to Mine.`;
+    } else {
+        oreMiner.loadedWaypoints[match.waypointIndex].minableBlocks.splice(match.mineIndex, 1);
+        mineableEditStatus = `Deleted Mine [${match.waypointIndex}][${match.mineIndex}].`;
+    }
+    oreMiner.selectedWaypoint = match.waypointIndex;
+    expandedWaypoint = match.waypointIndex;
+};
+
+const moveWaypoint = (index, direction) => {
+    const target = index + direction;
+    if (!oreMiner?.loadedWaypoints?.[index] || target < 0 || target >= oreMiner.loadedWaypoints.length) return;
+    oreMiner.recordUndo();
+    const [waypoint] = oreMiner.loadedWaypoints.splice(index, 1);
+    oreMiner.loadedWaypoints.splice(target, 0, waypoint);
+    oreMiner.selectedWaypoint = target;
+    expandedWaypoint = target;
+    syncFields();
+};
+
+const moveMineable = (waypointIndex, mineIndex, direction) => {
+    const blocks = oreMiner?.loadedWaypoints?.[waypointIndex]?.minableBlocks;
+    const target = mineIndex + direction;
+    if (!blocks?.[mineIndex] || target < 0 || target >= blocks.length) return;
+    oreMiner.recordUndo();
+    const [block] = blocks.splice(mineIndex, 1);
+    blocks.splice(target, 0, block);
 };
 
 const loadRoute = (name) => {
@@ -153,6 +289,12 @@ const drawInput = (name, value, rect, placeholder = '') => {
         const cursorX = Math.min(rect.x + rect.width - 5, rect.x + 7 + getTextWidth(text, FontSizes.REGULAR));
         drawRect({ x: cursorX, y: rect.y + 5, width: 1, height: rect.height - 10, color: THEME.TEXT });
     }
+    if (activeField === name) setTextInputArea(rect);
+};
+
+const drawReorderButtons = (x, y, moveUp, moveDown) => {
+    if (moveUp) drawButton('▲', { x, y, width: 18, height: 9 }, moveUp);
+    if (moveDown) drawButton('▼', { x, y: y + 11, width: 18, height: 9 }, moveDown);
 };
 
 const waypointHeight = (waypoint, index) => {
@@ -166,8 +308,8 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
     scrollY = clamp(scrollY, 0, Math.max(0, contentHeight - rect.height));
     layout.list = rect;
 
-    NVG.save();
-    NVG.scissor(rect.x, rect.y, rect.width, rect.height);
+    Render2D.save();
+    Render2D.scissor(rect.x, rect.y, rect.width, rect.height);
     let y = rect.y - scrollY;
     waypoints.forEach((waypoint, index) => {
         const height = waypointHeight(waypoint, index);
@@ -186,28 +328,40 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
         drawText(expandable ? (index === expandedWaypoint ? '▼' : '▶') : '•', row.x + 8, row.y + ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
         drawText(`[${index}] ${waypoint.type}`, row.x + 24, row.y + ROW_HEIGHT / 2, FontSizes.REGULAR, THEME.TEXT);
         const coordinates = `${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z}`;
-        drawText(coordinates, row.x + row.width - 8 - getTextWidth(coordinates, FontSizes.SMALL), row.y + ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
+        const reorderX = row.x + row.width - 26;
+        drawText(coordinates, reorderX - 8 - getTextWidth(coordinates, FontSizes.SMALL), row.y + ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
+        if (row.y + row.height >= rect.y && row.y <= rect.y + rect.height) {
+            drawReorderButtons(
+                reorderX,
+                row.y + 5,
+                index > 0 ? () => moveWaypoint(index, -1) : null,
+                index + 1 < waypoints.length ? () => moveWaypoint(index, 1) : null
+            );
+        }
 
         if (index === expandedWaypoint && expandable) {
             let mineY = row.y + ROW_HEIGHT + 4;
             waypoint.minableBlocks.forEach((block, mineIndex) => {
                 const flag = block.oneTap ? '1T' : block.rOneTap ? 'RT' : 'M';
                 drawText(`${flag} ${block.x}, ${block.y}, ${block.z}`, row.x + 24, mineY + MINE_ROW_HEIGHT / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
+                const mineReorderX = row.x + row.width - 48;
                 const removeRect = { x: row.x + row.width - 26, y: mineY + 2, width: 18, height: 16 };
                 if (removeRect.y + removeRect.height >= rect.y && removeRect.y <= rect.y + rect.height) {
+                    drawReorderButtons(
+                        mineReorderX,
+                        mineY,
+                        mineIndex > 0 ? () => moveMineable(index, mineIndex, -1) : null,
+                        mineIndex + 1 < waypoint.minableBlocks.length ? () => moveMineable(index, mineIndex, 1) : null
+                    );
                     drawButton('×', removeRect, () => oreMiner.removeRoutePoint(index, mineIndex));
                 }
                 mineY += MINE_ROW_HEIGHT;
             });
             const buttonY = row.y + height - 22;
-            const buttonWidth = (row.width - 40) / 4;
             if (buttonY + 18 >= rect.y && buttonY <= rect.y + rect.height) {
-                drawButton('+ Mine', { x: row.x + 8, y: buttonY, width: buttonWidth, height: 18 }, () => addMineable('mine'));
-                drawButton('+ 1 Tap', { x: row.x + 16 + buttonWidth, y: buttonY, width: buttonWidth, height: 18 }, () => addMineable('onetap'));
-                drawButton('+ R Tap', { x: row.x + 24 + buttonWidth * 2, y: buttonY, width: buttonWidth, height: 18 }, () => addMineable('ronetap'));
                 drawButton(
                     waypoint.isDeployable ? '- Deployable' : '+ Deployable',
-                    { x: row.x + 32 + buttonWidth * 3, y: buttonY, width: buttonWidth, height: 18 },
+                    { x: row.x + 8, y: buttonY, width: row.width - 16, height: 18 },
                     () => oreMiner.toggleDeployable(index),
                     waypoint.isDeployable
                 );
@@ -215,7 +369,7 @@ const drawWaypointList = (mouseX, mouseY, rect) => {
         }
         y += height + 4;
     });
-    NVG.restore();
+    Render2D.restore();
 
     if (!waypoints.length) drawText('Add a Tp or Walk waypoint to begin.', rect.x + 12, rect.y + 18, FontSizes.REGULAR, THEME.TEXT_MUTED);
 };
@@ -342,11 +496,11 @@ const drawRouteMenu = (mouseX, mouseY, anchor) => {
 };
 
 const drawEditor = (mouseX, mouseY) => {
-    const screenWidth = Renderer.screen.getWidth();
-    const screenHeight = Renderer.screen.getHeight();
+    const screenWidth = Render2D.screen.getWidth();
+    const screenHeight = Render2D.screen.getHeight();
     const panel = {
-        width: Math.min(820, screenWidth - 20),
-        height: Math.min(500, screenHeight - 20),
+        width: Math.min(760, screenWidth - 20),
+        height: Math.min(420, screenHeight - 20),
     };
     panel.x = (screenWidth - panel.width) / 2;
     panel.y = (screenHeight - panel.height) / 2;
@@ -393,7 +547,12 @@ const drawEditor = (mouseX, mouseY) => {
             status = `Waypoint [${invalidWarp}] needs a warp destination.`;
             return;
         }
-        oreMiner.saveRoute(routeName);
+        if (!oreMiner.saveRoute(routeName)) {
+            status = 'Could not save route.';
+            return;
+        }
+        mineableEditMode = false;
+        mineableEditStatus = '';
         routeName = routeNameFromPath(oreMiner.loadedPath);
         status = `Saved ${routeName}.json`;
     });
@@ -413,8 +572,8 @@ const drawEditor = (mouseX, mouseY) => {
 
     const footerX = panel.x + 13;
     const footerGap = 8;
-    const footerWidth = Math.min(390, panel.width - 26);
-    const footerButtonWidth = (footerWidth - footerGap * 2) / 3;
+    const footerWidth = Math.min(500, panel.width - 26);
+    const footerButtonWidth = (footerWidth - footerGap * 3) / 4;
     drawButton('+ Tp at Current', { x: footerX, y: footerY + 6, width: footerButtonWidth, height: 24 }, () => addWaypoint('tp'));
     drawButton('+ Walk at Current', { x: footerX + footerButtonWidth + footerGap, y: footerY + 6, width: footerButtonWidth, height: 24 }, () =>
         addWaypoint('walk')
@@ -422,6 +581,7 @@ const drawEditor = (mouseX, mouseY) => {
     drawButton('+ Warp at Current', { x: footerX + (footerButtonWidth + footerGap) * 2, y: footerY + 6, width: footerButtonWidth, height: 24 }, () =>
         addWaypoint('warp')
     );
+    drawButton('Edit Mineables', { x: footerX + (footerButtonWidth + footerGap) * 3, y: footerY + 6, width: footerButtonWidth, height: 24 }, beginMineableEdit);
     const statusX = footerX + footerWidth + 14;
     if (statusX < panel.x + panel.width - 12) {
         drawText(
@@ -438,6 +598,7 @@ const drawEditor = (mouseX, mouseY) => {
 const activateField = (name) => {
     commitField();
     activeField = name;
+    startTextInput(routeEditorGui, layout.inputs[name]);
 };
 
 routeEditorGui.registerClicked((mouseX, mouseY, button) => {
@@ -471,16 +632,81 @@ routeEditorGui.registerScrolled((mouseX, mouseY, direction) => {
     if (layout.list && isInside(mouseX, mouseY, layout.list)) scrollY = Math.max(0, scrollY - direction * ROW_HEIGHT * 2);
 });
 
+routeEditorGui.registerOpened(() => {
+    if (!renderRegistration) renderRegistration = Render2D.registerV5Render(renderEditor);
+});
+
 routeEditorGui.registerClosed(() => {
+    if (renderRegistration) {
+        Render2D.unregisterV5Render(renderRegistration);
+        renderRegistration = null;
+    }
     commitField();
     routesOpen = false;
+    if (!mineableEditMode) {
+        if (oreMiner) oreMiner.editing = false;
+        oreMiner = null;
+    }
+});
+
+register('clicked', (_mouseX, _mouseY, button, isPressed) => {
+    if (!mineableEditMode || !oreMiner || Client.isInGui() || !isPressed) return;
+    if (button === 0) cycleMineable();
+    else if (button === 1) undoMineable();
+    else return;
+    Client.setKey('leftclick', false);
+    Client.setKey('rightclick', false);
+});
+
+register('packetSent', (packet, event) => {
+    if (!mineableEditMode) return;
+    const action = String(packet.getAction?.() || '');
+    if (action.includes('DESTROY_BLOCK')) cancel(event);
+}).setFilteredClass(ServerboundPlayerActionPacket);
+
+register('packetSent', (_packet, event) => {
+    if (mineableEditMode) cancel(event);
+}).setFilteredClass(ServerboundUseItemOnPacket);
+
+register('packetSent', (_packet, event) => {
+    if (mineableEditMode) cancel(event);
+}).setFilteredClass(ServerboundUseItemPacket);
+
+register('packetSent', (_packet, event) => {
+    if (mineableEditMode) cancel(event);
+}).setFilteredClass(ServerboundSwingPacket);
+
+register('packetSent', (_packet, event) => {
+    if (mineableEditMode) cancel(event);
+}).setFilteredClass(ServerboundInteractPacket);
+
+register('renderOverlay', () => {
+    if (!mineableEditMode || !oreMiner || Client.isInGui()) return;
+    const waypointIndex = nearestMovementWaypoint();
+    const lines = [
+        `Mineable Edit Mode — nearest waypoint [${waypointIndex}]`,
+        'Left click: Mine → 1 Tap → R Tap',
+        'Right click: undo/remove',
+        'Open the Ore Route Editor and click Save to finish',
+        mineableEditStatus,
+    ];
+    const x = Render2D.screen.getWidth() / 2 + 36;
+    const y = Render2D.screen.getHeight() / 2 - 26;
+    lines.forEach((line, index) => {
+        Render2D.drawStringWithShadow(line, x, y + index * 11, index === 0 ? 0xff00b4d8 : Render2D.WHITE);
+    });
+});
+
+register('worldUnload', () => {
+    mineableEditMode = false;
+    mineableEditStatus = '';
     if (oreMiner) oreMiner.editing = false;
     oreMiner = null;
 });
 
 register('guiKey', (char, keyCode, gui, event) => {
     if (!routeEditorGui.isOpen() || !activeField) return;
-    if (keyCode === 256 || keyCode === 257) {
+    if (keyCode === ScriptKey.ESCAPE || keyCode === ScriptKey.ENTER) {
         commitField();
         cancel(event);
         return;
@@ -488,10 +714,10 @@ register('guiKey', (char, keyCode, gui, event) => {
 
     const key = activeField;
     let value = key === 'route' ? routeName : fields[key];
-    if (keyCode === 259) value = value.slice(0, -1);
-    else if (char && String(char).length === 1) {
+    if (keyCode === ScriptKey.BACKSPACE) value = value.slice(0, -1);
+    else if (char) {
         const typed = getTypedCharacter(String(char));
-        if (!['x', 'y', 'z'].includes(key) || /[\d-]/.test(typed)) value += typed;
+        if (typed.codePointAt(0) >= ScriptKey.SPACE && (!['x', 'y', 'z'].includes(key) || /[\d-]/.test(typed))) value += typed;
     } else return;
 
     if (key === 'route') routeName = value;
@@ -499,19 +725,17 @@ register('guiKey', (char, keyCode, gui, event) => {
     cancel(event);
 });
 
-NVG.registerV5Render(() => {
+const renderEditor = () => {
     if (!routeEditorGui.isOpen()) return;
     try {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         drawEditor(Client.getMouseX(), Client.getMouseY());
     } catch (error) {
         console.error('[Ore Route Editor] Render error:', error);
-    } finally {
-        NVG.endFrame();
     }
-});
+};
 
 export const oreRouteEditor = {
+    isOpen: () => routeEditorGui.isOpen(),
     open(module) {
         if (module.routeActive) return module.message('&cStop Ore Miner before opening the route editor.');
         oreMiner = module;
@@ -522,6 +746,7 @@ export const oreRouteEditor = {
         expandedWaypoint = oreMiner.loadedWaypoints.length ? oreMiner.selectedWaypoint : -1;
         scrollY = 0;
         activeField = null;
+        stopTextInput(routeEditorGui);
         routesOpen = false;
         status = '';
         syncFields();

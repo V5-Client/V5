@@ -1,8 +1,8 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { MacroState } from '../../utils/MacroState';
+import { getEnabledMacros, getLastDisableMeta, getModule, getModuleDuration } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { TimeUtils, Timer } from '../../utils/TimeUtils';
-import { Utils } from '../../utils/Utils';
+import { formatDurationMs, Timer } from '../../utils/TimeUtils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { Webhook } from '../../utils/Webhooks';
 
 const STATE = {
@@ -83,7 +83,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     loadState() {
-        const data = Utils.getConfigFile(this.configPath);
+        const data = getConfigFile(this.configPath);
         if (!data) return;
 
         const savedState = Object.values(STATE).includes(data.state) ? data.state : STATE.IDLE;
@@ -95,7 +95,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     saveState() {
-        Utils.writeConfigFile(this.configPath, {
+        writeConfigFile(this.configPath, {
             state: this.state,
             trackedMacros: this.trackedMacros,
             timerEnd: this.timerEnd,
@@ -308,7 +308,7 @@ class MacroScheduler extends ModuleBase {
 
     endSession() {
         this.breakDurationMs = this.randomDuration(this.breakTimeMin, this.breakTimeMax);
-        const breakTime = TimeUtils.formatDurationMs(this.breakDurationMs);
+        const breakTime = formatDurationMs(this.breakDurationMs);
         const cleanBreakTime = breakTime.includes(' ') ? breakTime.replace(/ (?=[^ ]+$)/, ' and ') : breakTime;
 
         this.stopTrackedMacros();
@@ -339,7 +339,7 @@ class MacroScheduler extends ModuleBase {
 
         this.trackedMacros.splice(index, 1);
 
-        Webhook.sendScreenshot(`Disabled ${macroName}`, MacroState.getModuleDuration(macroName));
+        Webhook.takeScreenshot(`Disabled ${macroName}`, getModuleDuration(macroName));
 
         if (this.trackedMacros.length === 0) {
             this.state = STATE.IDLE;
@@ -358,14 +358,14 @@ class MacroScheduler extends ModuleBase {
 
     startTrackedMacros() {
         this.trackedMacros.forEach((name) => {
-            const module = MacroState.getModule(name);
+            const module = getModule(name);
             if (module && module.isMacro && !module.enabled) module.toggle(true, false, 'scheduler');
         });
     }
 
     stopTrackedMacros() {
         this.trackedMacros.forEach((name) => {
-            const module = MacroState.getModule(name);
+            const module = getModule(name);
             if (module && module.isMacro) module.toggle(false, true, 'scheduler');
         });
     }
@@ -374,11 +374,11 @@ class MacroScheduler extends ModuleBase {
         const lines = [];
 
         this.trackedMacros.forEach((name) => {
-            const meta = MacroState.getLastDisableMeta(name);
+            const meta = getLastDisableMeta(name);
             if (!meta || meta.context !== 'scheduler') return;
 
             const macroLines = [];
-            const runtime = MacroState.getModuleDuration(name);
+            const runtime = getModuleDuration(name);
             if (runtime) macroLines.push(`Runtime: ${runtime}`);
 
             const stats = this.getMacroOverlayStats(name);
@@ -397,7 +397,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     sendSchedulerEmbed(title, description, color) {
-        Webhook.sendEmbed(
+        Webhook.publish(
             [
                 {
                     title,
@@ -412,7 +412,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     getMacroOverlayStats(macroName) {
-        const module = MacroState.getModule(macroName);
+        const module = getModule(macroName);
         if (!module) return [];
 
         const overlayName = module.oid || macroName;
@@ -430,7 +430,7 @@ class MacroScheduler extends ModuleBase {
                     if (resolved === undefined || resolved === null || String(resolved).trim() === '') return;
                     lines.push(`${key}: ${resolved}`);
                 } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
+                    console.error(e);
                 }
             });
         });
@@ -439,8 +439,8 @@ class MacroScheduler extends ModuleBase {
     }
 
     getSchedulableMacros() {
-        return MacroState.getEnabledMacros().filter((name) => {
-            const module = MacroState.getModule(name);
+        return getEnabledMacros().filter((name) => {
+            const module = getModule(name);
             return module && module.isMacro && !module.isParentManaged;
         });
     }
@@ -467,7 +467,7 @@ class MacroScheduler extends ModuleBase {
         if (this.state === STATE.IDLE) return 'Waiting';
 
         const remaining = this.state === STATE.PAUSED ? Math.max(0, this.pausedRemainingMs) : Math.max(0, this.timerEnd - Date.now());
-        const timeStr = TimeUtils.formatDurationMs(remaining);
+        const timeStr = formatDurationMs(remaining);
 
         if (this.state === STATE.RETURNING) return `Returning (${timeStr})`;
         if (this.state === STATE.PAUSED) return `Paused (${timeStr})`;

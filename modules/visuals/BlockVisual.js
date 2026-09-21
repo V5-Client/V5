@@ -1,6 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Raytrace } from '../../utils/Raytrace';
+import { getLookingAt } from '../../utils/Raytrace';
 
 class BlockVisual extends ModuleBase {
     constructor() {
@@ -50,7 +50,7 @@ class BlockVisual extends ModuleBase {
             if (lookingAt instanceof Entity) lookingAt = null;
 
             if (!lookingAt || lookingAt?.type?.id === 0) {
-                lookingAt = Raytrace.getLookingAt(this.getDistance());
+                lookingAt = getLookingAt(this.getDistance());
             }
 
             this.currentBlock = lookingAt;
@@ -76,7 +76,7 @@ class BlockVisual extends ModuleBase {
 
             const pos = new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z);
 
-            this.DRAWLINES ? RenderUtils.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : RenderUtils.drawFilledBox(pos, this.RGBA);
+            this.DRAWLINES ? Render3D.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : Render3D.drawFilledBox(pos, this.RGBA);
         });
     }
 

@@ -1,26 +1,30 @@
 import { File, V5ConfigFile, Vec3d } from '../../utils/Constants';
-import { getEtherwarpEyeCoords } from '../../utils/Etherwarp';
-import { MathUtils } from '../../utils/Math';
+import { getEtherwarpEyeCoords, isAtEtherwarpLanding } from '../../utils/Etherwarp';
+import { angleToPlayer, blockCenter, distanceToPlayerPoint } from '../../utils/Math';
+import { getDrills, refuel, getMiningSpeed, getMineTime } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Raytrace, visibilityChecker } from '../../utils/Raytrace';
-import { Router } from '../../utils/Router';
-import { manager } from '../../utils/SkyblockEvents';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Utils } from '../../utils/Utils';
+import { getLookingAt, getPlayerEyePosition, testPointVisibility, getVisiblePoint, isLineClear, testPointNative } from '../../utils/Raytrace';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { getPickaxeAbilityStatus } from '../../utils/TabListUtils';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { FastEtherwarp } from '../../utils/FastEtherwarp';
+import { RoutePathWalker } from '../../utils/pathfinder/OreRoutePathWalker';
 import { MiningBot } from './MiningBot';
-import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { OreRotations } from '../../utils/player/OreRotations';
+import { getTPS } from '../../utils/player/ServerInfo';
 import { oreRouteEditor } from '../../gui/OreRouteEditor';
 
 const MINE_REACH_SQ = 4.49 * 4.49;
+const MINE_AIM_EDGE_INSET = 0.08;
 const ETHERWARP_EDGE_INSET = 0.1;
 const ETHERWARP_FACE_DEPTH = 0.01;
 const ETHERWARP_RAY_CLEARANCE = 0.06;
 const DEPLOYABLE_DETECTION_RADIUS = 4;
 const DEPLOYABLE_DETECTION_RADIUS_SQ = DEPLOYABLE_DETECTION_RADIUS * DEPLOYABLE_DETECTION_RADIUS;
+const WALK_PREAIM_WEIGHT = 0.65;
 const DEPLOYABLE_ENTITY_NAMES = ['power orb', 'glacite lantern', "will-o'-wisp", 'mithril lantern', 'dwarven lantern', 'titanium lantern', "will o' wisp"];
 const ROUTE_DIR_RELATIVE = 'OreRoutes';
 const ORE_ROUTES_DIR = new File(V5ConfigFile.getParentFile(), ROUTE_DIR_RELATIVE);
@@ -67,8 +71,6 @@ const COLORS = {
     teleportWire: new RenderColor(180, 100, 255, 125),
     walkFill: new RenderColor(100, 200, 255, 15),
     walkWire: new RenderColor(100, 200, 255, 190),
-    warpFill: new RenderColor(255, 200, 0, 20),
-    warpWire: new RenderColor(255, 200, 0, 180),
     deployableFill: new RenderColor(180, 0, 180, 20),
     deployableWire: new RenderColor(180, 0, 180, 220),
     selectedFill: new RenderColor(255, 255, 255, 35),
@@ -77,6 +79,12 @@ const COLORS = {
     mineWire: new RenderColor(200, 0, 0, 200),
     selectedMineFill: new RenderColor(255, 160, 0, 35),
     selectedMineWire: new RenderColor(255, 100, 0, 220),
+    warpFill: new RenderColor(144, 224, 239, 20),
+    warpWire: new RenderColor(144, 224, 239, 230),
+    oneTapFill: new RenderColor(72, 202, 228, 30),
+    oneTapWire: new RenderColor(72, 202, 228, 240),
+    rOneTapFill: new RenderColor(202, 240, 248, 35),
+    rOneTapWire: new RenderColor(202, 240, 248, 255),
 };
 
 class OreMiner extends ModuleBase {
@@ -86,7 +94,7 @@ class OreMiner extends ModuleBase {
             subcategory: 'Mining',
             description: 'Builds and mines Tp/Walk ore routes.',
             tooltip: 'Build or load a route with /v5 mining ore, then toggle the macro.',
-            theme: '#815bf5',
+            theme: '#0096c7',
             isMacro: true,
         });
 
@@ -104,25 +112,35 @@ class OreMiner extends ModuleBase {
         this.etherwarpRayCursor = 0;
         this.mineRetries = 0;
         this.currentBlockName = '';
+        this.currentMineAim = null;
         this.strafeKey = null;
         this.mineStrafeTarget = null;
         this.etherwarpStrafeAligned = false;
         this.lastEtherwarpStrafeKey = 'd';
-        this.strafedForBlock = false;
         this.currentRenderTarget = null;
         this.nextRenderTarget = null;
         this.typeMineEnabled = false;
         this.typeMineName = 'Mithril';
-        this.typeMineMinVisibleDegrees = 0;
+        this.typeMineMinVisibleRays = 0;
         this.typeMineFov = 120;
         this.typeMinePriority = 'Nearest';
         this.typeMineBlock = null;
         this.typeMineNextBlock = null;
         this.typeMineIgnored = {};
+        this.typeMineCosts = {
+            Mithril: { ...MiningBot.mithrilCosts },
+            Gemstone: { ...MiningBot.gemstoneCosts },
+            Ore: { ...MiningBot.oreCosts },
+            Tunnel: { ...MiningBot.tunnelCosts },
+        };
 
         this.oreMineSpeed = 0.48;
         this.oreTeleportSpeed = 0.48;
         this.mineTimeoutTicks = 8;
+        this.tickGliding = true;
+        this.glideLagCompensation = 1;
+        this.glideMineTicks = 0;
+        this.glideTotalTicks = 0;
         this.teleportStrafing = false;
         this.miningStrafing = false;
         this.sneakWhileMining = true;
@@ -143,6 +161,7 @@ class OreMiner extends ModuleBase {
         this.selectedWaypoint = -1;
         this.editing = false;
 
+        this.addButton('Open Ore Route Editor', () => oreRouteEditor.open(this), 'Open the visual editor for ore routes.');
         this.addSlider('Drill Slot', 1, 8, 1, (value) => (this.drillSlot = Math.round(value) - 1), 'Mining tool hotbar slot.');
         this.addSlider(
             'Mining Deployable Slot',
@@ -174,12 +193,12 @@ class OreMiner extends ModuleBase {
             'Mithril'
         );
         this.addSlider(
-            'Minimum Visible Degrees',
+            'Minimum Visible Rays',
             0,
-            20,
+            9,
             0,
-            (value) => (this.typeMineMinVisibleDegrees = value),
-            'Minimum angular width of an exposed block surface required by Type Mine. Zero accepts any visible amount.'
+            (value) => (this.typeMineMinVisibleRays = Math.round(value)),
+            'Minimum number of nine face samples that must raycast to the block. Zero accepts any visible amount.'
         );
         this.addSlider(
             'Type Mine FOV',
@@ -207,6 +226,26 @@ class OreMiner extends ModuleBase {
             (value) => (this.oreTeleportSpeed = value / 100),
             'Rotation speed for etherwarping targets.'
         );
+        let glideLagCompensationSetting;
+        this.addToggle(
+            'Tick Gliding',
+            (value) => {
+                this.tickGliding = value;
+                if (glideLagCompensationSetting) glideLagCompensationSetting.visible = value;
+                if (!value) this.resetTickGlide();
+            },
+            'Predicts when blocks are broken to begin mining the next block early.',
+            true
+        );
+        glideLagCompensationSetting = this.addSlider(
+            'Tick Glide Lag Compensation',
+            0,
+            5,
+            1,
+            (value) => (this.glideLagCompensation = value),
+            'Adds extra ticks to the predicted break time on top of TPS compensation.'
+        );
+        glideLagCompensationSetting.visible = this.tickGliding;
         this.addSeparator('Recovery');
         this.addSlider(
             'Mining Retry Delay',
@@ -224,7 +263,7 @@ class OreMiner extends ModuleBase {
                 this.sneakWhileMining = value;
                 if (!value && this.state.startsWith('MINE') && this.state !== 'MINE_STRAFE') Client.setKey('shift', false);
             },
-            'Allow Ore Macro to sneak while mining.',
+            'Sneak while mining.',
             true
         );
         this.addToggle('Route Overlay', (value) => (this.showOverlay = value), 'Draw waypoints and current/next mining targets.', true);
@@ -243,28 +282,38 @@ class OreMiner extends ModuleBase {
         this.addSlider('Ability Drill Slot', 1, 8, 2, (value) => (this.abilityDrillSlot = Math.round(value) - 1), 'Secondary drill hotbar slot.');
 
         this.bindToggleKey('Toggle Ore Miner');
+        const editorKeyName = 'Open Ore Route Editor';
+        const editorKeyCode = (getConfigFile('keybinds.json') || {})[editorKeyName] || Keyboard.KEY_NONE;
+        this.editorKey = new KeyBind(editorKeyName, editorKeyCode, 'v5_mining');
+        this.editorKey.registerKeyPress(() => oreRouteEditor.open(this));
+        register('gameUnload', () => this._saveKey(editorKeyName, this.editorKey.getKeyCode()));
         this.on('tick', () => this.tick());
         register('postRenderWorld', () => this.render());
 
-        manager.subscribe('abilityready', () => {
+        registerSkyblockEvent('abilityready', () => {
             if (!this.routeActive) return;
             this.abilityFromChat = true;
             this.abilityAvailabilityConsumed = false;
             this.scheduleAbilityUseDelay();
         });
 
-        manager.subscribe('abilityused', () => {
+        registerSkyblockEvent('abilityused', () => {
             if (!this.routeActive) return;
             this.abilityFromChat = false;
             this.abilityAvailabilityConsumed = true;
             this.abilityUseReadyAt = 0;
         });
 
-        manager.subscribe('abilitygone', () => {
+        registerSkyblockEvent('abilitygone', () => {
             if (!this.routeActive) return;
             this.abilityFromChat = false;
             this.abilityAvailabilityConsumed = true;
             this.abilityUseReadyAt = 0;
+        });
+
+        registerSkyblockEvent('emptydrill', () => {
+            if (!this.routeActive || this.state === 'REFUEL') return;
+            this.onDrillEmpty();
         });
 
         v5Command('mining ore', () => this.printHelp());
@@ -286,6 +335,31 @@ class OreMiner extends ModuleBase {
         this.stopRoute();
     }
 
+    onDrillEmpty() {
+        this.message('&eDrill empty! Refueling...');
+        this.releaseControls();
+        OreRotations.stop();
+        this.enterState('REFUEL');
+
+        refuel((success) => {
+            if (!this.enabled || !this.routeActive || this.state !== 'REFUEL') return;
+            if (!success) {
+                this.message('&cRefueling failed! Disabling Ore Macro.');
+                this.toggle(false);
+                return;
+            }
+            if (!getDrills()?.drill) {
+                this.message('&cNo drill found after refueling! Disabling Ore Macro.');
+                this.toggle(false);
+                return;
+            }
+
+            setItemSlot(this.drillSlot);
+            this.message('&aRefueling successful!');
+            this.startRoute();
+        });
+    }
+
     printHelp() {
         this.message('&b/v5 mining ore &7- Ore Miner');
         this.message('  &fload <name> &7- load a route');
@@ -293,7 +367,6 @@ class OreMiner extends ModuleBase {
         this.message('  &flist | start | stop | status');
         this.message('  &feditor &7- open the visual route editor');
         this.message('  &fedit add <tp|walk> [index] &7- append, or insert and shift later waypoints');
-        this.message('  &fedit add warp <destination> [index] &7- append, or insert and shift later waypoints');
         this.message('  &fedit add <mine|onetap|ronetap> [waypoint] &7- add the block under your crosshair');
         this.message('  &fedit deployable <waypoint> &7- toggle deployable placement');
         this.message('  &fedit remove <waypoint> &7- remove a waypoint');
@@ -310,9 +383,8 @@ class OreMiner extends ModuleBase {
         if (action === 'add') {
             const type = String(args.shift() || '').toLowerCase();
             if (type === 'tp' || type === 'walk') return this.addWaypoint(type, args[0]);
-            if (type === 'warp') return this.addWarpWaypoint(args);
             if (['mine', 'onetap', 'ronetap'].includes(type)) return this.addMineBlock(type, args[0]);
-            return this.message('&cUsage: /v5 mining ore edit add <tp|walk|warp|mine|onetap|ronetap> [waypoint]');
+            return this.message('&cUsage: /v5 mining ore edit add <tp|walk|mine|onetap|ronetap> [waypoint]');
         } else if (action === 'deployable') {
             return this.toggleDeployable(args[0]);
         } else if (action === 'removemine') {
@@ -356,29 +428,6 @@ class OreMiner extends ModuleBase {
         if (inserted) this.message(`&7Existing waypoint indexes ${index} and later were shifted forward.`);
     }
 
-    addWarpWaypoint(args, requireDestination = true) {
-        const route = this.loadedWaypoints || (this.loadedWaypoints = []);
-        const warpCommand = String(args[0] || '').trim();
-        const index = args[1] === undefined ? route.length : Number.parseInt(args[1], 10);
-        if ((requireDestination && !warpCommand) || args.length > 2) return this.message('&cUsage: /v5 mining ore edit add warp <destination> [index]');
-        if (!Number.isInteger(index) || index < 0 || index > route.length) {
-            return this.message(`&cInvalid waypoint index. Valid range: 0-${route.length}`);
-        }
-
-        this.recordUndo();
-        route.splice(index, 0, {
-            pos: { x: Math.floor(Player.getX()), y: Math.floor(Player.getY()) - 1, z: Math.floor(Player.getZ()) },
-            type: 'Warp',
-            warpCommand,
-            minableBlocks: [],
-            isDeployable: false,
-        });
-        this.selectedWaypoint = index;
-        const inserted = index < route.length - 1;
-        this.message(`&a${inserted ? 'Inserted' : 'Added'} Warp waypoint [${index}] with command: &f/warp ${warpCommand}`);
-        if (inserted) this.message(`&7Existing waypoint indexes ${index} and later were shifted forward.`);
-    }
-
     addMineBlock(type, indexArg) {
         const route = this.loadedWaypoints;
         const defaultIndex = this.selectedWaypoint ?? (route?.length ? route.length - 1 : -1);
@@ -388,7 +437,7 @@ class OreMiner extends ModuleBase {
             return this.message('&cAdd a waypoint first, or provide a valid waypoint index.');
         }
 
-        const hit = Raytrace.getLookingAt(10);
+        const hit = getLookingAt(10);
         const pos = hit?.getPos?.();
         if (!pos) return this.message('&cLook at a block within 10 blocks.');
 
@@ -446,19 +495,32 @@ class OreMiner extends ModuleBase {
     undoRouteEdit() {
         if (!this.undoStack.length) return this.message('&cNothing to undo.');
         this.loadedWaypoints = JSON.parse(this.undoStack.pop());
-        this.selectedWaypoint = Math.min(this.selectedWaypoint, this.loadedWaypoints.length - 1);
+        this.selectedWaypoint = Math.min(Math.max(0, this.selectedWaypoint), this.loadedWaypoints.length - 1);
         this.message('&eUndid the last route edit.');
     }
 
     saveRoute(name) {
         const cleanName = sanitizeRouteName(name);
-        if (!cleanName || !this.loadedWaypoints || !this.loadedWaypoints.length) return this.message('&cUsage: /v5 mining ore save <name>');
+        if (!cleanName || !this.loadedWaypoints || !this.loadedWaypoints.length) {
+            this.message('&cUsage: /v5 mining ore save <name>');
+            return false;
+        }
         const invalidWarp = this.loadedWaypoints.findIndex((waypoint) => waypoint.type === 'Warp' && !String(waypoint.warpCommand || '').trim());
-        if (invalidWarp !== -1) return this.message(`&cWarp waypoint [${invalidWarp}] needs a destination before saving.`);
-        Utils.writeConfigFile(`${ROUTE_DIR_RELATIVE}/${cleanName}.json`, this.loadedWaypoints);
+        if (invalidWarp !== -1) {
+            this.message(`&cWarp waypoint [${invalidWarp}] needs a destination before saving.`);
+            return false;
+        }
+        if (!writeConfigFile(`${ROUTE_DIR_RELATIVE}/${cleanName}.json`, this.loadedWaypoints)) return false;
+        const selectedWaypoint = this.selectedWaypoint;
         this.loadedPath = String(new File(ORE_ROUTES_DIR, `${cleanName}.json`).getAbsolutePath());
         this.undoStack = [];
+        if (!this.routeActive && !this.loadRoute(cleanName)) {
+            this.message(`&cSaved ${cleanName}, but failed to reload it.`);
+            return false;
+        }
+        this.selectedWaypoint = Math.min(Math.max(0, selectedWaypoint), this.loadedWaypoints.length - 1);
         this.message(`&aSaved ${this.loadedWaypoints.length} waypoints as &f${cleanName}&a.`);
+        return true;
     }
 
     printRoute() {
@@ -466,9 +528,8 @@ class OreMiner extends ModuleBase {
         this.message(`&bOre route &7(${this.loadedWaypoints.length} waypoints):`);
         this.loadedWaypoints.forEach((waypoint, index) => {
             const deployable = waypoint.isDeployable ? ' &d[DEPLOYABLE]' : '';
-            const warpInfo = waypoint.type === 'Warp' ? ` &e/warp ${waypoint.warpCommand}` : '';
             this.message(
-                `  &8[${index}] &f${waypoint.type}${deployable}${warpInfo} &7@ &e${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z} &7- &f${waypoint.minableBlocks.length} blocks`
+                `  &8[${index}] &f${waypoint.type}${deployable} &7@ &e${waypoint.pos.x}, ${waypoint.pos.y}, ${waypoint.pos.z} &7- &f${waypoint.minableBlocks.length} blocks`
             );
             waypoint.minableBlocks.forEach((block, mineIndex) => {
                 const oneTap = block.oneTap ? ' &6[ONE-TAP]' : block.rOneTap ? ' &b[R-ONE-TAP]' : '';
@@ -484,14 +545,17 @@ class OreMiner extends ModuleBase {
         return file.exists() && file.isFile() ? { path: String(file.getAbsolutePath()), name } : null;
     }
 
+    getRouteNames() {
+        return Array.from(ORE_ROUTES_DIR.listFiles() || [])
+            .filter((file) => file.isFile() && file.getName().endsWith('.json'))
+            .map((file) => file.getName().slice(0, -5))
+            .sort();
+    }
+
     listRoutes() {
         const files = this.getRouteNames();
         this.message(`&bOre Miner Routes &7(${files.length})`);
         files.forEach((name) => this.message(`  &f${name} &7- /v5 mining ore load ${name}`));
-    }
-
-    getRouteNames() {
-        return Router.getFilesInDir(ROUTE_DIR_RELATIVE);
     }
 
     loadRoute(path, startAfterLoad = false) {
@@ -503,7 +567,7 @@ class OreMiner extends ModuleBase {
             return false;
         }
 
-        const data = Utils.getConfigFile(`${ROUTE_DIR_RELATIVE}/${resolved.name}.json`);
+        const data = getConfigFile(`${ROUTE_DIR_RELATIVE}/${resolved.name}.json`);
         if (!data) {
             this.message(`&cCould not read route: &f${resolved.path}`);
             return false;
@@ -535,7 +599,7 @@ class OreMiner extends ModuleBase {
     normalizeWaypoint(waypoint) {
         if (!waypoint || !waypoint.pos) return null;
         const type = String(waypoint.type || '').toLowerCase();
-        if (type !== 'tp' && type !== 'walk' && type !== 'warp') return null;
+        if (type !== 'tp' && type !== 'walk') return null;
         const pos = this.normalizePosition(waypoint.pos);
         if (!pos) return null;
 
@@ -548,6 +612,7 @@ class OreMiner extends ModuleBase {
                           ...normalized,
                           oneTap: !!block.oneTap,
                           rOneTap: !!block.rOneTap,
+                          isDeployable: !!block.isDeployable,
                       };
                   })
                   .filter(Boolean)
@@ -555,14 +620,14 @@ class OreMiner extends ModuleBase {
 
         return {
             pos,
-            type: type === 'tp' ? 'Tp' : type === 'walk' ? 'Walk' : 'Warp',
-            warpCommand: type === 'warp' ? String(waypoint.warpCommand || '') : undefined,
+            type: type === 'tp' ? 'Tp' : 'Walk',
             minableBlocks,
             isDeployable: !!waypoint.isDeployable,
         };
     }
 
     normalizePosition(position) {
+        if (!position) return null;
         const x = Number(position.x);
         const y = Number(position.y);
         const z = Number(position.z);
@@ -596,11 +661,12 @@ class OreMiner extends ModuleBase {
         this.abilityUseReadyAt = 0;
         this.currentRenderTarget = null;
         this.nextRenderTarget = null;
+        this.currentMineAim = null;
         this.typeMineBlock = null;
         this.typeMineNextBlock = null;
         this.typeMineIgnored = {};
         this.waypointIndex = this.findNearestWaypoint();
-        this.enterState('WAYPOINT');
+        this.enterState(this.isAtWaypoint(this.loadedWaypoints[this.waypointIndex]) ? 'MINE_INIT' : 'WAYPOINT');
         this.message(`&aRoute started at waypoint &f${this.waypointIndex + 1}/${this.loadedWaypoints.length}&a.`);
         return true;
     }
@@ -612,6 +678,7 @@ class OreMiner extends ModuleBase {
         OreRotations.stop();
         this.currentRenderTarget = null;
         this.nextRenderTarget = null;
+        this.currentMineAim = null;
         this.typeMineBlock = null;
         this.typeMineNextBlock = null;
         this.typeMineIgnored = {};
@@ -638,10 +705,14 @@ class OreMiner extends ModuleBase {
         const waypoint = this.loadedWaypoints[this.waypointIndex];
 
         switch (this.state) {
+            case 'REFUEL':
+                return;
+
             case 'WAYPOINT':
                 if (waypoint.type === 'Warp') {
                     this.enterState('WARP');
                 } else if (waypoint.type === 'Walk') {
+                    Client.setKey('shift', false);
                     this.updateWalkWaypointLookAhead();
                     this.enterState('WALK');
                 } else if (this.isAtWaypoint(waypoint)) {
@@ -652,32 +723,12 @@ class OreMiner extends ModuleBase {
                         this.message('&cNo Aspect of the Void/End found in your hotbar.');
                         return this.toggle(false);
                     }
-                    Guis.setItemSlot(this.aotvSlot);
+                    setItemSlot(this.aotvSlot);
                     this.ensureShiftHeld();
                     this.teleportRetries = 0;
                     this.teleportAimCandidates = [];
                     this.teleportAimIndex = 0;
                     this.enterState('TP_ROTATE');
-                }
-                return;
-
-            case 'WARP':
-                if (this.waitTicks === 0) {
-                    this.warpStartPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-                    ChatLib.command(`warp ${waypoint.warpCommand}`);
-                }
-                if (++this.waitTicks >= 40) {
-                    const movedDistance = Math.hypot(
-                        Player.getX() - this.warpStartPos.x,
-                        Player.getY() - this.warpStartPos.y,
-                        Player.getZ() - this.warpStartPos.z
-                    );
-                    if (movedDistance < 5) {
-                        this.message(`&cWarp failed: ${waypoint.warpCommand}`);
-                        this.toggle(false);
-                        return;
-                    }
-                    this.enterState('ADVANCE');
                 }
                 return;
 
@@ -696,7 +747,7 @@ class OreMiner extends ModuleBase {
 
             case 'TP_CLICK':
                 if (Player.getHeldItemIndex() !== this.aotvSlot) {
-                    Guis.setItemSlot(this.aotvSlot);
+                    setItemSlot(this.aotvSlot);
                     this.waitTicks = 0;
                     return;
                 }
@@ -725,7 +776,7 @@ class OreMiner extends ModuleBase {
 
             case 'TP_RETRY_DELAY':
                 if (++this.waitTicks >= this.retryDelay) {
-                    Guis.setItemSlot(this.aotvSlot);
+                    setItemSlot(this.aotvSlot);
                     this.teleportAimCandidates = [];
                     this.teleportAimIndex = 0;
                     this.enterState('TP_ROTATE');
@@ -744,17 +795,17 @@ class OreMiner extends ModuleBase {
             case 'MINE_INIT':
                 this.mineIndex = 0;
                 this.mineRetries = 0;
+                this.resetTickGlide();
                 this.currentRenderTarget = null;
                 this.nextRenderTarget = null;
                 this.typeMineBlock = null;
                 this.typeMineNextBlock = null;
                 this.typeMineIgnored = {};
                 Client.setKey('leftclick', false);
-                if (!this.typeMineEnabled && waypoint.isDeployable && this.deployableWaypointsEnabled && !this.hasNearbyDeployable(waypoint.pos))
+                if (waypoint.isDeployable && this.deployableWaypointsEnabled && !this.hasNearbyDeployable(waypoint.pos)) {
                     this.enterState('DEPLOYABLE');
-                else {
-                    Guis.setItemSlot(this.drillSlot);
-                    Client.setKey('leftclick', true);
+                } else {
+                    setItemSlot(this.drillSlot);
                     this.enterState('MINE_NEXT');
                 }
                 return;
@@ -765,13 +816,37 @@ class OreMiner extends ModuleBase {
             case 'MINE_STRAFE':
                 return this.tickMineStrafe(waypoint);
 
-            case 'MINE_WAIT_ROTATION':
-                if (!OreRotations.isRotating || ++this.waitTicks >= 60) this.beginMiningAction(waypoint);
+            case 'MINE_WAIT_ROTATION': {
+                const block = this.getCurrentMineBlock(waypoint);
+                if (!block || this.shouldSkipBlock(block)) {
+                    this.enterState('MINE_NEXT');
+                    return;
+                }
+                if (this.trackCurrentMineBlock(waypoint, this.waitTicks % 3 === 0)) {
+                    this.beginMiningAction(waypoint);
+                } else if (++this.waitTicks >= 60) {
+                    if (++this.mineRetries > 8) {
+                        this.message(`&eSkipping stubborn block at ${block.x}, ${block.y}, ${block.z}.`);
+                        this.finishMineBlock(true);
+                        this.enterState('MINE_NEXT');
+                        return;
+                    }
+                    this.currentMineAim = null;
+                    const aim = this.getMineAim(block, true);
+                    if (aim) {
+                        this.currentMineAim = aim;
+                        OreRotations.trackVector(aim, this.oreMineSpeed);
+                        this.waitTicks = 0;
+                    } else if (!this.handleUnreachableBlock(block)) {
+                        this.finishMineBlock(true);
+                        this.enterState('MINE_NEXT');
+                    }
+                }
                 return;
+            }
 
             case 'MINE_ONETAP':
                 if (++this.waitTicks >= 2) {
-                    Client.setKey('leftclick', true);
                     this.finishMineBlock();
                     this.enterState('MINE_NEXT');
                 }
@@ -780,12 +855,18 @@ class OreMiner extends ModuleBase {
             case 'MINE_HOLD':
                 return this.tickMineHold(waypoint);
 
+            case 'MINE_RELEASE':
+                Client.setKey('leftclick', false);
+                if (++this.waitTicks >= 1) this.enterState('ADVANCE');
+                return;
+
             case 'ADVANCE':
                 this.waypointIndex = (this.waypointIndex + 1) % this.loadedWaypoints.length;
                 this.mineIndex = 0;
                 this.typeMineBlock = null;
                 this.typeMineNextBlock = null;
                 this.typeMineIgnored = {};
+                this.currentMineAim = null;
                 Client.setKey('leftclick', false);
                 Client.stopMovement();
                 this.enterState('WAYPOINT');
@@ -888,9 +969,9 @@ class OreMiner extends ModuleBase {
             const eye = { x: eyes.x(), y: eyes.y(), z: eyes.z() };
             const aimPoint = this.teleportAimCandidates[this.teleportAimIndex];
             if (aimPoint && !this.hasEtherwarpRayClearance(x, y, z, [aimPoint.x, aimPoint.y, aimPoint.z], eye)) return false;
-            const center = MathUtils.blockCenter(x, y, z);
+            const center = blockCenter(x, y, z);
             const distance = Math.min(61, Math.hypot(center.x - eyes.x(), center.y - eyes.y(), center.z - eyes.z()) + 0.25);
-            const pos = Raytrace.getLookingAt(distance)?.getPos?.();
+            const pos = getLookingAt(distance)?.getPos?.();
             return !!pos && pos.getX() === x && pos.getY() === y && pos.getZ() === z;
         } catch (error) {
             return false;
@@ -899,7 +980,7 @@ class OreMiner extends ModuleBase {
 
     getStrafeAimPoint(waypoint) {
         const { x, y, z } = waypoint.pos;
-        const eye = visibilityChecker.getPlayerEyePosition();
+        const eye = getPlayerEyePosition();
         if (!eye) return { x: x + 0.5, y: y + 0.5, z: z + ETHERWARP_FACE_DEPTH };
 
         const dx = eye.x - (x + 0.5);
@@ -920,13 +1001,13 @@ class OreMiner extends ModuleBase {
 
     tickWalk(waypoint) {
         const { x, y, z } = waypoint.pos;
-        const dx = Player.getX() - (x + 0.5);
-        const dy = Player.getY() - y;
-        const dz = Player.getZ() - (z + 0.5);
-        const atWaypoint = dx * dx + dz * dz <= 0.5 && Math.abs(dy) <= 2;
+        const walkState = RoutePathWalker.tick({ x, y, z }, this.sneakWhileMining);
 
-        if (atWaypoint) {
-            const hasAction = this.typeMineEnabled || waypoint.minableBlocks.length > 0 || (waypoint.isDeployable && this.deployableWaypointsEnabled);
+        if (walkState === 'COMPLETE') {
+            const hasAction =
+                this.typeMineEnabled ||
+                waypoint.minableBlocks.some((block) => !block.isDeployable) ||
+                (waypoint.isDeployable && this.deployableWaypointsEnabled);
             if (!hasAction) {
                 const nextIndex = (this.waypointIndex + 1) % this.loadedWaypoints.length;
                 const nextWaypoint = this.loadedWaypoints[nextIndex];
@@ -939,26 +1020,25 @@ class OreMiner extends ModuleBase {
                     return;
                 }
 
-                Keybind.stopMovement();
-                Keybind.setKey('shift', false);
+                Client.stopMovement();
+                Client.setKey('shift', false);
                 OreRotations.stop();
                 this.enterState('WAYPOINT');
                 return;
             }
 
-            Keybind.stopMovement();
-            Keybind.setKey('shift', false);
-            OreRotations.stop();
+            Client.stopMovement();
+            Client.setKey('shift', this.sneakWhileMining);
             this.enterState('MINE_INIT');
             return;
         }
 
-        const previousWaypoint = this.loadedWaypoints[(this.waypointIndex - 1 + this.loadedWaypoints.length) % this.loadedWaypoints.length];
-        const intentionalDrop = previousWaypoint?.pos?.y > y;
-        const nearEdge = !intentionalDrop && this.hasEdgeAhead(x, y, z);
-        Keybind.setKeysForStraightLineCoords(x + 0.5, y, z + 0.5, !nearEdge);
-        Keybind.setKey('shift', nearEdge);
-        Keybind.setKey('sprint', !nearEdge && dx * dx + dz * dz > 2);
+        if (walkState === 'FAILED') {
+            this.message(`&cCould not find a walking path to ${x}, ${y}, ${z}.`);
+            this.toggle(false);
+            return;
+        }
+
         this.waitTicks++;
         this.updateWalkWaypointLookAhead();
         if (this.waitTicks >= 300) {
@@ -967,8 +1047,7 @@ class OreMiner extends ModuleBase {
         }
     }
 
-    updateWalkWaypointLookAhead() {
-        const target = this.findWalkPreAimTarget();
+    updateWalkWaypointLookAhead(target = this.findWalkPreAimTarget()) {
         if (!target) {
             Client.setKey('leftclick', false);
             OreRotations.stop();
@@ -977,43 +1056,79 @@ class OreMiner extends ModuleBase {
 
         if (target.walkGuide) {
             Client.setKey('leftclick', false);
-            if (MathUtils.angleToPlayer(target.vector).distance <= 15) {
+            const distance = distanceToPlayerPoint(target.vector);
+            const looseTolerance = Math.min(10, (Math.atan2(0.5, Math.max(1, distance)) * 180) / Math.PI);
+            if (angleToPlayer(target.vector).distance <= looseTolerance) {
                 OreRotations.stop();
                 return true;
             }
-            if (this.waitTicks === 0) {
-                OreRotations.stop();
-                return OreRotations.lookAtVector(target.vector, this.oreMineSpeed);
-            }
-            return true;
+            return OreRotations.trackVector(target.vector, this.oreMineSpeed);
         }
 
-        const distance = MathUtils.distanceToPlayerPoint(target.vector);
-        if (target.block && distance <= 5) {
-            const aim = this.getMineAim(target.block, this.waitTicks % 3 === 0);
-            if (aim) {
-                const canHoldMine = !target.block.oneTap && !target.block.rOneTap;
-                if (this.sneakWhileMining && target.sneakMine && canHoldMine) {
-                    this.ensureShiftHeld();
-                    Keybind.setKey('shift', true);
-                    if (!Player.isSneaking()) {
-                        Client.setKey('leftclick', false);
-                        return OreRotations.trackVector(aim, this.oreMineSpeed);
-                    }
+        const distance = distanceToPlayerPoint(target.vector);
+        if (target.block) {
+            const aim = this.getWalkPreAim(target.block, target.vector);
+            this.currentMineAim = aim;
+            const canHoldMine = distance <= 5 && !target.block.oneTap && !target.block.rOneTap;
+            if (target.sneakMine && canHoldMine) {
+                this.ensureShiftHeld();
+                Client.setKey('shift', true);
+                if (!Player.isSneaking()) {
+                    Client.setKey('leftclick', false);
+                    return OreRotations.trackVector(aim, this.oreMineSpeed);
                 }
-                if (canHoldMine && Player.getHeldItemIndex() !== this.drillSlot) Guis.setItemSlot(this.drillSlot);
-                Client.setKey('leftclick', canHoldMine);
-                return OreRotations.trackVector(aim, this.oreMineSpeed);
             }
+            if (canHoldMine && Player.getHeldItemIndex() !== this.drillSlot) setItemSlot(this.drillSlot);
+            Client.setKey('leftclick', canHoldMine && this.isCrosshairOnBlock(target.block));
+            return OreRotations.trackVector(aim, this.oreMineSpeed);
         }
 
         Client.setKey('leftclick', false);
-        const looseTolerance = (Math.atan2(1.5, Math.max(1, distance)) * 180) / Math.PI;
-        if (MathUtils.angleToPlayer(target.vector).distance <= looseTolerance) {
+        const looseTolerance = Math.min(10, (Math.atan2(0.5, Math.max(1, distance)) * 180) / Math.PI);
+        if (angleToPlayer(target.vector).distance <= looseTolerance) {
             OreRotations.stop();
             return true;
         }
         return OreRotations.trackVector(target.vector, target.teleport ? this.oreTeleportSpeed : this.oreMineSpeed);
+    }
+
+    getWalkPreAim(block, fallback) {
+        const eye = Player.getPlayer()?.getEyePosition?.();
+        if (!eye) return fallback;
+
+        const center = blockCenter(block.x, block.y, block.z);
+        const dx = center.x - eye.x();
+        const dy = center.y - eye.y();
+        const dz = center.z - eye.z();
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+        const visibleAim =
+            distanceSq <= 144 ? MiningBot.findVisibleAimPoint(block.x, block.y, block.z, eye, null, Math.max(MINE_REACH_SQ, distanceSq + 3), false) : null;
+        let aim = visibleAim || fallback;
+        const horizontalDistance = Math.hypot(aim.x - Player.getX(), aim.z - Player.getZ());
+        if (horizontalDistance < 0.2) {
+            const yaw = (Player.getYaw() * Math.PI) / 180;
+            aim = {
+                x: Player.getX() - Math.sin(yaw) * 0.2,
+                y: aim.y,
+                z: Player.getZ() + Math.cos(yaw) * 0.2,
+            };
+        }
+
+        const walkAim = RoutePathWalker.getLookTarget();
+        if (!walkAim) return aim;
+        const mineDirection = { x: aim.x - eye.x(), y: aim.y - eye.y(), z: aim.z - eye.z() };
+        const walkDirection = { x: walkAim.x - eye.x(), y: walkAim.y - eye.y(), z: walkAim.z - eye.z() };
+        const mineLength = Math.hypot(mineDirection.x, mineDirection.y, mineDirection.z);
+        const walkLength = Math.hypot(walkDirection.x, walkDirection.y, walkDirection.z);
+        if (mineLength < 0.001 || walkLength < 0.001) return aim;
+        const goalDistance = RoutePathWalker.getGoalDistance();
+        const preAimWeight = WALK_PREAIM_WEIGHT + (1 - WALK_PREAIM_WEIGHT) * (1 - Math.min(1, goalDistance / 2));
+
+        return {
+            x: eye.x() + (mineDirection.x / mineLength) * preAimWeight + (walkDirection.x / walkLength) * (1 - preAimWeight),
+            y: eye.y() + (mineDirection.y / mineLength) * preAimWeight + (walkDirection.y / walkLength) * (1 - preAimWeight),
+            z: eye.z() + (mineDirection.z / mineLength) * preAimWeight + (walkDirection.z / walkLength) * (1 - preAimWeight),
+        };
     }
 
     findWalkPreAimTarget() {
@@ -1026,14 +1141,14 @@ class OreMiner extends ModuleBase {
 
             if (waypoint.type === 'Tp') {
                 return {
-                    vector: MathUtils.blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
+                    vector: blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
                     teleport: true,
                 };
             }
 
             if (this.typeMineEnabled) {
                 return {
-                    vector: MathUtils.blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
+                    vector: blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
                     walkGuide: true,
                 };
             }
@@ -1042,14 +1157,14 @@ class OreMiner extends ModuleBase {
             const deepDrop = Player.getY() - waypoint.pos.y >= 5;
             if (offset === 0 && deepDrop && block?.y < waypoint.pos.y) {
                 return {
-                    vector: MathUtils.blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
+                    vector: blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
                     walkGuide: true,
                 };
             }
             if (block) {
                 return {
                     block,
-                    vector: MathUtils.blockCenter(block.x, block.y, block.z),
+                    vector: blockCenter(block.x, block.y, block.z),
                     sneakMine: block.y < waypoint.pos.y,
                 };
             }
@@ -1059,11 +1174,11 @@ class OreMiner extends ModuleBase {
     }
 
     tickDeployable() {
-        if (this.waitTicks === 0) Guis.setItemSlot(this.deployableSlot);
+        if (this.waitTicks === 0) setItemSlot(this.deployableSlot);
         if (this.waitTicks === 2) Client.rightClick();
         if (++this.waitTicks >= 4) {
-            Guis.setItemSlot(this.drillSlot);
-            Client.setKey('leftclick', true);
+            setItemSlot(this.drillSlot);
+            Client.setKey('leftclick', false);
             this.enterState('MINE_NEXT');
         }
     }
@@ -1099,16 +1214,16 @@ class OreMiner extends ModuleBase {
         }
         if ((this.typeMineEnabled && !this.typeMineBlock) || (!this.typeMineEnabled && this.mineIndex >= blocks.length)) {
             Client.setKey('leftclick', false);
-            this.enterState('ADVANCE');
+            this.enterState('MINE_RELEASE');
             return;
         }
 
         const block = this.typeMineEnabled ? this.typeMineBlock : blocks[this.mineIndex];
-        if (this.shouldSneakForMineBlock(block, waypoint)) {
+        if (this.shouldSneakForMineBlock(block)) {
             this.ensureShiftHeld();
             if (!Player.isSneaking()) return;
         }
-        const aim = this.getMineAim(block, true);
+        const aim = this.getMineAim(block);
         if (!aim) {
             if (this.handleUnreachableBlock(block)) return;
             this.finishMineBlock(true);
@@ -1122,7 +1237,6 @@ class OreMiner extends ModuleBase {
         const block = this.getCurrentMineBlock(waypoint);
         if (!block || this.shouldSkipBlock(block)) {
             this.stopMiningStrafe();
-            this.strafedForBlock = false;
             this.finishMineBlock();
             this.enterState('MINE_NEXT');
             return;
@@ -1130,18 +1244,20 @@ class OreMiner extends ModuleBase {
 
         this.ensureShiftHeld();
         if (!Player.isSneaking()) return;
-        const aim = this.getMineAim(block, this.waitTicks % 3 === 0);
+        const aim = this.getMineAim(block);
         if (aim) {
             this.stopMiningStrafe(false, false);
-            this.prepareBlock(block, aim, true);
+            this.prepareBlock(block, aim);
             return;
         }
         if (!this.mineStrafeTarget) {
             OreRotations.stop();
             this.mineStrafeTarget = this.findMiningStrafeTarget(block.x, block.y, block.z);
             if (!this.mineStrafeTarget) {
-                this.message(`&cCould not find a reachable strafe position for block at ${block.x}, ${block.y}, ${block.z}.`);
-                this.toggle(false);
+                this.message(`&eCould not find a reachable strafe position for block at ${block.x}, ${block.y}, ${block.z}; skipping it.`);
+                this.stopMiningStrafe();
+                this.finishMineBlock(true);
+                this.enterState('MINE_NEXT');
                 return;
             }
         }
@@ -1149,7 +1265,6 @@ class OreMiner extends ModuleBase {
 
         if (++this.waitTicks >= 80) {
             this.stopMiningStrafe();
-            this.strafedForBlock = false;
             if (++this.mineRetries > 3) {
                 this.message(`&cCould not strafe into reach of block at ${block.x}, ${block.y}, ${block.z}.`);
                 this.toggle(false);
@@ -1159,36 +1274,36 @@ class OreMiner extends ModuleBase {
             return;
         }
 
-        Keybind.setKeysForStraightLineCoords(this.mineStrafeTarget.x, Player.getY(), this.mineStrafeTarget.z, false);
+        if (!Player.isSneaking()) return;
+        setKeysForStraightLineCoords(this.mineStrafeTarget.x, Player.getY(), this.mineStrafeTarget.z, false);
         this.ensureShiftHeld();
     }
 
     handleUnreachableBlock(block) {
         if (!this.miningStrafing) return false;
-        Client.setKey('leftclick', false);
+        Client.setKey('leftclick', !block.oneTap && !block.rOneTap);
         this.mineStrafeTarget = null;
-        this.strafedForBlock = true;
         this.ensureShiftHeld();
         this.enterState('MINE_STRAFE');
         return true;
     }
 
-    prepareBlock(block, aim, continueRotation = false) {
+    prepareBlock(block, aim) {
+        this.resetTickGlide();
         this.currentBlockName = this.getBlockName(block);
         this.currentRenderTarget = { x: block.x, y: block.y, z: block.z };
         this.nextRenderTarget = this.findNextMineTarget(this.mineIndex + 1);
         this.mineRetries = 0;
-        if (block.oneTap || block.rOneTap) Client.setKey('leftclick', false);
-        else Client.setKey('leftclick', true);
-        if (continueRotation) OreRotations.retargetVector(aim, this.oreMineSpeed);
-        else OreRotations.lookAtVector(aim, this.oreMineSpeed);
+        this.currentMineAim = aim;
+        Client.setKey('leftclick', !block.oneTap && !block.rOneTap);
+        OreRotations.trackVector(aim, this.oreMineSpeed);
         this.enterState('MINE_WAIT_ROTATION');
     }
 
     beginMiningAction(waypoint) {
         const block = this.getCurrentMineBlock(waypoint);
         if (!block) return this.enterState('MINE_NEXT');
-        if (this.shouldSneakForMineBlock(block, waypoint) && !Player.isSneaking()) {
+        if (this.shouldSneakForMineBlock(block) && !Player.isSneaking()) {
             this.ensureShiftHeld();
             this.enterState('MINE_WAIT_ROTATION');
             return;
@@ -1210,20 +1325,32 @@ class OreMiner extends ModuleBase {
     tickMineHold(waypoint) {
         const block = this.getCurrentMineBlock(waypoint);
         if (!block) return this.enterState('MINE_NEXT');
-        if (this.shouldSneakForMineBlock(block, waypoint) && !Player.isSneaking()) {
+        if (this.shouldSneakForMineBlock(block) && !Player.isSneaking()) {
             this.ensureShiftHeld();
             Client.setKey('leftclick', false);
             return;
         }
         const blockName = this.getBlockName(block);
         if (blockName !== this.currentBlockName || MiningBot.isAirOrBedrock(blockName)) {
-            this.strafedForBlock = false;
             this.finishMineBlock();
             this.enterState('MINE_NEXT');
             return;
         }
 
-        Client.setKey('leftclick', true);
+        const miningCurrentBlock = this.trackCurrentMineBlock(waypoint, this.waitTicks % 3 === 0);
+        Client.setKey('leftclick', miningCurrentBlock);
+        if (this.tickGliding && miningCurrentBlock) {
+            this.glideMineTicks++;
+            const miningSpeed = getMiningSpeed();
+            if (miningSpeed) {
+                this.glideTotalTicks = getMineTime(block, miningSpeed, false) + this.tickGlideDelay();
+                if (this.glideMineTicks >= this.glideTotalTicks) {
+                    this.finishMineBlock(this.typeMineEnabled, true);
+                    this.enterState('MINE_NEXT');
+                    return;
+                }
+            }
+        }
         if (++this.waitTicks < this.mineTimeoutTicks) return;
 
         if (++this.mineRetries > 8) {
@@ -1233,14 +1360,15 @@ class OreMiner extends ModuleBase {
             return;
         }
 
-        const aim = this.getMineAim(block, true);
+        const aim = this.getMineAim(block);
         if (!aim) {
             if (this.handleUnreachableBlock(block)) return;
             this.finishMineBlock(true);
             this.enterState('MINE_NEXT');
             return;
         }
-        OreRotations.lookAtVector(aim, this.oreMineSpeed);
+        this.currentMineAim = aim;
+        OreRotations.trackVector(aim, this.oreMineSpeed);
         this.enterState('MINE_WAIT_ROTATION');
     }
 
@@ -1262,21 +1390,20 @@ class OreMiner extends ModuleBase {
         };
 
         if (this.miningAbilityEnabled || this.abilityDrillSwapEnabled) {
-            const rodSlot = Guis.findItemInHotbar('rod');
+            const rodSlot = findItemInHotbar('rod');
             if (rodSlot >= 0) {
-                add(() => Guis.setItemSlot(rodSlot), 2);
+                add(() => setItemSlot(rodSlot), 2);
                 add(() => Client.rightClick(), 4);
             }
 
-            add(() => Guis.setItemSlot(this.abilityDrillSwapEnabled ? this.abilityDrillSlot : this.drillSlot), 2);
+            add(() => setItemSlot(this.abilityDrillSwapEnabled ? this.abilityDrillSlot : this.drillSlot), 2);
             add(() => Client.rightClick(), 4);
         }
 
         add(() => {
             Client.setKey('leftclick', false);
-            Guis.setItemSlot(this.drillSlot);
+            setItemSlot(this.drillSlot);
         }, 2);
-        add(() => Client.setKey('leftclick', true), 2);
 
         this.abilityTotalTicks = tick;
         return steps;
@@ -1290,7 +1417,7 @@ class OreMiner extends ModuleBase {
     }
 
     isMiningAbilityReady() {
-        const tabAvailable = TabListUtils.getPickaxeAbilityStatus().includes('Available');
+        const tabAvailable = getPickaxeAbilityStatus().includes('Available');
         if (tabAvailable && !this.abilityTabWasAvailable) {
             this.abilityAvailabilityConsumed = false;
             this.scheduleAbilityUseDelay();
@@ -1312,24 +1439,42 @@ class OreMiner extends ModuleBase {
         this.abilityUseReadyAt = Date.now() + 1000 + Math.floor(Math.random() * 1001);
     }
 
-    getMineAim(block, thorough = false) {
-        const eyePos = Player.getPlayer()?.getEyePosition?.();
+    getMineAim(block, thorough = false, eyeOverride = null) {
+        const eyePos = eyeOverride || Player.getPlayer()?.getEyePosition?.();
         if (!block || !eyePos) return null;
 
         const verticalAim = this.getVerticalMineAim(block, eyePos);
         if (verticalAim) return verticalAim;
 
         const lookVec = Player.asPlayerMP()?.getLookVector?.();
-        const hit = MiningBot.findVisibleAimPoint(block.x, block.y, block.z, eyePos, lookVec, MINE_REACH_SQ, false);
-        if (hit && this.isMineAimVisible(block, hit, eyePos.x(), eyePos.y(), eyePos.z())) return { x: hit.x, y: hit.y, z: hit.z };
+        let excludedAim = null;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            const hit = MiningBot.findVisibleAimPoint(block.x, block.y, block.z, eyePos, lookVec, MINE_REACH_SQ, false, excludedAim);
+            if (!hit) break;
+            const insetHit = this.insetMineAim(block, hit, eyePos);
+            if (insetHit) return insetHit;
+            excludedAim = hit;
+        }
         if (!thorough) return null;
 
-        const point = Raytrace.getVisiblePoint(block.x, block.y, block.z, true);
+        const point = getVisiblePoint(block.x, block.y, block.z, true);
         if (!point) return null;
-        const dx = point[0] - eyePos.x();
-        const dy = point[1] - eyePos.y();
-        const dz = point[2] - eyePos.z();
-        return dx * dx + dy * dy + dz * dz <= MINE_REACH_SQ ? { x: point[0], y: point[1], z: point[2] } : null;
+        return this.insetMineAim(block, { x: point[0], y: point[1], z: point[2] }, eyePos);
+    }
+
+    insetMineAim(block, aim, eyePosition) {
+        const local = [aim.x - block.x, aim.y - block.y, aim.z - block.z];
+        if (!local.every(Number.isFinite)) return null;
+        const faceDistances = local.map((value) => Math.min(Math.abs(value), Math.abs(1 - value)));
+        const faceAxis = faceDistances.indexOf(Math.min(...faceDistances));
+        const point = [aim.x, aim.y, aim.z];
+        for (let axis = 0; axis < 3; axis++) {
+            if (axis === faceAxis) continue;
+            const origin = axis === 0 ? block.x : axis === 1 ? block.y : block.z;
+            point[axis] = Math.max(origin + MINE_AIM_EDGE_INSET, Math.min(origin + 1 - MINE_AIM_EDGE_INSET, point[axis]));
+        }
+        const inset = { x: point[0], y: point[1], z: point[2] };
+        return this.isMineAimVisible(block, inset, eyePosition.x(), eyePosition.y(), eyePosition.z()) ? inset : null;
     }
 
     getVerticalMineAim(block, eyePosition) {
@@ -1346,13 +1491,16 @@ class OreMiner extends ModuleBase {
         const distance = Math.abs(faceY - eye.y);
         if (distance * distance > MINE_REACH_SQ) return null;
 
-        const point = [eye.x, faceY, eye.z];
-        if (!visibilityChecker.testPointNative(block.x, block.y, block.z, point, eye)) return null;
-        return { x: eye.x, y: faceY, z: eye.z };
+        const aim = { x: eye.x, y: faceY, z: eye.z };
+        return this.isMineAimVisible(block, aim, eye.x, eye.y, eye.z) ? aim : null;
     }
 
     isMineAimVisible(block, aim, eyeX, eyeY, eyeZ) {
-        return visibilityChecker.testPointNative(block.x, block.y, block.z, [aim.x, aim.y, aim.z], { x: eyeX, y: eyeY, z: eyeZ });
+        return (
+            (aim.x - eyeX) ** 2 + (aim.y - eyeY) ** 2 + (aim.z - eyeZ) ** 2 <= MINE_REACH_SQ &&
+            isLineClear(eyeX, eyeY, eyeZ, aim.x, aim.y, aim.z, block.x, block.y, block.z) &&
+            testPointNative(block.x, block.y, block.z, [aim.x, aim.y, aim.z], { x: eyeX, y: eyeY, z: eyeZ })
+        );
     }
 
     getEtherwarpVisiblePoints(x, y, z) {
@@ -1364,14 +1512,14 @@ class OreMiner extends ModuleBase {
     }
 
     raytraceVisiblePoints(x, y, z, eyeOverride = null, maxResults = Infinity, maxChecks = Infinity, startIndex = 0) {
-        const eye = eyeOverride || visibilityChecker.getPlayerEyePosition();
+        const eye = eyeOverride || getPlayerEyePosition();
         if (!eye) return [];
         const visible = [];
         const checks = Math.min(ETHERWARP_FACE_OFFSETS.length, maxChecks);
         for (let checked = 0; checked < checks; checked++) {
             const offset = ETHERWARP_FACE_OFFSETS[(startIndex + checked) % ETHERWARP_FACE_OFFSETS.length];
             const point = [x + offset[0], y + offset[1], z + offset[2]];
-            if (!visibilityChecker.testPointCustom(x, y, z, point, eye)) continue;
+            if (!testPointVisibility(x, y, z, point, eye)) continue;
             if (!this.hasEtherwarpRayClearance(x, y, z, point, eye)) continue;
             visible.push({ point: { x: point[0], y: point[1], z: point[2] } });
             if (visible.length >= maxResults) break;
@@ -1398,7 +1546,7 @@ class OreMiner extends ModuleBase {
                 shifted[axis] += direction * ETHERWARP_RAY_CLEARANCE;
                 const shiftedLocal = shifted[axis] - [x, y, z][axis];
                 if (shiftedLocal < ETHERWARP_EDGE_INSET || shiftedLocal > 1 - ETHERWARP_EDGE_INSET) return false;
-                if (!visibilityChecker.testPointCustom(x, y, z, shifted, eye)) return false;
+                if (!testPointVisibility(x, y, z, shifted, eye)) return false;
             }
         }
         return true;
@@ -1424,7 +1572,7 @@ class OreMiner extends ModuleBase {
 
         const eye = { x: eyeCoords[0], y: eyeCoords[1], z: eyeCoords[2] };
         const { x, y, z } = waypoint.pos;
-        const center = MathUtils.blockCenter(x, y, z);
+        const center = blockCenter(x, y, z);
         const dx = center.x - eye.x;
         const dz = center.z - eye.z;
         const length = Math.hypot(dx, dz);
@@ -1447,41 +1595,26 @@ class OreMiner extends ModuleBase {
     }
 
     findMiningStrafeTarget(x, y, z) {
-        const playerEye = Player.getPlayer()?.getEyePosition?.();
-        const eye = playerEye ? { x: playerEye.x(), y: playerEye.y(), z: playerEye.z() } : visibilityChecker.getPlayerEyePosition();
+        const crouchedEye = getEtherwarpEyeCoords(true);
+        const eye = crouchedEye ? { x: crouchedEye[0], y: crouchedEye[1], z: crouchedEye[2] } : getPlayerEyePosition();
         if (!eye) return null;
-        const center = MathUtils.blockCenter(x, y, z);
+        const center = blockCenter(x, y, z);
         const dx = center.x - eye.x;
         const dz = center.z - eye.z;
         const length = Math.hypot(dx, dz);
         const yaw = (Player.getYaw() * Math.PI) / 180;
         const forward = length < 0.1 ? { x: -Math.sin(yaw), z: Math.cos(yaw) } : { x: dx / length, z: dz / length };
         const left = { x: forward.z, z: -forward.x };
-        const directions = [];
-        for (let index = 0; index < 8; index++) {
-            const angle = (index * Math.PI) / 4;
-            directions.push({
-                x: forward.x * Math.cos(angle) + left.x * Math.sin(angle),
-                z: forward.z * Math.cos(angle) + left.z * Math.sin(angle),
-            });
-        }
+        const directions = [forward, left, { x: -left.x, z: -left.z }, { x: -forward.x, z: -forward.z }];
 
-        for (let distance = 0.5; distance < Math.sqrt(MINE_REACH_SQ); distance += 0.5) {
+        for (let distance = 0.5; distance <= 2.5; distance += 0.5) {
             for (const direction of directions) {
                 const candidateEye = new Vec3d(eye.x + direction.x * distance, eye.y, eye.z + direction.z * distance);
-                const aim = MiningBot.findVisibleAimPoint(x, y, z, candidateEye, null, MINE_REACH_SQ, false);
+                const aim = this.getMineAim({ x, y, z }, false, candidateEye);
                 const targetX = Player.getX() + direction.x * distance;
                 const targetZ = Player.getZ() + direction.z * distance;
-                if (
-                    aim &&
-                    this.canStrafeTo(targetX, targetZ) &&
-                    this.isMineAimVisible({ x, y, z }, aim, candidateEye.x(), candidateEye.y(), candidateEye.z())
-                ) {
-                    return {
-                        x: targetX,
-                        z: targetZ,
-                        aim,
-                    };
+                if (aim && this.canStrafeTo(targetX, targetZ)) {
+                    return { x: targetX, z: targetZ, aim };
                 }
             }
         }
@@ -1505,28 +1638,6 @@ class OreMiner extends ModuleBase {
         return true;
     }
 
-    hasEdgeAhead(targetX, targetY, targetZ) {
-        const dx = targetX - Player.getX();
-        const dz = targetZ - Player.getZ();
-        const distance = Math.hypot(dx, dz);
-        if (distance < 0.1) return false;
-        const maxDrop = Math.floor(targetY) >= Math.floor(Player.getY()) ? 1 : 3;
-        for (let forward = 0.5; forward <= 1.5; forward += 0.5) {
-            const x = Math.floor(Player.getX() + (dx / distance) * forward);
-            const z = Math.floor(Player.getZ() + (dz / distance) * forward);
-            let foundGround = false;
-            for (let drop = 1; drop <= maxDrop; drop++) {
-                const block = World.getBlockAt(x, Math.floor(Player.getY()) - drop, z);
-                if (block && block.type.getID() !== 0) {
-                    foundGround = true;
-                    break;
-                }
-            }
-            if (!foundGround) return true;
-        }
-        return false;
-    }
-
     findNearestWaypoint() {
         let bestIndex = 0;
         let bestDistance = Infinity;
@@ -1548,11 +1659,11 @@ class OreMiner extends ModuleBase {
     }
 
     isAtWaypoint(waypoint) {
-        return this.waypointDistanceSq(waypoint) <= (waypoint.type === 'Walk' ? 4 : 2);
+        return isAtEtherwarpLanding(waypoint.pos);
     }
 
     findTypeMineBlocks() {
-        const costs = MiningBot[`${this.typeMineName.toLowerCase()}Costs`];
+        const costs = this.typeMineCosts[this.typeMineName];
         const eyePos = Player.getPlayer()?.getEyePosition?.();
         if (!costs || !eyePos) return [];
 
@@ -1564,13 +1675,15 @@ class OreMiner extends ModuleBase {
         const lookLength = lookVec ? Math.hypot(lookVec.x(), lookVec.z()) : 0;
         const minimumFovDot = Math.cos((this.typeMineFov * Math.PI) / 360);
         for (const candidate of candidates) {
+            if (this.typeMineIgnored[this.mineBlockKey(candidate)]) continue;
+
             const dx = candidate.x + 0.5 - eyePos.x();
             const dz = candidate.z + 0.5 - eyePos.z();
             const horizontalDistance = Math.hypot(dx, dz);
             const lookDot = lookLength && horizontalDistance ? (dx * lookVec.x() + dz * lookVec.z()) / (horizontalDistance * lookLength) : 1;
             if (this.typeMineFov < 360 && lookDot < minimumFovDot) continue;
             const aim = this.getMineAim(candidate);
-            if (this.typeMineIgnored[this.mineBlockKey(candidate)] || !aim || !this.hasMinimumTypeMineVisibility(candidate, aim, eyePos)) continue;
+            if (!aim || !this.hasMinimumTypeMineVisibility(candidate, aim, eyePos)) continue;
             targets.push(candidate);
             if (targets.length >= 3) break;
         }
@@ -1578,40 +1691,32 @@ class OreMiner extends ModuleBase {
     }
 
     hasMinimumTypeMineVisibility(block, aim, eyePosition) {
-        const minimum = this.typeMineMinVisibleDegrees;
-        if (minimum <= 0) return true;
-
-        const eye = { x: eyePosition.x(), y: eyePosition.y(), z: eyePosition.z() };
-        const aimPoint = [aim.x, aim.y, aim.z];
-        const distance = Math.hypot(aim.x - eye.x, aim.y - eye.y, aim.z - eye.z);
-        const halfSpan = Math.tan((minimum * 1.05 * Math.PI) / 360) * distance;
-        const local = [aim.x - block.x, aim.y - block.y, aim.z - block.z];
-        const edgeDistances = local.map((value) => Math.min(value, 1 - value));
-        const faceAxis = edgeDistances.indexOf(Math.min(...edgeDistances));
-
-        for (let axis = 0; axis < 3; axis++) {
-            if (axis === faceAxis) continue;
-            const axisName = ['x', 'y', 'z'][axis];
-            const low = [...aimPoint];
-            const high = [...aimPoint];
-            low[axis] = Math.max(block[axisName] + 0.02, aimPoint[axis] - halfSpan);
-            high[axis] = Math.min(block[axisName] + 0.98, aimPoint[axis] + halfSpan);
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, low, eye)) continue;
-            if (!visibilityChecker.testPointCustom(block.x, block.y, block.z, high, eye)) continue;
-
-            const a = [low[0] - eye.x, low[1] - eye.y, low[2] - eye.z];
-            const b = [high[0] - eye.x, high[1] - eye.y, high[2] - eye.z];
-            const dot = (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]) / (Math.hypot(...a) * Math.hypot(...b));
-            if ((Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI >= minimum) return true;
-        }
-        return false;
+        return (
+            this.typeMineMinVisibleRays <= 0 || MiningBot.countVisibleRays(block, aim, eyePosition, this.typeMineMinVisibleRays) >= this.typeMineMinVisibleRays
+        );
     }
 
     getCurrentMineBlock(waypoint) {
         return this.typeMineEnabled ? this.typeMineBlock : waypoint.minableBlocks[this.mineIndex];
     }
 
-    finishMineBlock(ignore = false) {
+    trackCurrentMineBlock(waypoint, thorough = false) {
+        const block = this.getCurrentMineBlock(waypoint);
+        if (!block || this.shouldSkipBlock(block)) return false;
+
+        const eye = Player.getPlayer()?.getEyePosition?.();
+        if (!eye) return false;
+        if (!this.currentMineAim || (thorough && !this.isMineAimVisible(block, this.currentMineAim, eye.x(), eye.y(), eye.z()))) {
+            this.currentMineAim = this.getMineAim(block, thorough);
+        }
+        if (this.currentMineAim) OreRotations.trackVector(this.currentMineAim, this.oreMineSpeed);
+        else OreRotations.stop();
+        return !!this.currentMineAim && this.isCrosshairOnBlock(block);
+    }
+
+    finishMineBlock(ignore = false, keepMining = false) {
+        if (!keepMining) Client.setKey('leftclick', false);
+        this.resetTickGlide();
         if (!this.typeMineEnabled) {
             this.mineIndex++;
             return;
@@ -1621,17 +1726,31 @@ class OreMiner extends ModuleBase {
         this.typeMineNextBlock = null;
     }
 
+    resetTickGlide() {
+        this.glideMineTicks = 0;
+        this.glideTotalTicks = 0;
+    }
+
+    tickGlideDelay() {
+        return Math.max(0, 20 + this.glideLagCompensation - Math.trunc(getTPS()));
+    }
+
     mineBlockKey(block) {
         return `${block.x},${block.y},${block.z}`;
     }
 
-    shouldSneakForMineBlock(block, waypoint = this.loadedWaypoints?.[this.waypointIndex]) {
-        return this.sneakWhileMining && !!block && !!waypoint?.pos && block.y < waypoint.pos.y;
+    isCrosshairOnBlock(block) {
+        const pos = block && getLookingAt(5)?.getPos?.();
+        return !!pos && pos.getX() === block.x && pos.getY() === block.y && pos.getZ() === block.z;
+    }
+
+    shouldSneakForMineBlock(block) {
+        return this.sneakWhileMining && !!block;
     }
 
     shouldSkipBlock(block) {
         const blockName = this.getBlockName(block);
-        return !blockName || MiningBot.isAirOrBedrock(blockName);
+        return block.isDeployable || !blockName || MiningBot.isAirOrBedrock(blockName);
     }
 
     getBlockName(block) {
@@ -1666,21 +1785,27 @@ class OreMiner extends ModuleBase {
     }
 
     stopMiningStrafe(releaseSneak = true, stopRotation = true) {
-        Keybind.stopMovement();
-        if (releaseSneak) Keybind.setKey('shift', false);
+        Client.stopMovement();
+        if (releaseSneak) Client.setKey('shift', false);
         this.mineStrafeTarget = null;
         if (stopRotation) OreRotations.stop();
     }
 
     releaseControls() {
+        RoutePathWalker.stop();
         this.stopMiningStrafe();
         this.stopStrafing();
         Client.unpressKeys();
     }
 
     render() {
-        if ((!this.enabled && !this.editing) || !this.showOverlay || !this.loadedWaypoints) return;
+        if (!this.showOverlay || !this.loadedWaypoints) return;
         const closestWaypoint = this.loadedWaypoints.length ? this.findNearestWaypoint() : -1;
+        const boxGroups = new Map();
+        const names = [];
+        const namePositions = [];
+        const mineNames = [];
+        const mineNamePositions = [];
         this.loadedWaypoints.forEach((waypoint, index) => {
             const colors =
                 this.editing && index === this.selectedWaypoint
@@ -1692,30 +1817,43 @@ class OreMiner extends ModuleBase {
                         : waypoint.type === 'Walk'
                           ? [COLORS.walkFill, COLORS.walkWire]
                           : [COLORS.teleportFill, COLORS.teleportWire];
-            RenderUtils.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
-            RenderUtils.drawText(`[${index}]`, new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5), 1.2, true, false, false);
+            if (!boxGroups.has(colors[0])) boxGroups.set(colors[0], { colors, positions: [], selectedPositions: [] });
+            boxGroups.get(colors[0]).positions.push(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z));
+            names.push(`[${index}]`);
+            namePositions.push(new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5));
             if (index === closestWaypoint) {
                 waypoint.minableBlocks.forEach((block, mineIndex) => {
-                    RenderUtils.drawText(`M[${mineIndex}]`, new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5), 1, true, false, true);
+                    const type = block.oneTap ? '1T' : block.rOneTap ? 'RT' : 'M';
+                    mineNames.push(`${type}[${mineIndex}]`);
+                    mineNamePositions.push(new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5));
                 });
             }
-            if (this.editing) {
-                waypoint.minableBlocks.forEach((block) => {
-                    const mineColors =
-                        index === this.selectedWaypoint ? [COLORS.selectedMineFill, COLORS.selectedMineWire] : [COLORS.mineFill, COLORS.mineWire];
-                    RenderUtils.drawStyledBox(new Vec3d(block.x, block.y, block.z), mineColors[0], mineColors[1], 2, false);
-                });
-            }
+            waypoint.minableBlocks.forEach((block) => {
+                const mineColors = block.oneTap
+                    ? [COLORS.oneTapFill, COLORS.oneTapWire]
+                    : block.rOneTap
+                      ? [COLORS.rOneTapFill, COLORS.rOneTapWire]
+                      : [COLORS.mineFill, COLORS.mineWire];
+                if (!boxGroups.has(mineColors[0])) boxGroups.set(mineColors[0], { colors: mineColors, positions: [], selectedPositions: [] });
+                const group = boxGroups.get(mineColors[0]);
+                (index === this.selectedWaypoint ? group.selectedPositions : group.positions).push(new Vec3d(block.x, block.y, block.z));
+            });
         });
+        boxGroups.forEach(({ colors, positions, selectedPositions }) => {
+            if (positions.length) Render3D.drawStyledBoxes(positions, colors[0], colors[1], 2, false);
+            if (selectedPositions.length) Render3D.drawStyledBoxes(selectedPositions, colors[0], colors[1], 3, false);
+        });
+        Render3D.drawTexts(names, namePositions, 1.2, true, false, false);
+        Render3D.drawTexts(mineNames, mineNamePositions, 1, true, false, true);
         if (this.currentRenderTarget) {
             const { x, y, z } = this.currentRenderTarget;
-            RenderUtils.drawStyledBox(new Vec3d(x, y, z), COLORS.currentFill, COLORS.currentWire, 3, false);
+            Render3D.drawStyledBox(new Vec3d(x, y, z), COLORS.currentFill, COLORS.currentWire, 3, false);
         }
         if (this.nextRenderTarget) {
             const { x, y, z } = this.nextRenderTarget;
-            RenderUtils.drawStyledBox(new Vec3d(x, y, z), COLORS.nextFill, COLORS.nextWire, 3, false);
+            Render3D.drawStyledBox(new Vec3d(x, y, z), COLORS.nextFill, COLORS.nextWire, 3, false);
         }
     }
 }
 
-export default new OreMiner();
+new OreMiner();

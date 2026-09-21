@@ -11,7 +11,11 @@ import {
     getTextWidth,
     isInside,
     playClickSound,
+    setTextInputArea,
+    startTextInput,
+    stopTextInput,
 } from '../Utils';
+import { ScriptKey } from '../../utils/Constants';
 import { setTooltip } from '../core/GuiTooltip';
 import { GuiState } from '../core/GuiState';
 
@@ -37,8 +41,8 @@ export class Slider {
         this.height = height;
         this.isRange = isRange;
 
-        this.min = Number.parseFloat(min);
-        this.max = Number.parseFloat(max);
+        this.min = Number(min);
+        this.max = Number(max);
         if (Number.isNaN(this.min)) this.min = 0;
         if (Number.isNaN(this.max)) this.max = this.min;
         if (this.max < this.min) {
@@ -49,8 +53,8 @@ export class Slider {
 
         if (this.isRange) {
             const rawRange = value && typeof value === 'object' ? value : { low: this.min, high: value };
-            const parsedLow = Number.parseFloat(rawRange.low);
-            const parsedHigh = Number.parseFloat(rawRange.high);
+            const parsedLow = Number(rawRange.low);
+            const parsedHigh = Number(rawRange.high);
             const safeLow = Number.isNaN(parsedLow) ? this.min : parsedLow;
             const safeHigh = Number.isNaN(parsedHigh) ? this.max : parsedHigh;
             const clampedLow = clamp(safeLow, this.min, this.max);
@@ -60,7 +64,7 @@ export class Slider {
                 high: Math.max(clampedLow, clampedHigh),
             };
         } else {
-            const parsedValue = Number.parseFloat(value);
+            const parsedValue = Number(value);
             this.value = Number.isNaN(parsedValue) ? this.min : clamp(parsedValue, this.min, this.max);
         }
 
@@ -80,6 +84,7 @@ export class Slider {
         this.description = null;
         this.valueRects = {};
         this.sliderRect = {};
+        this.titleCache = null;
         this.highlight = createHighlight();
         allSliders.push(this);
 
@@ -123,7 +128,11 @@ export class Slider {
         const valueBoxesWidth = valueBoxWidths.reduce((total, width) => total + width, 0) + valueBoxGap * (valueKeys.length - 1);
         const valueStringX = this.x + panelWidth - valueBoxesWidth;
         const sliderX = valueStringX - sliderWidth - 14;
-        const titleLines = wrapTitle(this.title, sliderX - this.x - 12);
+        const titleWidth = sliderX - this.x - 12;
+        if (!this.titleCache || this.titleCache.title !== this.title || this.titleCache.width !== titleWidth) {
+            this.titleCache = { title: this.title, width: titleWidth, lines: wrapTitle(this.title, titleWidth) };
+        }
+        const titleLines = this.titleCache.lines;
         const componentHeight = Math.max(this.containerHeight, titleLines.length * 12 + 12);
         this.layoutHeight = componentHeight;
 
@@ -214,7 +223,6 @@ export class Slider {
         let currentValueX = valueStringX;
         valueKeys.forEach((key, index) => {
             const displayValue = displayValues[index];
-            const valueStringWidth = getTextWidth(displayValue, FontSizes.REGULAR);
             const valueBoxWidth = valueBoxWidths[index];
             const isActive = this.isTyping && this.typingHandle === key;
 
@@ -224,6 +232,7 @@ export class Slider {
                 width: valueBoxWidth,
                 height: valueBoxHeight,
             };
+            if (isActive) setTextInputArea(this.valueRects[key]);
 
             drawRoundedRectangle({
                 x: currentValueX,
@@ -234,8 +243,7 @@ export class Slider {
                 color: isActive ? THEME.ACCENT : THEME.BG_INSET,
             });
 
-            const textCenteredX = currentValueX + valueBoxWidth / 2 - valueStringWidth / 2;
-            drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM);
+            drawText(displayValue, currentValueX + valueBoxWidth / 2, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM, 18);
 
             currentValueX += valueBoxWidth + valueBoxGap;
         });
@@ -269,7 +277,8 @@ export class Slider {
                 this.isTyping = true;
                 this.typingHandle = inputHandle;
                 TypingState.isTyping = true;
-                this.inputValue = String((this.isRange ? this.value[inputHandle] : this.value).toFixed(this.precision));
+                this.inputValue = '';
+                startTextInput(GuiState.myGui, this.valueRects[inputHandle]);
             }
             return true;
         }
@@ -318,21 +327,18 @@ export class Slider {
     handleKeyType(char, keyCode) {
         if (!this.isTyping) return false;
 
-        const DELETE_KEY = 259;
-        const ENTER_KEY = 257;
-        const ESCAPE_KEY = 256;
-
-        if (keyCode === ENTER_KEY || keyCode === ESCAPE_KEY) {
+        if (keyCode === ScriptKey.ENTER || keyCode === ScriptKey.ESCAPE) {
             this.handleInputFinish();
             return true;
         }
 
-        if (keyCode === DELETE_KEY) {
+        if (keyCode === ScriptKey.BACKSPACE) {
             this.inputValue = this.inputValue.slice(0, -1);
             return true;
         }
 
-        const typedChar = char ? getTypedCharacter(char) : char;
+        const charString = String(char || '');
+        const typedChar = charString && charString.codePointAt(0) >= ScriptKey.SPACE ? getTypedCharacter(charString) : '';
         if (/[0-9.\-]/.test(typedChar)) {
             let nextInputValue = this.inputValue + typedChar;
 
@@ -362,6 +368,7 @@ export class Slider {
 
     handleInputFinish({ playSound = true } = {}) {
         if (!this.isTyping) return;
+        stopTextInput(GuiState.myGui);
 
         let typedValue = Number.parseFloat(this.inputValue);
 

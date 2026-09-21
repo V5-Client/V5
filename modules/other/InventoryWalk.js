@@ -35,7 +35,7 @@ class InventoryWalk extends ModuleBase {
                 ScheduleTask(0, () => {
                     if (!this.enabled || token !== this.actionToken) return;
                     this.keybinds.forEach((keybind) => {
-                        const down = Keyboard.isKeyDown(keybind.getKeyCode());
+                        const down = keybind.isPhysicalKeyDown();
                         if (down) keybind.setState(down);
                     });
                 });
@@ -60,7 +60,7 @@ class InventoryWalk extends ModuleBase {
             ScheduleTask(0, () => {
                 if (!this.enabled || token !== this.actionToken) return;
                 this.keybinds.forEach((keybind) => {
-                    const down = Keyboard.isKeyDown(keybind.getKeyCode()) && !Client.isInChat();
+                    const down = keybind.isPhysicalKeyDown() && !Client.isInChat();
                     keybind.setState(down);
                 });
             });

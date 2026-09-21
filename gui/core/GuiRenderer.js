@@ -23,26 +23,25 @@ export const drawGUI = (mouseX, mouseY) => {
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
-    Client.getMinecraft().gameRenderer.processBlurEffect();
+    Render2D.blurBackground();
 
     try {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-        NVG.save();
+        Render2D.save();
 
         const guiScale = GuiState.getEffectiveGuiScale();
-        NVG.scale(guiScale, guiScale);
+        Render2D.scale(guiScale, guiScale);
 
         drawRoundedRectangleWithBorder(targetBackground);
 
         GuiTooltip.reset();
 
         if (GuiState.macroToggleOpen) {
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.scale(ease, ease);
-            NVG.translate(-centerX, -centerY);
+            Render2D.save();
+            Render2D.translate(centerX, centerY);
+            Render2D.scale(ease, ease);
+            Render2D.translate(-centerX, -centerY);
             macroToggleGui.draw(mouseX, mouseY);
-            NVG.restore();
+            Render2D.restore();
         } else {
             drawRoundedRectangleWithBorder(GuiRectangles.LeftPanel);
             drawRect({
@@ -57,10 +56,10 @@ export const drawGUI = (mouseX, mouseY) => {
 
             SearchBar.draw(mouseX, mouseY, GuiRectangles.ModuleSearch, GuiRectangles.LeftPanel.y + PADDING, true);
 
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.scale(ease, ease);
-            NVG.translate(-centerX, -centerY);
+            Render2D.save();
+            Render2D.translate(centerX, centerY);
+            Render2D.scale(ease, ease);
+            Render2D.translate(-centerX, -centerY);
 
             const panel = GuiRectangles.RightPanel;
             const drawCategoryNav = (category, xOffset, drawBackground = true) => {
@@ -100,20 +99,14 @@ export const drawGUI = (mouseX, mouseY) => {
             resetScissor();
             categoryManager?.drawPopups?.(mouseX, mouseY);
 
-            NVG.restore();
+            Render2D.restore();
         }
 
         GuiTooltip.update();
         GuiTooltip.draw(mouseX, mouseY);
 
-        NVG.restore();
+        Render2D.restore();
     } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
-    } finally {
-        try {
-            NVG.endFrame();
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        }
+        console.error(e);
     }
 };

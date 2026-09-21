@@ -23,7 +23,7 @@ export const raytraceBlocks = (
     return traverseVoxels(startPos, endPos, blockCheckFunc, returnWhenTrue, stopWhenNotAir);
 };
 
-export const getPlayerEyeCoords = (forceSneak = false) => {
+const getPlayerEyeCoords = (forceSneak = false) => {
     const player = Player.getPlayer();
     if (!player) return null;
 
@@ -37,7 +37,7 @@ export const getPlayerEyeCoords = (forceSneak = false) => {
     return [x, y, z];
 };
 
-export const getPlayerLookVec = () => {
+const getPlayerLookVec = () => {
     const player = Player.getPlayer();
     if (!player) return null;
 
@@ -45,7 +45,7 @@ export const getPlayerLookVec = () => {
     return new Vector3(lookVec.x(), lookVec.y(), lookVec.z());
 };
 
-export const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue = false, stopWhenNotAir = false, returnIntersection = false) => {
+const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue = false, stopWhenNotAir = false, returnIntersection = false) => {
     const direction = end.map((v, i) => v - start[i]);
     const step = direction.map((a) => Math.sign(a));
 
@@ -73,7 +73,7 @@ export const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue
         iters++;
 
         // Check current block
-        const currentBlock = World.getBlockAt(...currentPos);
+        const currentBlock = World.getBlockAt(currentPos[0], currentPos[1], currentPos[2]);
         if (!currentBlock || !currentBlock.type) {
             return returnWhenTrue ? null : path;
         }

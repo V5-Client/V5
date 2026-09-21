@@ -1,6 +1,6 @@
-import { MathUtils } from '../Math';
-import { PathExecutor } from './PathExecutor';
-import { PathRotationsUtility } from './PathWalker/PathRotationsUtility';
+import { calculateAbsoluteAngles, getAngleDifference, wrapTo180 } from '../Math';
+import { applyToPlayer } from '../player/RotationGCD';
+import { onPathStep, onPathTick } from './PathExecutor';
 
 class SimulationPathFlyer {
     constructor() {
@@ -29,8 +29,8 @@ class SimulationPathFlyer {
         ];
 
         this.reset();
-        PathExecutor.onTick(() => this.tick());
-        PathExecutor.onStep(() => this.updateRotation());
+        onPathTick(() => this.tick());
+        onPathStep(() => this.updateRotation());
     }
 
     begin(nodes) {
@@ -71,7 +71,7 @@ class SimulationPathFlyer {
         this.complete = false;
         this.isActive = true;
         this.rotationActive = true;
-        this.currentYaw = MathUtils.wrapTo180(Player.getYaw());
+        this.currentYaw = wrapTo180(Player.getYaw());
         this.currentPitch = Player.getPitch();
         this.targetYaw = this.currentYaw;
         this.targetPitch = this.currentPitch;
@@ -168,7 +168,7 @@ class SimulationPathFlyer {
         this.turnAngle = this.angleBetween({ x: near.x - projection.point.x, z: near.z - projection.point.z }, { x: far.x - near.x, z: far.z - near.z });
         this.currentPathCurvature = (this.turnAngle * Math.PI) / 180;
 
-        const angles = MathUtils.calculateAbsoluteAngles({ x: lookTarget.x, y: lookTarget.y + this.EYE_HEIGHT - 1, z: lookTarget.z });
+        const angles = calculateAbsoluteAngles({ x: lookTarget.x, y: lookTarget.y + this.EYE_HEIGHT - 1, z: lookTarget.z });
         this.targetYaw = angles.yaw;
         this.targetPitch = angles.pitch;
     }
@@ -416,11 +416,11 @@ class SimulationPathFlyer {
         const smoothing = 1 - Math.exp(-10 * deltaSeconds);
         const yawLimit = 180 * deltaSeconds;
         const pitchLimit = 100 * deltaSeconds;
-        const yawStep = Math.max(-yawLimit, Math.min(yawLimit, MathUtils.getAngleDifference(this.currentYaw, this.targetYaw) * smoothing));
+        const yawStep = Math.max(-yawLimit, Math.min(yawLimit, getAngleDifference(this.currentYaw, this.targetYaw) * smoothing));
         const pitchStep = Math.max(-pitchLimit, Math.min(pitchLimit, (this.targetPitch - this.currentPitch) * smoothing));
-        this.currentYaw = MathUtils.wrapTo180(this.currentYaw + yawStep);
+        this.currentYaw = wrapTo180(this.currentYaw + yawStep);
         this.currentPitch = Math.max(-90, Math.min(90, this.currentPitch + pitchStep));
-        const applied = PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
+        const applied = applyToPlayer(this.currentYaw, this.currentPitch);
         if (applied) {
             this.currentYaw = applied.yaw;
             this.currentPitch = applied.pitch;

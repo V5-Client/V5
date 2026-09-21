@@ -1,5 +1,10 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Mixin } from '../../utils/MixinManager';
+
+const renderLimiters = {
+    Off: Client.RenderLimiter.OFF,
+    'Limit Chunks': Client.RenderLimiter.LIMIT_CHUNKS,
+    'No Render': Client.RenderLimiter.NO_RENDER,
+};
 
 class Controller extends ModuleBase {
     constructor() {
@@ -14,20 +19,20 @@ class Controller extends ModuleBase {
 
         this.addDirectToggle(
             'Auto-Perspective',
-            (value) => Mixin.set('forcePerspective', value),
+            (value) => Client.setForcePerspective(value),
             'Automatically switches to third person while macro is running.',
             false,
             sectionName
         );
 
-        this.addDirectToggle('Limit FPS', (value) => Mixin.set('limitFps', value), 'Limits FPS while macro is running.', false, sectionName);
-        this.addDirectToggle('Mute Game', (value) => Mixin.set('muteGame', value), 'Mutes game audio while macro is running.', false, sectionName);
+        this.addDirectToggle('Limit FPS', (value) => Client.setLimitFps(value), 'Limits FPS while macro is running.', false, sectionName);
+        this.addDirectToggle('Mute Game', (value) => Client.setMuteGame(value), 'Mutes game audio while macro is running.', false, sectionName);
 
         this.addDirectMultiToggle(
             'Render Limiters',
             ['Off', 'Limit Chunks', 'No Render'],
             true,
-            (value) => Mixin.set('renderLimiter', value?.find?.((option) => option.enabled)?.name || 'Off'),
+            (value) => Client.setRenderLimiter(renderLimiters[value?.find?.((option) => option.enabled)?.name || 'Off']),
             'Limits render distance or cancels rendering while macro is running.',
             'Off',
             sectionName

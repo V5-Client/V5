@@ -1,6 +1,6 @@
 import { FarmingMacro } from './FarmingMacro';
 import { farmingSettings } from './FarmingSettings';
-import { Utils } from '../../utils/Utils';
+import { randomFloat } from '../../utils/Utils';
 
 const LANE_DELAY = 'lane';
 const WS_MOVEMENTS = [
@@ -60,8 +60,8 @@ class CycleMacro extends FarmingMacro {
     onFarmStart(player) {
         this.laneChanging = false;
         this.ignoreTicks = this.initialDelay;
-        this.yaw = farmingSettings.useMousemat ? (this.yawMin + this.yawMax) / 2 : Utils.randomFloat(this.yawMin, this.yawMax);
-        const pitch = farmingSettings.useMousemat ? (this.pitchMin + this.pitchMax) / 2 : Utils.randomFloat(this.pitchMin, this.pitchMax);
+        this.yaw = farmingSettings.useMousemat ? (this.yawMin + this.yawMax) / 2 : randomFloat(this.yawMin, this.yawMax);
+        const pitch = farmingSettings.useMousemat ? (this.pitchMin + this.pitchMax) / 2 : randomFloat(this.pitchMin, this.pitchMax);
         this.rotateTo(this.snapYaw(player.getYRot(), this.yaw), pitch);
     }
 
@@ -94,12 +94,13 @@ class CycleMacro extends FarmingMacro {
 const garden = (name) => ({
     name,
     description: 'Designed for 16thGarden megafarm.',
-    tooltip: '/visit 16thGarden for design.',
+    tooltip: '',
 });
 
 [
     [garden('A/D Cactus Macro'), 'farming ad cactus', -68.19, -17.4, true],
     [garden('A/D Cocoa Macro'), 'farming ad cocoa', -166.4, -79, true],
+    [garden('A/D Crop Macro'), 'farming ad crop', 33.96, 0, true],
     [garden('W/S Crop Macro'), 'farming ws crop', -26.6],
     [garden('W/S Flower Macro'), 'farming ws flower', -106.88],
     [garden('W/S Melon Macro'), 'farming ws melon', -119.99, 25],

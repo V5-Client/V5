@@ -1,7 +1,7 @@
 import { Categories } from '../../gui/categories/CategorySystem';
-import { MacroState } from '../../utils/MacroState';
+import { getActiveMacro, isMacroRunning } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 class RPC extends ModuleBase {
     constructor() {
@@ -25,17 +25,17 @@ class RPC extends ModuleBase {
             if (Date.now() - this.lastUpdate < 1000) return;
             this.lastUpdate = Date.now();
 
-            if (MacroState.isMacroRunning()) {
-                const macroName = MacroState.getActiveMacro() || 'Unknown Macro';
+            if (isMacroRunning()) {
+                const macroName = getActiveMacro() || 'Unknown Macro';
 
                 if (this.lastState !== 'RUNNING') {
                     DiscordRPC.resetTimestamp();
                     this.lastState = 'RUNNING';
                 }
 
-                const area = Utils.area() || 'Unknown Area';
+                const areaName = area() || 'Unknown Area';
 
-                DiscordRPC.updatePresence(`Macroing: ${macroName}`, `Location: ${area}`);
+                DiscordRPC.updatePresence(`Macroing: ${macroName}`, `Location: ${areaName}`);
             } else {
                 if (this.lastState !== 'IDLE') {
                     DiscordRPC.revertToIdle();

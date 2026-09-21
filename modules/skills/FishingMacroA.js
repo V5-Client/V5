@@ -1,7 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, setItemSlot } from '../../utils/player/Inventory';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -82,7 +82,7 @@ class FishingMacro extends ModuleBase {
         this.tickDelay = Math.round(this.cooldown + this.randomCooldown * Math.random());
         switch (this.step) {
             case -2:
-                Guis.setItemSlot(this.rodSlot);
+                setItemSlot(this.rodSlot);
                 this.step++;
                 break;
             case -1:
@@ -97,7 +97,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 1: // swap to hype
-                Guis.setItemSlot(this.hypeSlot);
+                setItemSlot(this.hypeSlot);
                 this.hypeClicksRemaining = this.hypeClickAmount;
                 this.step++;
                 break;
@@ -119,7 +119,7 @@ class FishingMacro extends ModuleBase {
                 }
                 break;
             case 3:
-                Guis.setItemSlot(this.deployableSlot);
+                setItemSlot(this.deployableSlot);
                 this.step++;
                 break;
             case 4:
@@ -128,7 +128,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 5:
-                Guis.setItemSlot(this.rodSlot);
+                setItemSlot(this.rodSlot);
                 this.step++;
                 break;
             case 6:
@@ -149,7 +149,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 8:
-                Guis.clickSlot(this.petSlot);
+                clickSlot(this.petSlot);
                 this.step = 0;
                 break;
         }

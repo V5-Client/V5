@@ -49,8 +49,11 @@ class ESP extends ModuleBase {
             const self = Player.getPlayer();
             const disableEspWithinDistanceSq = this.disableEspWithinDistance * this.disableEspWithinDistance;
 
+            const entities = [];
+            const names = [];
+            const namePositions = [];
             for (const player of players) {
-                if (player.getUUID().equals(Player.getUUID())) continue;
+                if (String(player.getUUID()) === String(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 
                 const entity = player.toMC();
@@ -58,19 +61,18 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= disableEspWithinDistanceSq) continue;
 
-                RenderUtils.drawHitbox(entity, this.rgba, 4, false);
+                entities.push(entity);
 
                 if (!this.showNames) continue;
 
-                const canSee = self.hasLineOfSight(entity);
-                const maxDefaultNametagDistance = canSee ? 64 : 32;
-                const maxDefaultNametagDistanceSq = maxDefaultNametagDistance * maxDefaultNametagDistance;
+                if (distanceSq <= (self.hasLineOfSight(entity) ? 64 * 64 : 32 * 32)) continue;
 
-                if (distanceSq <= maxDefaultNametagDistanceSq) continue;
-
-                const vec = new Vec3d(player.x, player.y + 2.3, player.z);
-                RenderUtils.drawText(player.getName(), vec, 1.2, true, false, true);
+                const vec = new Vec3d(player.getX(), player.getY() + 2.3, player.getZ());
+                names.push(player.getName());
+                namePositions.push(vec);
             }
+            Render3D.drawHitboxes(entities, this.rgba, 4, false);
+            Render3D.drawTexts(names, namePositions, 1.2, true, false, true);
         });
     }
 }

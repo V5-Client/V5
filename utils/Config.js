@@ -1,4 +1,4 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { File, Files, StandardCopyOption, globalAssetsDir } from './Constants';
 
 const SOURCE_SOUNDS_DIR = new File('./config/ChatTriggers/modules/V5/failsafes/sounds');
@@ -41,7 +41,7 @@ function isValidJson(path) {
         JSON.parse(FileLib.read(CONFIG_ROOT, path));
         return true;
     } catch (e) {
-        Chat.message(`§cRepairing corrupted data: ${path}`);
+        chat(`§cRepairing corrupted data: ${path}`);
         console.error('V5 Caught error' + e + e.stack);
         FileLib.delete(CONFIG_ROOT, path);
         return false;

@@ -111,7 +111,7 @@ export class ColorPicker {
     }
 
     drawCheckerboard(x, y, width, height, radius, cellSize = 4) {
-        NVG.drawCheckerboard(x, y, width, height, radius, cellSize);
+        Render2D.drawCheckerboard(x, y, width, height, radius, cellSize);
     }
 
     drawHandle(x, y, size, isCircle = true) {
@@ -192,13 +192,18 @@ export class ColorPicker {
             radius: 6,
             color: this.color,
         });
-        NVG.drawHollowRect(previewX, previewY, previewSize, previewSize, 2, THEME.BORDER.getRGB(), 6);
+        Render2D.drawHollowRect(previewX, previewY, previewSize, previewSize, 2, THEME.BORDER.getRGB(), 6);
 
         const arrowSize = 10;
         const arrowX = previewX - arrowSize - 6;
         const arrowY = this.y + (collapsedHeight - arrowSize) / 2;
 
-        const isArrowHovered = isInside(mouseX, mouseY, { x: arrowX, y: arrowY, width: arrowSize, height: arrowSize });
+        const isArrowHovered = isInside(mouseX, mouseY, {
+            x: arrowX,
+            y: arrowY,
+            width: arrowSize,
+            height: arrowSize,
+        });
 
         drawRoundedRectangle({
             x: arrowX,
@@ -211,14 +216,16 @@ export class ColorPicker {
 
         const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
-        const arrowWidth = getTextWidth(arrow, arrowFontSize);
-
-        const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
         const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 2 - 3;
 
-        drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, THEME.TEXT);
+        drawText(arrow, arrowX + arrowSize / 2, centeredArrowY, arrowFontSize, THEME.TEXT, 18);
 
-        const componentRect = { x: this.x, y: this.y, width: panelWidth, height: collapsedHeight };
+        const componentRect = {
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: collapsedHeight,
+        };
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
             setTooltip(this.description);
         }
@@ -248,13 +255,13 @@ export class ColorPicker {
 
                 const hueColorInt = java.awt.Color.HSBtoRGB(this.hue, 1, 1) | 0;
                 const whiteColorInt = new Color(1, 1, 1, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, whiteColorInt, hueColorInt, 'LeftToRight', 6);
+                Render2D.drawGradientRect(svX, svY, innerWidth, svHeight, whiteColorInt, hueColorInt, 'LeftToRight', 6);
 
                 const transparentInt = new Color(0, 0, 0, 0).getRGB() | 0;
                 const blackInt = new Color(0, 0, 0, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, transparentInt, blackInt, 'TopToBottom', 6);
+                Render2D.drawGradientRect(svX, svY, innerWidth, svHeight, transparentInt, blackInt, 'TopToBottom', 6);
 
-                NVG.drawHollowRect(svX - 1, svY - 1, innerWidth + 2, svHeight + 2, 1, THEME.BORDER.getRGB(), 7);
+                Render2D.drawHollowRect(svX - 1, svY - 1, innerWidth + 2, svHeight + 2, 1, THEME.BORDER.getRGB(), 7);
 
                 const pickerX = svX + this.sat * innerWidth;
                 const pickerY = svY + (1 - this.val) * svHeight;
@@ -264,8 +271,8 @@ export class ColorPicker {
                 const barSpacing = 10;
                 const hueY = svY + svHeight + barSpacing;
 
-                NVG.drawHueBar(svX, hueY, innerWidth, barHeight, 5);
-                NVG.drawHollowRect(svX - 1, hueY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);
+                Render2D.drawHueBar(svX, hueY, innerWidth, barHeight, 5);
+                Render2D.drawHollowRect(svX - 1, hueY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);
 
                 const hueSliderX = svX + this.hue * innerWidth;
                 this.drawSliderHandle(hueSliderX - 3, hueY - 2, 6, barHeight + 4);
@@ -276,9 +283,9 @@ export class ColorPicker {
 
                 const cTransInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 0).getRGB() | 0;
                 const cSolidInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, alphaY, innerWidth, barHeight, cTransInt, cSolidInt, 'LeftToRight', 5);
+                Render2D.drawGradientRect(svX, alphaY, innerWidth, barHeight, cTransInt, cSolidInt, 'LeftToRight', 5);
 
-                NVG.drawHollowRect(svX - 1, alphaY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);
+                Render2D.drawHollowRect(svX - 1, alphaY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);
 
                 const alphaSliderX = svX + this.alpha * innerWidth;
                 this.drawSliderHandle(alphaSliderX - 3, alphaY - 2, 6, barHeight + 4);

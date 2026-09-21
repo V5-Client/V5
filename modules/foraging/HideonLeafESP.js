@@ -1,8 +1,9 @@
-import { Vec3d } from '../../utils/Constants';
+import { ShulkerEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
-const ShulkerEntity = net.minecraft.world.entity.monster.Shulker;
+const DyeColor = net.minecraft.world.item.DyeColor;
+const isInGalatea = () => ['Galatea', 'Moonglade Marsh'].includes(area());
 
 class HideonLeafESP extends ModuleBase {
     constructor() {
@@ -20,7 +21,7 @@ class HideonLeafESP extends ModuleBase {
         this.on('step', () => this.scanTargets()).setFps(5);
 
         this.when(
-            () => this.enabled && World.isLoaded() && Utils.area() === 'Galatea' && this.targets.length > 0,
+            () => this.enabled && World.isLoaded() && isInGalatea() && this.targets.length > 0,
             'postRenderWorld',
             () => this.renderTargets()
         );
@@ -31,21 +32,29 @@ class HideonLeafESP extends ModuleBase {
     }
 
     scanTargets() {
-        if (!this.enabled || !World.isLoaded() || Utils.area() !== 'Galatea') {
+        if (!this.enabled || !World.isLoaded() || !isInGalatea()) {
             this.targets = [];
             return;
         }
 
-        this.targets = World.getAllEntitiesOfType(ShulkerEntity).filter((entity) => entity && !entity.isDead());
+        this.targets = World.getAllEntitiesOfType(ShulkerEntity).filter((entity) => entity && !entity.isDead() && entity.toMC().getColor() === DyeColor.GREEN);
     }
 
     renderTargets() {
         this.targets = this.targets.filter((entity) => entity && !entity.isDead());
 
-        this.targets.forEach((entity) => {
-            RenderUtils.drawHitbox(entity.toMC(), this.fillColor, 2, false);
-            RenderUtils.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
-        });
+        Render3D.drawHitboxes(
+            this.targets.map((entity) => entity.toMC()),
+            this.fillColor,
+            2,
+            false
+        );
+        Render3D.drawTracers(
+            this.targets.map((entity) => new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ())),
+            this.tracerColor,
+            2,
+            false
+        );
     }
 
     onDisable() {

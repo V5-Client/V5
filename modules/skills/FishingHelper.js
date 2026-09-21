@@ -1,6 +1,6 @@
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot } from '../../utils/player/Inventory';
 
 class FishingHelper extends ModuleBase {
     constructor() {
@@ -77,7 +77,7 @@ class FishingHelper extends ModuleBase {
                 this.tickDelay = 5 + this.randomTickDelay();
                 break;
             case 31:
-                Guis.clickSlot(this.pendingPetSlot);
+                clickSlot(this.pendingPetSlot);
                 this.resetSequence();
                 this.step = 0;
                 break;

@@ -25,11 +25,15 @@ V5 is split across two repositories:
 - **JavaScript module (V5):** https://github.com/V5-Client/V5  
   Contains macros/scripts used by the client.
 
-## Working on the JavaScript Module ([V5](https://github.com/V5-Client/V5))
+## Creating Custom Macros & Modules
+
+We highly recommend using UserScripts to create custom modules rather that modifiying the V5 source directly.
+
+## Developing the JavaScript Module ([V5](https://github.com/V5-Client/V5))
 
 1. In-game, run `/V5 developerMode true`.
-   This disables auto-updater behavior so your local edits are not overwritten.~
-2. You are able to git clone into modules folder for ease of use.
+   This disables auto-updater behavior so your local edits are not overwritten.
+2. You can find the javascript source in `/minecraft/config/ChatTriggers/modules/V5`.
 3. After making code changes, run `/ct load` to reload immediately.
 4. Use `/ct console` to view the JavaScript console.
 

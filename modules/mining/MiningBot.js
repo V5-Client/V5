@@ -1,17 +1,17 @@
 import { BP, ClipContext, CritParticle, HappyVillagerParticle, MCHand, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { calculateAngles, getDistanceToPlayerEyes, offsetPitch } from '../../utils/Math';
+import { getDrills, getMineTime, getMiningSpeed, getSpeedWithCold, refuel, refreshMiningStatsIfNeeded } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { NukerUtils } from '../../utils/NukerUtils';
-import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
-import { Raytrace } from '../../utils/Raytrace';
-import { manager } from '../../utils/SkyblockEvents';
-import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
-import { Rotations } from '../../utils/player/Rotations';
-import { ServerInfo } from '../../utils/player/ServerInfo';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Mouse } from '../../utils/Ungrab';
+import { queueNuke } from '../../utils/NukerUtils';
+import { ClientboundLevelParticlesPacket, getLevelParticleData } from '../../utils/Packets';
+import { isLineClear, testPointNative, testPointVisibility } from '../../utils/Raytrace';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { getConfigFile } from '../../utils/Utils';
+import { setItemSlot } from '../../utils/player/Inventory';
+import { OreRotations } from '../../utils/player/OreRotations';
+import { getTPS } from '../../utils/player/ServerInfo';
+import { getPickaxeAbilityStatus } from '../../utils/TabListUtils';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 const ORTHO_FACE_AXES = {
     x: ['y', 'z'],
@@ -21,12 +21,13 @@ const ORTHO_FACE_AXES = {
 const FACE_FALLBACK_SAMPLES = [0, 0, 0.35, 0, -0.35, 0, 0, 0.35, 0, -0.35, 0.35, 0.35, -0.35, -0.35];
 const VISIBILITY_OFFSETS = [0, 0, 0, 0.18, 0, 0, -0.18, 0, 0, 0, 0, 0.18, 0, 0, -0.18];
 const VISIBILITY_SAMPLE_COUNT = VISIBILITY_OFFSETS.length / 3;
-const AIM_POINT_INSET = 0.48;
 const AIM_POINT_FACE_INSET = 0.48;
-const AIM_POINT_EDGE_MAG = 0.45;
+const AIM_POINT_EDGE_MAG = 0.4;
 const AIM_POINT_MID_CAP = 0.3;
 const AIM_POINT_LO = 0.02;
 const AIM_POINT_HI = 0.98;
+const AIM_RETRY_MIN_DELTA_SQ = 0.0025;
+const VISIBLE_RAY_OFFSETS = [0.15, 0.5, 0.85];
 const TARGET_MODES = {
     REACHABLE: 'reachable',
     APPROACH: 'approach',
@@ -56,6 +57,9 @@ class Bot extends ModuleBase {
         this.SCAN_ONLY = false;
         this.DEBUG_MODE = false;
         this.ADDITIONAL_LAG_COMP = 0;
+        this.rotationSpeed = 0.48;
+        this.sneakWhileMining = true;
+        this.minimumVisibleRays = 0;
 
         this.STATES = { WAITING: 0, ABILITY: 1, MINING: 2, BUFF: 3, REFUEL: 4 };
 
@@ -162,6 +166,7 @@ class Bot extends ModuleBase {
             'minecraft:gold_block': 4,
             'minecraft:diamond_block': 4,
             'minecraft:emerald_block': 4,
+            'minecraft:lapis_block': 4,
         };
 
         this.tunnelCosts = {
@@ -240,10 +245,12 @@ class Bot extends ModuleBase {
             if (!this.enabled) return;
             if (this.refreshingMiningStats) {
                 this.stopMiningControls(true);
+                OreRotations.stop();
                 return;
             }
             if (Client.isInGui()) {
                 Client.unpressKeys();
+                OreRotations.stop();
                 return;
             }
 
@@ -257,15 +264,15 @@ class Bot extends ModuleBase {
             }
         });
 
-        manager.subscribe('abilityready', () => {
-            if (!this.enabled || this.refreshingMiningStats) return;
+        registerSkyblockEvent('abilityready', () => {
+            if (!this.enabled || this.refreshingMiningStats || this.state === this.STATES.REFUEL) return;
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
             if (this.DEBUG_MODE) this.message(`&a[DEBUG] abilityready → state=ABILITY, abilityFromChat=true`);
         });
 
-        manager.subscribe('abilityused', () => {
+        registerSkyblockEvent('abilityused', () => {
             if (!this.enabled) return;
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
             this.abilityFromChat = false;
@@ -274,7 +281,7 @@ class Bot extends ModuleBase {
             if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilityused → abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
-        manager.subscribe('abilitygone', () => {
+        registerSkyblockEvent('abilitygone', () => {
             if (!this.enabled) return;
             this.speedBoost = false;
             this.abilityFromChat = false;
@@ -283,11 +290,53 @@ class Bot extends ModuleBase {
             if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilitygone → abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
-        manager.subscribe('abilitycooldown', () => {
-            if (!this.enabled) return;
+        registerSkyblockEvent('abilitycooldown', () => {
+            if (!this.enabled || this.state === this.STATES.REFUEL) return;
             this.lastUse = Date.now();
             this.state = this.STATES.MINING;
             if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown → lastUse=${this.lastUse}, state=MINING`);
+        });
+
+        registerSkyblockEvent('emptydrill', () => {
+            if (!this.enabled || this.isParentManaged || this.state === this.STATES.REFUEL) return;
+            this.onDrillEmpty();
+        });
+    }
+
+    onDrillEmpty() {
+        this.message('&eDrill empty! Refueling...');
+        this.stopMiningControls(true);
+        this.setSneak(false, true);
+        OreRotations.stop();
+        this.state = this.STATES.REFUEL;
+        this._pendingAbilityActivation = false;
+        this.currentTarget = null;
+        this.foundLocations = [];
+        this.lastBlockPos = null;
+        this.lastBlockType = null;
+        this.lowestCostBlockIndex = 0;
+        this.allowScan = true;
+        this.resetTickCounters();
+
+        refuel((success) => {
+            if (!this.enabled || this.state !== this.STATES.REFUEL) return;
+            if (!success) {
+                this.message('&cRefueling failed! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.drill = getDrills()?.drill;
+            if (!this.drill) {
+                this.message('&cNo drill found after refueling! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.ensureDrillEquipped(this.drill);
+            this.nukedBlock = false;
+            this.state = this.STATES.ABILITY;
+            this.message('&aRefueling successful!');
         });
     }
 
@@ -301,10 +350,43 @@ class Bot extends ModuleBase {
             'Movement',
             (value) => {
                 this.MOVEMENT = value;
-                if (!value) Client.stopMovement();
+                if (!value) {
+                    Client.stopMovement();
+                    Client.setKey('space', false);
+                    Client.setKey('shift', false);
+                    this.lastSneakCommand = false;
+                }
             },
-            'Moves around vein while mining.',
+            'Moves toward visible ore only while it is outside normal mining reach.',
             true
+        );
+        this.addSlider(
+            'Block Reach',
+            3,
+            10,
+            8,
+            (value) => (this.approachScanReach = value),
+            'Maximum distance at which Movement can select an out-of-reach block to approach.'
+        );
+        this.addToggle(
+            'Sneak While Mining',
+            (value) => {
+                this.sneakWhileMining = value;
+                if (!value && this.enabled) {
+                    Client.setKey('shift', false);
+                    this.lastSneakCommand = false;
+                }
+            },
+            'Sneak while actively mining a block.',
+            true
+        );
+        this.addSlider(
+            'Minimum Visible Rays',
+            0,
+            9,
+            0,
+            (value) => (this.minimumVisibleRays = Math.round(value)),
+            'Minimum number of nine face samples that must raycast to the block. Zero accepts any visible amount.'
         );
         let additionalLagCompensation;
         this.addToggle(
@@ -350,6 +432,7 @@ class Bot extends ModuleBase {
             'Aims at the Precision Miner particle, speeds up mining mithril.',
             true
         );
+        this.addSlider('Mining Rotation Speed', 1, 100, 48, (value) => (this.rotationSpeed = value / 100), 'Rotation speed for mining targets.');
         this.addMultiToggle(
             'Fakelook',
             ['Off', 'Queued'],
@@ -454,14 +537,14 @@ class Bot extends ModuleBase {
     ensureDrillEquipped(drill) {
         if (!drill || drill.slot === undefined || drill.slot === null) return false;
         if (Player.getHeldItemIndex() !== drill.slot) {
-            Guis.setItemSlot(drill.slot);
+            setItemSlot(drill.slot);
             return true;
         }
         return false;
     }
 
     loadAbilitySetting() {
-        const file = Utils.getConfigFile('miningstats.json');
+        const file = getConfigFile('miningstats.json');
         this.ability = file?.ability || null;
     }
 
@@ -545,6 +628,7 @@ class Bot extends ModuleBase {
         if (stopMovement) {
             Client.stopMovement();
             Client.setKey('space', false);
+            this.setSneak(false);
         }
         Client.setKey('leftclick', false);
     }
@@ -562,8 +646,8 @@ class Bot extends ModuleBase {
                 const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
                 if (fakeLookMode === 'Instant') {
                     // Instant nuker might be bad dont use it
-                    //NukerUtils.nuke(pos, this.totalTicks);
-                } else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
+                    //nuke(pos, this.totalTicks);
+                } else if (fakeLookMode === 'Queued') queueNuke(pos, this.totalTicks);
                 this.nukedBlock = true;
             }
         }
@@ -606,12 +690,15 @@ class Bot extends ModuleBase {
     handleAbilityState() {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
+        this.stopMiningControls(true);
+        OreRotations.stop();
+
         const now = Date.now();
-        const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
+        const abilityStatus = getPickaxeAbilityStatus();
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().swinging}`
             );
         }
 
@@ -630,7 +717,7 @@ class Bot extends ModuleBase {
 
             Client.setKey('leftclick', false);
             this._pendingAbilityActivation = true;
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().swinging})`);
             return;
         }
 
@@ -644,7 +731,8 @@ class Bot extends ModuleBase {
 
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
-            if (this.MOVEMENT) this.stopMiningControls(true);
+            this.stopMiningControls(this.MOVEMENT);
+            OreRotations.stop();
             return;
         }
 
@@ -667,6 +755,8 @@ class Bot extends ModuleBase {
         const lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
         if (!lowestCostBlock) {
             this.stopMiningControls(this.MOVEMENT);
+            this.setSneak(false);
+            OreRotations.stop();
             return;
         }
 
@@ -682,22 +772,24 @@ class Bot extends ModuleBase {
             this.foundLocations = [];
             this.lowestCostBlockIndex = 0;
             this.stopMiningControls(false);
+            this.setSneak(false);
+            OreRotations.stop();
             return;
         }
 
         const hasFreshAimPoint = this.refreshCurrentTargetAimPoint();
         if (!hasFreshAimPoint) {
             if (wasApproachTarget && this.MOVEMENT) {
-                this.allowScan = true;
                 this.handleVeinMovement();
 
                 const approachVector = this.getAimVectorForTarget(this.currentTarget);
-                if (approachVector) Rotations.lookAtVector(approachVector);
+                if (approachVector) OreRotations.trackVector(approachVector, this.rotationSpeed);
                 return;
             }
 
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, now + this.movementReevalCooldownMs);
             this.stopMiningControls(true);
+            OreRotations.stop();
             this.scanForBlock(this.COSTTYPE, this.currentTarget);
             this.allowScan = false;
             return;
@@ -717,43 +809,57 @@ class Bot extends ModuleBase {
 
         const tunnelMode = this.isTunnelMode();
         const precisionMinerAim = this.getPrecisionMinerAim();
-        this.miningspeed = ((tunnelMode ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed()) || 1) * (precisionMinerAim?.boosted ? 1.3 : 1);
-        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
+        this.miningspeed = ((tunnelMode ? getSpeedWithCold() : getMiningSpeed()) || 1) * (precisionMinerAim?.boosted ? 1.3 : 1);
+        this.totalTicks = getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         this.handleBreaking(blockName, fakeLookMode);
 
+        const timedOut = this.tickCount > this.totalTicks * 2;
         const shouldGlide = this.shouldGlideToNextBlock(blockName);
-        if (shouldGlide) {
+        if (timedOut && !this.isAirOrBedrock(blockName)) {
+            const failedAim = {
+                x: this.currentTarget.aimX,
+                y: this.currentTarget.aimY,
+                z: this.currentTarget.aimZ,
+            };
+            this.resetTickCounters();
+            this.precisionMinerAim = null;
+            this.currentTarget.aimX = this.currentTarget.aimY = this.currentTarget.aimZ = null;
+            if (!this.refreshCurrentTargetAimPoint(failedAim)) this.handleRotationOrScan(false);
+        } else if (shouldGlide) {
             this.resetTickCounters();
             this.handleRotationOrScan(false);
         }
 
         const targetVector = this.getPrecisionMinerAim() || this.getAimVectorForTarget(this.currentTarget);
         if (this.currentTarget && targetVector) {
-            Rotations.lookAtVector(targetVector);
+            OreRotations.trackVector(targetVector, this.rotationSpeed);
         }
     }
 
     onPrecisionMinerParticle(packet) {
         if (!this.PRECISION_MINER) return;
-        const particle = packet.getParticle();
+        const data = getLevelParticleData(packet);
+        const particle = data.particle;
         const type = particle?.getType?.() ?? particle;
         if (
             (type !== CritParticle && type !== HappyVillagerParticle) ||
-            packet.getCount() !== 1 ||
-            packet.getXDist() !== 0 ||
-            packet.getYDist() !== 0 ||
-            packet.getZDist() !== 0 ||
-            packet.getMaxSpeed() !== 0
+            data.count !== 1 ||
+            data.xDist !== 0 ||
+            data.yDist !== 0 ||
+            data.zDist !== 0 ||
+            data.xSpeed !== 0 ||
+            data.ySpeed !== 0 ||
+            data.zSpeed !== 0
         )
             return;
 
         const target = this.currentTarget;
         if (!target) return;
         const aim = {
-            x: packet.getX(),
-            y: packet.getY(),
-            z: packet.getZ(),
+            x: data.x,
+            y: data.y,
+            z: data.z,
             targetX: target.x,
             targetY: target.y,
             targetZ: target.z,
@@ -766,7 +872,11 @@ class Bot extends ModuleBase {
     getPrecisionMinerAim() {
         if (!this.PRECISION_MINER) return null;
         if (!this.precisionMinerAim || this.precisionMinerAim.expiresAt < Date.now()) return null;
-        return this.isPrecisionMinerAimValid(this.precisionMinerAim) ? this.precisionMinerAim : null;
+        const player = Player.getPlayer();
+        if (!player) return null;
+        const distance = Math.hypot(this.precisionMinerAim.x - player.getX(), this.precisionMinerAim.z - player.getZ());
+        const aim = offsetPitch(this.precisionMinerAim, 5 / Math.max(1, distance - 1));
+        return this.isPrecisionMinerAimValid(aim) ? aim : null;
     }
 
     isPrecisionMinerAimValid(aim) {
@@ -915,14 +1025,16 @@ class Bot extends ModuleBase {
         let evaluatedCount = 0;
 
         for (const candidate of sortedCandidates) {
-            if (evaluatedCount >= this.reachableCandidateEvaluationBudget && visibleTargets.length >= this.reachableVisibleStopCount) {
+            if (
+                evaluatedCount >= this.reachableCandidateEvaluationBudget &&
+                (visibleTargets.length >= this.reachableVisibleStopCount || evaluatedCount >= this.reachableCandidateEvaluationBudget * 3)
+            )
                 break;
-            }
 
             evaluatedCount++;
 
             const aimData = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, maxReachSq, checkFov);
-            if (!aimData) continue;
+            if (!aimData || !this.hasMinimumVisibleRays(candidate, aimData, eyePos)) continue;
 
             const baseCost = this.calculateBlockCost(candidate.targetCost, aimData.dist, aimData.dot);
             const visibilityStability = this.calculateVisibilityStability(candidate.x, candidate.y, candidate.z, eyePos, maxReachSq, 1);
@@ -963,7 +1075,27 @@ class Bot extends ModuleBase {
 
         let found = this.evaluateReachableCandidates(scanned.reachableCandidates, eyePos, lookVec, mineReachSq);
         if (found.length === 0 && allowApproachTargets) {
-            found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true).approachTargets;
+            found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true)
+                .approachTargets.map((candidate) => {
+                    const aim = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, this.approachScanReach ** 2, false);
+                    if (!aim) return null;
+
+                    const visibleRays = this.minimumVisibleRays > 0 ? this.countVisibleRays(candidate, aim, eyePos) : 9;
+                    return {
+                        ...candidate,
+                        aimX: aim.x,
+                        aimY: aim.y,
+                        aimZ: aim.z,
+                        dist: aim.dist,
+                        visibleRays,
+                    };
+                })
+                .filter(Boolean);
+
+            const approachTarget = found[0];
+            if (approachTarget && approachTarget.visibleRays < this.minimumVisibleRays) {
+                approachTarget.visibilityStrafeKey = this.findVisibilityStrafeKey(approachTarget, eyePos, approachTarget.visibleRays);
+            }
         }
 
         if (found.length > 0) {
@@ -984,7 +1116,7 @@ class Bot extends ModuleBase {
         return this.scanning;
     }
 
-    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
+    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true, excludedAim = null) {
         if (!eyePos || !Number.isFinite(maxReachSq) || maxReachSq <= 0) return null;
 
         const cx = x + 0.5,
@@ -993,6 +1125,10 @@ class Bot extends ModuleBase {
         const eyeX = eyePos.x(),
             eyeY = eyePos.y(),
             eyeZ = eyePos.z();
+        const rayEye = { x: eyeX, y: eyeY, z: eyeZ };
+        const hasExcludedAim = excludedAim && [excludedAim.x, excludedAim.y, excludedAim.z].every(Number.isFinite);
+        const isExcludedAim = (pointX, pointY, pointZ) =>
+            hasExcludedAim && (pointX - excludedAim.x) ** 2 + (pointY - excludedAim.y) ** 2 + (pointZ - excludedAim.z) ** 2 < AIM_RETRY_MIN_DELTA_SQ;
         const vx = cx - eyeX,
             vy = cy - eyeY,
             vz = cz - eyeZ;
@@ -1098,61 +1234,37 @@ class Bot extends ModuleBase {
                     } else if (sampleIndex === 3) {
                         v = vEdge;
                     }
-                    let tx;
-                    let ty;
-                    let tz;
                     let fx;
                     let fy;
                     let fz;
 
                     if (isX) {
-                        tx = cx + localS * AIM_POINT_INSET;
-                        ty = cy + u;
-                        tz = cz + v;
                         fx = cx + localS * AIM_POINT_FACE_INSET;
-                        fy = ty;
-                        fz = tz;
-                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
-                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
-                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
-                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        fy = cy + u;
+                        fz = cz + v;
                         if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                         if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
                         else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
                     } else if (isY) {
-                        tx = cx + u;
-                        ty = cy + localS * AIM_POINT_INSET;
-                        tz = cz + v;
-                        fx = tx;
+                        fx = cx + u;
                         fy = cy + localS * AIM_POINT_FACE_INSET;
-                        fz = tz;
-                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
-                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
-                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
-                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        fz = cz + v;
                         if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
                         else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
                         if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
                         else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
                     } else {
-                        tx = cx + u;
-                        ty = cy + v;
-                        tz = cz + localS * AIM_POINT_INSET;
-                        fx = tx;
-                        fy = ty;
+                        fx = cx + u;
+                        fy = cy + v;
                         fz = cz + localS * AIM_POINT_FACE_INSET;
-                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
-                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
-                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
-                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
                         if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
                         else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
                         if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, tx, ty, tz, x, y, z)) {
+                    if (!isExcludedAim(fx, fy, fz) && isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1163,61 +1275,37 @@ class Bot extends ModuleBase {
                 for (let sampleIndex = 0; sampleIndex < FACE_FALLBACK_SAMPLES.length && !found; sampleIndex += 2) {
                     const u = FACE_FALLBACK_SAMPLES[sampleIndex];
                     const v = FACE_FALLBACK_SAMPLES[sampleIndex + 1];
-                    let tx;
-                    let ty;
-                    let tz;
                     let fx;
                     let fy;
                     let fz;
 
                     if (isX) {
-                        tx = cx + localS * AIM_POINT_INSET;
-                        ty = cy + u;
-                        tz = cz + v;
                         fx = cx + localS * AIM_POINT_FACE_INSET;
                         fy = cy + u;
                         fz = cz + v;
-                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
-                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
-                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
-                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
                         if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                         if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
                         else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
                     } else if (isY) {
-                        ty = cy + localS * AIM_POINT_INSET;
-                        tx = cx + u;
-                        tz = cz + v;
                         fy = cy + localS * AIM_POINT_FACE_INSET;
                         fx = cx + u;
                         fz = cz + v;
-                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
-                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
-                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
-                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
                         if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
                         else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
                         if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
                         else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
                     } else {
-                        tz = cz + localS * AIM_POINT_INSET;
-                        tx = cx + u;
-                        ty = cy + v;
                         fz = cz + localS * AIM_POINT_FACE_INSET;
                         fx = cx + u;
                         fy = cy + v;
-                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
-                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
-                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
-                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
                         if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
                         else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
                         if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
                         else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
 
-                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, tx, ty, tz, x, y, z)) {
+                    if (!isExcludedAim(fx, fy, fz) && isLineClear(eyeX, eyeY, eyeZ, fx, fy, fz, x, y, z) && testPointNative(x, y, z, [fx, fy, fz], rayEye)) {
                         resultX = fx;
                         resultY = fy;
                         resultZ = fz;
@@ -1270,27 +1358,59 @@ class Bot extends ModuleBase {
         return visibleSamples / VISIBILITY_SAMPLE_COUNT;
     }
 
-    isTargetDirectlyUnderPlayer(target = this.currentTarget) {
-        if (!target) return false;
+    countVisibleRays(block, aim, eyePosition, stopAt = Infinity) {
+        const eye = { x: eyePosition.x(), y: eyePosition.y(), z: eyePosition.z() };
+        const origin = [block.x, block.y, block.z];
+        const local = [aim.x - block.x, aim.y - block.y, aim.z - block.z];
+        const edgeDistances = local.map((value) => Math.min(value, 1 - value));
+        const faceAxis = edgeDistances.indexOf(Math.min(...edgeDistances));
+        const faceOffset = local[faceAxis] < 0.5 ? AIM_POINT_LO : AIM_POINT_HI;
+        const sampleAxes = [0, 1, 2].filter((axis) => axis !== faceAxis);
+        let visibleRays = 0;
 
-        const playerBlockX = Math.floor(Player.getX());
-        const playerBlockY = Math.floor(Player.getY());
-        const playerBlockZ = Math.floor(Player.getZ());
-
-        return target.x === playerBlockX && target.z === playerBlockZ && target.y <= playerBlockY - 1;
+        for (const firstOffset of VISIBLE_RAY_OFFSETS) {
+            for (const secondOffset of VISIBLE_RAY_OFFSETS) {
+                const point = [block.x + 0.5, block.y + 0.5, block.z + 0.5];
+                point[faceAxis] = origin[faceAxis] + faceOffset;
+                point[sampleAxes[0]] = origin[sampleAxes[0]] + firstOffset;
+                point[sampleAxes[1]] = origin[sampleAxes[1]] + secondOffset;
+                if (testPointVisibility(block.x, block.y, block.z, point, eye) && ++visibleRays >= stopAt) return visibleRays;
+            }
+        }
+        return visibleRays;
     }
 
-    isTargetAbovePlayer(target = this.currentTarget, minUpwardPitchDeg = 60) {
-        if (!target) return false;
+    hasMinimumVisibleRays(block, aim, eyePosition) {
+        return this.minimumVisibleRays <= 0 || this.countVisibleRays(block, aim, eyePosition, this.minimumVisibleRays) >= this.minimumVisibleRays;
+    }
 
-        const targetPoint = {
-            x: target.aimX ?? target.x + 0.5,
-            y: target.aimY ?? target.y + 0.5,
-            z: target.aimZ ?? target.z + 0.5,
-        };
-        const { pitch } = MathUtils.calculateAbsoluteAngles(targetPoint);
+    findVisibilityStrafeKey(block, eyePosition, currentRays) {
+        const dx = block.x + 0.5 - eyePosition.x();
+        const dz = block.z + 0.5 - eyePosition.z();
+        const distance = Math.hypot(dx, dz);
+        if (distance < 0.001) return null;
 
-        return pitch <= -Math.abs(minUpwardPitchDeg);
+        const leftX = dz / distance;
+        const leftZ = -dx / distance;
+        let bestKey = null;
+        let bestRays = currentRays;
+
+        for (const [key, direction] of [
+            ['a', 1],
+            ['d', -1],
+        ]) {
+            const candidateEye = new Vec3d(eyePosition.x() + leftX * direction * 0.75, eyePosition.y(), eyePosition.z() + leftZ * direction * 0.75);
+            const aim = this.findVisibleAimPoint(block.x, block.y, block.z, candidateEye, null, this.approachScanReach ** 2, false);
+            if (!aim) continue;
+
+            const visibleRays = this.countVisibleRays(block, aim, candidateEye);
+            if (visibleRays > bestRays) {
+                bestKey = key;
+                bestRays = visibleRays;
+            }
+        }
+
+        return bestKey;
     }
 
     setSneak(shouldSneak, force = false) {
@@ -1301,9 +1421,17 @@ class Bot extends ModuleBase {
     }
 
     handleVeinMovement() {
-        if (!this.MOVEMENT || !this.currentTarget) {
+        if (!this.currentTarget) {
             Client.stopMovement();
             Client.setKey('space', false);
+            this.setSneak(false);
+            return;
+        }
+
+        if (!this.MOVEMENT) {
+            Client.stopMovement();
+            Client.setKey('space', false);
+            this.setSneak(this.sneakWhileMining);
             return;
         }
 
@@ -1313,73 +1441,62 @@ class Bot extends ModuleBase {
             z: this.currentTarget.aimZ ?? this.currentTarget.z + 0.5,
         };
 
-        const values = MathUtils.getDistanceToPlayerEyes(targetPoint);
-        const yaw = MathUtils.calculateAngles(targetPoint).yaw;
+        const values = getDistanceToPlayerEyes(targetPoint);
+        const aligned = Math.abs(calculateAngles(targetPoint).yaw) <= 18;
 
-        if (!this._movementHumanizer) {
-            this._movementHumanizer = {
-                strafeThreshold: 15,
-                stopYawThreshold: 10,
-                moveInMin: 1.5,
-                moveInMax: 3.0,
-                moveOutThreshold: 3.75,
-                unsneakLargeMoveThreshold: 5.5,
-                unsneakDropYThreshold: 0.5,
-                jumpReachPadding: 0.2,
-            };
-        }
-
-        const cfg = this._movementHumanizer;
-        const tunnelMode = this.isTunnelMode();
-        const isHighTarget = this.isTargetAbovePlayer(this.currentTarget);
-        if (this.isTargetDirectlyUnderPlayer(this.currentTarget) || (!tunnelMode && isHighTarget)) {
+        if (!this.isApproachTarget()) {
             Client.stopMovement();
-            this.setSneak(true);
             Client.setKey('space', false);
+            this.setSneak(this.sneakWhileMining);
             return;
         }
 
-        let moveRight = yaw > cfg.strafeThreshold;
-        let moveLeft = yaw < -cfg.strafeThreshold;
-        let moveForward = values.distanceFlat > cfg.moveInMax;
-        let moveBack = values.distanceFlat < cfg.moveInMin;
-
-        const isAligned =
-            yaw >= -cfg.stopYawThreshold &&
-            yaw <= cfg.stopYawThreshold &&
-            values.distance <= 4 &&
-            !(tunnelMode && isHighTarget && values.distanceFlat < cfg.moveInMin);
-        const inDistanceBand = values.distanceFlat >= 2.5 && values.distanceFlat <= 3.25;
-        if (isAligned || inDistanceBand) {
-            moveRight = false;
-            moveLeft = false;
-            moveForward = false;
-            moveBack = false;
+        const visibilityStrafeKey = this.currentTarget.visibilityStrafeKey;
+        if (visibilityStrafeKey && values.distance <= this.mineReach) {
+            const strafeTicks = this.currentTarget.visibilityStrafeTicks ?? 0;
+            Client.setKey('a', aligned && strafeTicks < 20 && visibilityStrafeKey === 'a');
+            Client.setKey('d', aligned && strafeTicks < 20 && visibilityStrafeKey === 'd');
+            Client.setKey('w', false);
+            Client.setKey('s', false);
+            Client.setKey('space', false);
+            this.setSneak(this.sneakWhileMining);
+            if (!aligned) return;
+            if (strafeTicks < 20) {
+                this.currentTarget.visibilityStrafeTicks = strafeTicks + 1;
+                return;
+            }
+            this.currentTarget.visibilityStrafeKey = null;
         }
 
-        Client.setKey('d', moveRight);
-        Client.setKey('a', moveLeft);
-        Client.setKey('w', moveForward);
-        Client.setKey('s', moveBack);
+        Client.setKey('a', false);
+        Client.setKey('d', false);
+        Client.setKey('w', aligned);
+        Client.setKey('s', false);
 
-        const isMoving = moveRight || moveLeft || moveForward || moveBack;
-        const playerFeetY = Player.getY();
-        const targetTopY = this.currentTarget.y + 1;
-        const dropAmount = playerFeetY - targetTopY;
-        const requiresDropToMove = dropAmount > cfg.unsneakDropYThreshold && values.distanceFlat > 0.35;
-        const requiresLargeMove = values.distanceFlat > cfg.unsneakLargeMoveThreshold;
-        const justOutOfReach = true; //values.distance > this.mineReach && values.distance <= this.mineReach + cfg.jumpReachPadding;
-        const blockedForward = moveForward && this.hasForwardObstacle();
-        const shouldJump = Player.getPlayer()?.onGround() && justOutOfReach && blockedForward;
-        const shouldUnsneak = isMoving && (requiresDropToMove || requiresLargeMove);
-        this.setSneak(!shouldUnsneak);
+        const blockedForward = aligned && this.hasForwardObstacle();
+        const shouldJump = Player.getPlayer()?.onGround() && blockedForward && this.currentTarget.y >= Math.floor(Player.getY());
+        this.setSneak(this.sneakWhileMining);
         Client.setKey('space', shouldJump);
     }
 
-    refreshCurrentTargetAimPoint() {
+    refreshCurrentTargetAimPoint(excludedAim = null) {
         if (!this.currentTarget) return false;
 
         const eyePos = Player.getPlayer().getEyePosition();
+        if (
+            !excludedAim &&
+            this.isCurrentAimPointVisible(eyePos) &&
+            (!this.isApproachTarget() ||
+                this.hasMinimumVisibleRays(this.currentTarget, { x: this.currentTarget.aimX, y: this.currentTarget.aimY, z: this.currentTarget.aimZ }, eyePos))
+        ) {
+            const dx = this.currentTarget.aimX - eyePos.x();
+            const dy = this.currentTarget.aimY - eyePos.y();
+            const dz = this.currentTarget.aimZ - eyePos.z();
+            this.currentTarget.dist = Math.hypot(dx, dy, dz);
+            this.currentTarget.targetMode = TARGET_MODES.REACHABLE;
+            return true;
+        }
+
         const lookVec = Player.asPlayerMP().getLookVector();
         const hit = this.findVisibleAimPoint(
             this.currentTarget.x,
@@ -1388,10 +1505,11 @@ class Bot extends ModuleBase {
             eyePos,
             lookVec,
             this.faceReach * this.faceReach,
-            false
+            false,
+            excludedAim
         );
 
-        if (!hit) return false;
+        if (!hit || !this.hasMinimumVisibleRays(this.currentTarget, hit, eyePos)) return false;
 
         this.currentTarget.aimX = hit.x;
         this.currentTarget.aimY = hit.y;
@@ -1399,6 +1517,22 @@ class Bot extends ModuleBase {
         this.currentTarget.dist = hit.dist;
         this.currentTarget.targetMode = TARGET_MODES.REACHABLE;
         return true;
+    }
+
+    isCurrentAimPointVisible(eyePos) {
+        const target = this.currentTarget;
+        if (!target || !eyePos || ![target.aimX, target.aimY, target.aimZ].every(Number.isFinite)) return false;
+
+        const dx = target.aimX - eyePos.x();
+        const dy = target.aimY - eyePos.y();
+        const dz = target.aimZ - eyePos.z();
+        if (dx * dx + dy * dy + dz * dz > this.faceReach * this.faceReach) return false;
+
+        return testPointNative(target.x, target.y, target.z, [target.aimX, target.aimY, target.aimZ], {
+            x: eyePos.x(),
+            y: eyePos.y(),
+            z: eyePos.z(),
+        });
     }
 
     getAimVectorForTarget(target) {
@@ -1448,13 +1582,14 @@ class Bot extends ModuleBase {
         this.manualScan = true;
 
         const eyePos = Player.getPlayer().getEyePosition();
+        const lookVec = Player.asPlayerMP().getLookVector();
         const maxReachSq = this.mineReach * this.mineReach;
 
         this.foundLocations = locations
             .map((loc) => {
-                const hit = this.findVisibleAimPoint(loc.x, loc.y, loc.z, eyePos, null, maxReachSq, false);
+                const hit = this.findVisibleAimPoint(loc.x, loc.y, loc.z, eyePos, lookVec, maxReachSq, false);
 
-                if (!hit) return null;
+                if (!hit || !this.hasMinimumVisibleRays(loc, hit, eyePos)) return null;
 
                 return {
                     x: loc.x,
@@ -1482,11 +1617,11 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS()));
+        return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(getTPS()));
     }
 
     onEnable() {
-        this.drill = MiningUtils.getDrills()?.drill;
+        this.drill = getDrills()?.drill;
         if (!this.drill) {
             this.message('&cNo drill detected!');
             this.toggle(false);
@@ -1503,12 +1638,12 @@ class Bot extends ModuleBase {
         this.setCost();
         if (!this.isParentManaged) {
             this.message('&aEnabled');
-            Mouse.ungrab();
+            ungrab();
             this.manualScan = false;
         }
         this.allowScan = true;
         this.FOVPenalty = true;
-        MiningUtils.refreshMiningStatsIfNeeded(() => {
+        refreshMiningStatsIfNeeded(() => {
             if (!this.enabled || refreshToken !== this.miningStatsRefreshToken) return;
             this.loadAbilitySetting();
             this.refreshingMiningStats = false;
@@ -1520,7 +1655,7 @@ class Bot extends ModuleBase {
     onDisable() {
         if (!this.isParentManaged) {
             this.message('&cDisabled');
-            Mouse.regrab();
+            regrab();
         }
 
         this.state = this.STATES.WAITING;
@@ -1543,13 +1678,12 @@ class Bot extends ModuleBase {
         this.mineTickCount = 0;
         this.tickCount = 0;
         this.movementReevalCooldownUntil = 0;
-        this._movementHumanizer = null;
         this.lastRenderFrameTime = null;
         this.lastRenderPos = null;
         this.lastAimPos = null;
         this.lastNextPos = null;
         this.precisionMinerAim = null;
-        Rotations.stop();
+        OreRotations.stop();
         this.normalRender.unregister();
     }
 
@@ -1596,6 +1730,10 @@ class Bot extends ModuleBase {
             this.lastAimPos = null;
         }
 
+        const isLiveTarget = (target) => {
+            const blockName = World.getBlockAt(target.x, target.y, target.z)?.type?.getRegistryName() || '';
+            return !this.isAirOrBedrock(blockName);
+        };
         let nextTarget = null;
         if (this.foundLocations.length > 1 && current.aimX !== undefined) {
             const eyePos = Player.getPlayer().getEyePosition();
@@ -1613,6 +1751,7 @@ class Bot extends ModuleBase {
                 for (const loc of this.foundLocations) {
                     if (loc.x === current.x && loc.y === current.y && loc.z === current.z) continue;
                     if (loc.aimX === undefined) continue;
+                    if (!isLiveTarget(loc)) continue;
 
                     const dx = loc.aimX - eyePos.x();
                     const dy = loc.aimY - eyePos.y();
@@ -1631,7 +1770,11 @@ class Bot extends ModuleBase {
                 }
             }
         } else if (this.foundLocations.length > 1) {
-            nextTarget = this.foundLocations.find((loc) => loc.x !== current.x || loc.y !== current.y || loc.z !== current.z) || null;
+            nextTarget =
+                this.foundLocations.find((loc) => {
+                    if (loc.x === current.x && loc.y === current.y && loc.z === current.z) return false;
+                    return isLiveTarget(loc);
+                }) || null;
         }
 
         if (nextTarget) {
@@ -1650,24 +1793,18 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
         const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        RenderUtils.drawStyledBox(
-            new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z),
-            palette.currentFill,
-            palette.currentWire,
-            6,
-            false
-        );
+        Render3D.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
 
         if (this.lastAimPos) {
             const d = 0.08;
             const { x, y, z } = this.lastAimPos;
-            RenderUtils.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), palette.aimColor, 2, false);
-            RenderUtils.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), palette.aimColor, 2, false);
-            RenderUtils.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), palette.aimColor, 2, false);
+            Render3D.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), palette.aimColor, 2, false);
         }
 
         if (this.lastNextPos) {
-            RenderUtils.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), palette.nextFill, palette.nextWire, 6, false);
+            Render3D.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), palette.nextFill, palette.nextWire, 6, false);
         }
     }
 
@@ -1682,14 +1819,14 @@ class Bot extends ModuleBase {
                     g = i === 0 ? 1 : 1 - t,
                     b = i === 0 ? 1 : 0;
 
-                RenderUtils.drawWireFrameBox(new Vec3d(loc.x, loc.y, loc.z), new RenderColor(r * 255, g * 255, b * 255, 255));
+                Render3D.drawWireFrameBox(new Vec3d(loc.x, loc.y, loc.z), new RenderColor(r * 255, g * 255, b * 255, 255));
 
                 if (loc.aimX !== undefined) {
                     const d = 0.1;
                     const color = new RenderColor(r * 255, g * 255, b * 255, 230);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
+                    Render3D.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
                 }
             }
         }

@@ -1,5 +1,5 @@
-import { TimeUtils } from '../utils/TimeUtils';
-import { Utils } from '../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
+import { formatUptime } from '../utils/TimeUtils';
 import {
     BORDER_WIDTH,
     clamp,
@@ -15,9 +15,20 @@ import {
     THEME,
 } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
-import { ServerInfo } from '../utils/player/ServerInfo';
+import { loadSettings } from './GuiSave';
+import {
+    drawInventoryHudBackground,
+    drawMusicOverlay,
+    drawStatsHud,
+    getInventoryHudBounds,
+    getMusicOverlayBounds,
+    getStatsHudBounds,
+    getStatsHudLines,
+} from './OverlayRenderers';
 
-const { loadSettings } = require('./GuiSave');
+const GRID_SIZE = 10;
+const ELEMENT_SNAP_DISTANCE = 4;
+const ELEMENT_NEAR_DISTANCE = 20;
 
 class OverlayUtils {
     constructor() {
@@ -25,6 +36,7 @@ class OverlayUtils {
         this.dragging = false;
         this.dragTarget = null;
         this.dragOffset = { x: 0, y: 0 };
+        this.snapGuides = [];
 
         this.settings = {
             x: 10,
@@ -52,6 +64,10 @@ class OverlayUtils {
 
         this.editorOrder = ['default', 'scheduler', 'hudInventory', 'hudStats', 'music'];
         this.editorBoxes = {};
+        this.exampleOverlay = null;
+        this.schedulerExampleOverlay = null;
+        this.lastClickTarget = null;
+        this.lastClickAt = 0;
 
         this.startTimes = {};
         this.animations = {};
@@ -64,14 +80,15 @@ class OverlayUtils {
         this.renderActive = false;
         this.drawingGUI = false;
 
-        NVG.registerV5Render(() => {
+        this.renderCallback = () => {
             if (!Overlays.Gui.isOpen() && !this.renderActive) return;
             if (Overlays.Gui.isOpen()) {
                 this.drawGUI();
             } else {
                 this.drawAllOverlays();
             }
-        });
+        };
+        this.renderRegistration = null;
 
         register('gameUnload', () => this.resetAll());
 
@@ -105,8 +122,21 @@ class OverlayUtils {
     }
 
     updateRenderActive() {
-        this.renderActive = Object.values(this.animations).some((animation) => animation.target > 0 || animation.progress > 0.01);
+        this.renderActive = this.ids.some((id) => {
+            const animation = this.animations[id.name];
+            const settings = id.isScheduler ? this.schedulerSettings : this.settings;
+            return settings.enabled !== false && animation && (animation.target > 0 || animation.progress > 0.01);
+        });
+        this.updateRenderRegistration();
         return this.renderActive;
+    }
+
+    updateRenderRegistration(active = this.renderActive || Overlays.Gui.isOpen()) {
+        if (active && !this.renderRegistration) this.renderRegistration = Render2D.registerV5Render(this.renderCallback);
+        else if (!active && this.renderRegistration) {
+            Render2D.unregisterV5Render(this.renderRegistration);
+            this.renderRegistration = null;
+        }
     }
 
     startAnimationLoop() {
@@ -165,7 +195,7 @@ class OverlayUtils {
         } else {
             this.animations[idName].target = 1;
         }
-        this.renderActive = true;
+        this.updateRenderActive();
         this.startAnimationLoop();
     }
 
@@ -195,17 +225,6 @@ class OverlayUtils {
         this.resetTime(idName, false);
     }
 
-    deleteID(idName) {
-        this.ids = this.ids.filter((id) => id.name !== idName);
-        delete this.animations[idName];
-        delete this.startTimes[idName];
-        delete this.savedSessions[idName];
-        delete this.sessionTrackedDefaults[idName];
-        delete this.sessionTrackedValues[idName];
-        this.updateRenderActive();
-        this.saveSettings();
-    }
-
     resetAll() {
         this.ids = [];
         this.animations = {};
@@ -214,29 +233,25 @@ class OverlayUtils {
         this.sessionTrackedDefaults = {};
         this.sessionTrackedValues = {};
         this.dragging = false;
+        this.snapGuides = [];
         this.pendingSave = false;
         this.renderActive = false;
+        this.updateRenderRegistration(false);
         if (this.stepTrigger) {
             this.stepTrigger.unregister();
             this.stepTrigger = null;
         }
     }
 
-    getMacroDuration(macroName) {
-        const saved = this.savedSessions && this.savedSessions[macroName];
-        if (saved && typeof saved.elapsedMs === 'number') return TimeUtils.formatDurationMs(saved.elapsedMs);
-
-        const startTime = this.startTimes && this.startTimes[macroName];
-        return startTime ? TimeUtils.formatUptime(startTime) : '';
-    }
-
     initTriggers() {
+        Overlays.Gui.registerOpened(() => this.updateRenderRegistration(true));
         Overlays.Gui.registerClosed(() => {
             this.handleMouseRelease();
             if (this.pendingSave) {
                 this.saveSettings();
                 this.pendingSave = false;
             }
+            this.updateRenderRegistration(this.renderActive);
             openModuleGui();
         });
         Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
@@ -252,6 +267,7 @@ class OverlayUtils {
 
         if (existing) {
             existing.sections = sectionsArray;
+            delete existing.renderLayout;
             if (options.isScheduler !== undefined) {
                 existing.isScheduler = options.isScheduler === true;
             }
@@ -312,22 +328,8 @@ class OverlayUtils {
         return this.setTrackedValue(idName, key, current + amount);
     }
 
-    getSessionElapsedMs(idName) {
-        const startedAt = this.startTimes[idName];
-        if (startedAt !== undefined) {
-            return Math.max(0, Date.now() - startedAt);
-        }
-
-        const saved = this.savedSessions[idName];
-        if (saved && saved.elapsedMs !== undefined) {
-            return Math.max(0, saved.elapsedMs);
-        }
-
-        return 0;
-    }
-
     getExampleOverlay() {
-        return {
+        return (this.exampleOverlay ||= {
             name: 'Example Module',
             x: this.settings.x,
             y: this.settings.y,
@@ -368,11 +370,11 @@ class OverlayUtils {
                     },
                 },
             ],
-        };
+        });
     }
 
     getSchedulerExampleOverlay() {
-        return {
+        return (this.schedulerExampleOverlay ||= {
             name: 'Scheduler',
             x: this.schedulerSettings.x,
             y: this.schedulerSettings.y,
@@ -389,7 +391,7 @@ class OverlayUtils {
                     },
                 },
             ],
-        };
+        });
     }
 
     handleMouseClick(mouseX, mouseY) {
@@ -401,8 +403,23 @@ class OverlayUtils {
             const settings = this.getTargetSettings(target);
             if (!settings) continue;
 
+            const now = Date.now();
+            if (this.lastClickTarget === target && now - this.lastClickAt <= 300) {
+                settings.enabled = settings.enabled === false;
+                this.lastClickTarget = null;
+                this.dragging = false;
+                this.dragTarget = null;
+                this.saveSettings();
+                this.updateRenderActive();
+                return;
+            }
+
+            this.lastClickTarget = target;
+            this.lastClickAt = now;
+
             this.dragging = true;
             this.dragTarget = target;
+            this.snapGuides = [];
             this.dragOffset.x = mouseX - settings.x;
             this.dragOffset.y = mouseY - settings.y;
 
@@ -414,25 +431,69 @@ class OverlayUtils {
 
     handleMouseDrag(mouseX, mouseY) {
         if (!this.dragging || !this.dragTarget) return;
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         const settings = this.getTargetSettings(this.dragTarget);
         if (!settings) return;
 
         const box = this.editorBoxes[this.dragTarget];
-        const boxWidth = box?.width || 50;
-        const boxHeight = box?.height || 20;
+        const border = box?.border || BORDER_WIDTH * settings.scale;
+        const boxWidth = box?.width || 50 + border * 2;
+        const boxHeight = box?.height || 20 + border * 2;
+        let x = mouseX - this.dragOffset.x - border;
+        let y = mouseY - this.dragOffset.y - border;
 
-        settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - boxWidth));
-        settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - boxHeight));
+        const snap = (value, candidates) => {
+            const nearest = candidates.reduce((best, candidate) => (Math.abs(candidate.value - value) < Math.abs(best.value - value) ? candidate : best), {
+                value: Infinity,
+            });
+            return Math.abs(nearest.value - value) <= ELEMENT_SNAP_DISTANCE ? nearest : null;
+        };
+        const otherBoxes = Object.entries(this.editorBoxes).filter(([target]) => target !== this.dragTarget);
+        const getSnapPositions = (axis, size, perpendicularStart, perpendicularSize) =>
+            otherBoxes.reduce((positions, [target, other]) => {
+                const perpendicularAxis = axis === 'x' ? 'y' : 'x';
+                const otherPerpendicularStart = other[perpendicularAxis];
+                const otherPerpendicularEnd = otherPerpendicularStart + other[perpendicularAxis === 'x' ? 'width' : 'height'];
+                if (
+                    perpendicularStart > otherPerpendicularEnd + ELEMENT_NEAR_DISTANCE ||
+                    perpendicularStart + perpendicularSize < otherPerpendicularStart - ELEMENT_NEAR_DISTANCE
+                )
+                    return positions;
+
+                const start = other[axis];
+                const end = start + other[axis === 'x' ? 'width' : 'height'];
+                return positions.concat([
+                    { value: start, guide: start, target },
+                    { value: end, guide: end, target },
+                    { value: start - size, guide: start, target },
+                    { value: end - size, guide: end, target },
+                    { value: (start + end - size) / 2, guide: (start + end) / 2, target },
+                ]);
+            }, []);
+        const elementX = snap(x, getSnapPositions('x', boxWidth, y, boxHeight));
+        const elementY = snap(y, getSnapPositions('y', boxHeight, x, boxWidth));
+        const skipGrid = Client.isAltDown();
+        x = elementX?.value ?? (skipGrid ? x : Math.round(x / GRID_SIZE) * GRID_SIZE);
+        y = elementY?.value ?? (skipGrid ? y : Math.round(y / GRID_SIZE) * GRID_SIZE);
+        const clampedX = Math.max(0, Math.min(x, sw - boxWidth));
+        const clampedY = Math.max(0, Math.min(y, sh - boxHeight));
+
+        this.snapGuides = [
+            ...(elementX && clampedX === x ? [{ axis: 'x', coordinate: elementX.guide, target: elementX.target }] : []),
+            ...(elementY && clampedY === y ? [{ axis: 'y', coordinate: elementY.guide, target: elementY.target }] : []),
+        ];
+
+        settings.x = clampedX + border;
+        settings.y = clampedY + border;
         this.pendingSave = true;
-        this.saveSettings();
     }
 
     handleMouseRelease() {
         if (this.dragging) {
             this.dragging = false;
             this.dragTarget = null;
+            this.snapGuides = [];
             this.saveSettings();
             this.pendingSave = false;
         }
@@ -451,7 +512,6 @@ class OverlayUtils {
             settings.scale = clamp(scale + (dir > 0 ? 0.1 : -0.1), 0.5, 3);
             if (target === 'default' || target === 'scheduler') this.updateScaleProps(target);
             this.pendingSave = true;
-            this.saveSettings();
             return;
         }
     }
@@ -465,33 +525,15 @@ class OverlayUtils {
         return null;
     }
 
-    clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
-        const sw = swOverride !== null ? swOverride : Renderer.screen.getWidth();
-        const sh = shOverride !== null ? shOverride : Renderer.screen.getHeight();
+    clampToScreen(x, y, w, h, swOverride = null, shOverride = null, border = 0) {
+        const sw = swOverride !== null ? swOverride : Render2D.screen.getWidth();
+        const sh = shOverride !== null ? shOverride : Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return { x, y };
 
         return {
-            x: Math.max(0, Math.min(x, sw - w)),
-            y: Math.max(0, Math.min(y, sh - h)),
+            x: Math.max(border, Math.min(x, sw - w - border)),
+            y: Math.max(border, Math.min(y, sh - h - border)),
         };
-    }
-
-    drawAccentGlow(x, y, width, height, radius, progress, accentOverride = null) {
-        const accentColor = accentOverride || THEME.ACCENT;
-        const glowIntensity = 0.12;
-        for (let i = 2; i >= 0; i--) {
-            const expand = i * 2;
-            const alpha = (glowIntensity - i * 0.025) * progress;
-            if (alpha <= 0) continue;
-            drawRoundedRectangle({
-                x: x - expand,
-                y: y - expand,
-                width: width + expand * 2,
-                height: height + expand * 2,
-                radius: radius + expand,
-                color: colorWithAlpha(accentColor, alpha),
-            });
-        }
     }
 
     drawSectionDivider(x, y, width, progress, accentOverride = null) {
@@ -502,9 +544,9 @@ class OverlayUtils {
         const centerColor = colorWithAlpha(accentColor, 0.3 * progress);
         const edgeColor = colorWithAlpha(accentColor, 0);
         // left
-        NVG.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
+        Render2D.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
         // right
-        NVG.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
+        Render2D.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
     }
 
     renderID(id, forceGUI = false, screenSize = null) {
@@ -530,50 +572,69 @@ class OverlayUtils {
         const basePadding = boxPadding;
 
         const sections = this.ensureArray(id.sections);
-        const uptimeVal = forceGUI ? '0.00s' : TimeUtils.formatUptime(this.startTimes[id.name]);
+        const uptimeVal = forceGUI ? '0.00s' : formatUptime(this.startTimes[id.name]);
 
-        let contentMaxWidth = getTextWidth(id.name, fontSize);
-        let calculatedHeight = 30 * scale;
-        const renderSections = [];
+        let layout = id.renderLayout;
+        if (!layout || layout.sections !== sections || layout.scale !== scale || layout.showUptime !== showUptime) {
+            let contentBaseWidth = getTextWidth(id.name, fontSize);
+            let calculatedHeight = 30 * scale;
+            const renderSections = [];
 
-        sections.forEach((section, sIdx) => {
-            if (!section || typeof section !== 'object') return;
-            const sectionLines = [];
-            const sectionData = section.data || {};
+            sections.forEach((section, sIdx) => {
+                if (!section || typeof section !== 'object') return;
+                const sectionLines = [];
+                const title = section.title ? section.title.toUpperCase() : null;
 
-            if (section.title) {
-                const titleWidth = getTextWidth(section.title.toUpperCase(), argFontSize * 0.85);
-                contentMaxWidth = Math.max(contentMaxWidth, titleWidth + 10 * scale);
-                calculatedHeight += headerHeight - 4 * scale;
-            }
-            calculatedHeight += sectionGap;
+                if (title) {
+                    contentBaseWidth = Math.max(contentBaseWidth, getTextWidth(title, argFontSize * 0.85) + 10 * scale);
+                    calculatedHeight += headerHeight - 4 * scale;
+                }
+                calculatedHeight += sectionGap;
 
-            if (sIdx === 0 && showUptime) {
-                const label = 'Uptime:';
-                const labelWidth = getTextWidth(label, argFontSize);
-                const valueWidth = getTextWidth(uptimeVal, argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
-                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: uptimeVal, isUptime: true });
-            }
+                if (sIdx === 0 && showUptime) {
+                    sectionLines.push({
+                        label: 'Uptime:',
+                        labelWidth: getTextWidth('Uptime:', argFontSize),
+                        source: null,
+                        value: null,
+                        valueWidth: 0,
+                        isUptime: true,
+                    });
+                }
 
-            Object.entries(sectionData).forEach(([k, v]) => {
-                const displayVal = typeof v === 'function' ? v() : v;
-                const label = `${k}:`;
-                const labelWidth = getTextWidth(label, argFontSize);
-                const valueWidth = getTextWidth(String(displayVal), argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
-                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: displayVal, isUptime: false });
+                Object.entries(section.data || {}).forEach(([key, source]) => {
+                    const label = `${key}:`;
+                    sectionLines.push({
+                        label,
+                        labelWidth: getTextWidth(label, argFontSize),
+                        source,
+                        value: null,
+                        valueWidth: 0,
+                        isUptime: false,
+                    });
+                });
+
+                calculatedHeight += sectionLines.length * rowHeight + 2 * scale;
+                renderSections.push({ title, lines: sectionLines });
             });
+            calculatedHeight += 6 * scale;
+            layout = { sections, scale, showUptime, contentBaseWidth, calculatedHeight, renderSections };
+            id.renderLayout = layout;
+        }
 
-            const lineCount = sectionLines.length;
-            calculatedHeight += lineCount * rowHeight;
-            calculatedHeight += 2 * scale;
-
-            renderSections.push({ title: section.title, lines: sectionLines });
-        });
-        calculatedHeight += 6 * scale;
+        let contentMaxWidth = layout.contentBaseWidth;
+        layout.renderSections.forEach((section) =>
+            section.lines.forEach((line) => {
+                const value = String(line.isUptime ? uptimeVal : typeof line.source === 'function' ? line.source() : line.source);
+                if (value !== line.value) {
+                    line.value = value;
+                    line.valueWidth = getTextWidth(value, argFontSize);
+                }
+                contentMaxWidth = Math.max(contentMaxWidth, line.labelWidth + line.valueWidth + 25 * scale);
+            })
+        );
+        const calculatedHeight = layout.calculatedHeight;
+        const renderSections = layout.renderSections;
 
         const totalWidth = contentMaxWidth + basePadding * 2;
 
@@ -589,7 +650,7 @@ class OverlayUtils {
         const sw = screenSize ? screenSize.sw : null;
         const sh = screenSize ? screenSize.sh : null;
         if (sw && sh) {
-            const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh);
+            const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh, BORDER_WIDTH * scale);
             x = clamped.x;
             y = clamped.y;
             if (forceGUI) {
@@ -617,10 +678,10 @@ class OverlayUtils {
             const contentAlpha = Math.min(1, progress * 3);
 
             try {
-                NVG.scissor(x, y, id.width, currentHeight);
+                Render2D.scissor(x, y, id.width, currentHeight);
                 const titleY = y + 20 * scale;
-                const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
-                const titleAlign = 16;
+                const titleX = x + id.width / 2;
+                const titleAlign = 18;
 
                 drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0xff000000, 0.35 * contentAlpha), titleAlign);
                 drawText(id.name, titleX, titleY, fontSize, colorWithAlpha(THEME.TEXT, contentAlpha), titleAlign);
@@ -634,7 +695,7 @@ class OverlayUtils {
                     const leftAlignX = x + basePadding;
 
                     if (section.title) {
-                        drawText(section.title.toUpperCase(), leftAlignX, contentY, argFontSize * 0.8, colorWithAlpha(accentColor, contentAlpha), 17);
+                        drawText(section.title, leftAlignX, contentY, argFontSize * 0.8, colorWithAlpha(accentColor, contentAlpha), 17);
                         contentY += headerHeight - 6 * scale;
                     }
 
@@ -644,20 +705,25 @@ class OverlayUtils {
                         const valueX = x + id.width - basePadding;
                         const valueColor = line.isUptime ? colorWithAlpha(accentColor, contentAlpha) : colorWithAlpha(THEME.TEXT, contentAlpha);
 
-                        drawText(String(line.value), valueX, contentY, argFontSize, valueColor, 20);
+                        drawText(line.value, valueX, contentY, argFontSize, valueColor, 20);
 
                         contentY += rowHeight;
                     });
                     contentY += 4 * scale;
                 });
             } finally {
-                NVG.resetScissor();
+                Render2D.resetScissor();
             }
         }
 
         if (forceGUI) {
             if (isScheduler) {
-                this.currentSchedulerExampleBox = { x, y, width: id.width, height: id.height };
+                this.currentSchedulerExampleBox = {
+                    x,
+                    y,
+                    width: id.width,
+                    height: id.height,
+                };
             } else {
                 this.currentExampleBox = { x, y, width: id.width, height: id.height };
             }
@@ -665,15 +731,17 @@ class OverlayUtils {
     }
 
     drawGUI() {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
-        Client.getMinecraft().gameRenderer.processBlurEffect();
+        Render2D.blurBackground();
+        const gridColor = colorWithAlpha(THEME.BORDER, 0.18);
+        for (let x = GRID_SIZE; x < sw; x += GRID_SIZE) Render2D.drawRect(x, 0, 1, sh, gridColor);
+        for (let y = GRID_SIZE; y < sh; y += GRID_SIZE) Render2D.drawRect(0, y, sw, 1, gridColor);
         this.editorBoxes = {};
         this.drawingGUI = true;
 
         try {
-            NVG.beginFrame(sw, sh);
             this.editorOrder.forEach((target) => {
                 if (target === 'default') {
                     const example = this.getExampleOverlay();
@@ -704,67 +772,121 @@ class OverlayUtils {
                 }
             });
 
-            const text = 'Drag overlays to reposition. Scroll over module/scheduler/HUD previews to resize.';
-            const textWidth = getTextWidth(text, FontSizes.MEDIUM);
-            drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 16);
+            Object.entries(this.editorBoxes).forEach(([target, box]) => {
+                const border = BORDER_WIDTH * this.getTargetSettings(target).scale;
+                this.editorBoxes[target] = {
+                    x: box.x - border,
+                    y: box.y - border,
+                    width: box.width + border * 2,
+                    height: box.height + border * 2,
+                    border,
+                };
+            });
+
+            const draggedBox = this.editorBoxes[this.dragTarget];
+            this.snapGuides.forEach(({ axis, coordinate, target }) => {
+                const otherBox = this.editorBoxes[target];
+                if (!draggedBox || !otherBox) return;
+
+                if (axis === 'x') {
+                    Render2D.drawLine(
+                        coordinate,
+                        Math.min(draggedBox.y, otherBox.y),
+                        coordinate,
+                        Math.max(draggedBox.y + draggedBox.height, otherBox.y + otherBox.height),
+                        1,
+                        colorWithAlpha(THEME.NOTIF_DANGER, 0.9)
+                    );
+                } else {
+                    Render2D.drawLine(
+                        Math.min(draggedBox.x, otherBox.x),
+                        coordinate,
+                        Math.max(draggedBox.x + draggedBox.width, otherBox.x + otherBox.width),
+                        coordinate,
+                        1,
+                        colorWithAlpha(THEME.NOTIF_DANGER, 0.9)
+                    );
+                }
+            });
+
+            this.editorOrder.forEach((target) => {
+                const settings = this.getTargetSettings(target);
+                const box = this.editorBoxes[target];
+                if (!settings || !box) return;
+                if (settings.enabled === false) {
+                    const radiusScale = { default: 1, scheduler: 1, hudStats: 0.6, hudInventory: 0.55, music: 0.6 }[target];
+                    drawRoundedRectangle({
+                        ...box,
+                        radius: CORNER_RADIUS * radiusScale * settings.scale + box.border,
+                        color: colorWithAlpha(THEME.NOTIF_ERROR, 0.4),
+                    });
+                }
+                if (this.dragging && target === this.dragTarget) {
+                    const details = `X: ${Math.round(box.x)}  Y: ${Math.round(box.y)}  Scale: ${settings.scale.toFixed(1)}`;
+                    const detailsY = box.y + box.height + 14 < sh ? box.y + box.height + 14 : box.y - 6;
+                    drawText(details, box.x + box.width / 2, detailsY, FontSizes.MEDIUM, THEME.TEXT, 18);
+                }
+            });
+
+            const text = 'Drag to move. Scroll to resize. Double-click to toggle. Hold Alt to skip the grid.';
+            drawText(text, sw / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 18);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            NVG.endFrame();
+            console.error(e);
         }
     }
 
     drawAllOverlays() {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
 
         const visibleIds = this.ids.filter((id) => {
             const anim = this.animations[id.name];
-            return anim && (anim.target > 0 || anim.progress > 0.01);
+            const settings = id.isScheduler ? this.schedulerSettings : this.settings;
+            return settings.enabled !== false && anim && (anim.target > 0 || anim.progress > 0.01);
         });
 
         if (visibleIds.length === 0) {
             this.renderActive = false;
+            this.updateRenderRegistration(false);
             return;
         }
         this.renderActive = true;
 
         try {
-            NVG.beginFrame(sw, sh);
             visibleIds.forEach((id) => {
                 this.renderID(id, false, { sw, sh });
             });
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            NVG.endFrame();
+            console.error(e);
         }
     }
 
     saveSettings() {
-        Utils.writeConfigFile('OverlayPositions/overlays.json', {
+        writeConfigFile('OverlayPositions/overlays.json', {
             default: this.settings,
             scheduler: this.schedulerSettings,
         });
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
-        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
+        writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
     }
 
     loadSettings() {
-        const data = Utils.getConfigFile('OverlayPositions/overlays.json');
+        const data = getConfigFile('OverlayPositions/overlays.json');
         if (data) {
             if (data.default && typeof data.default.x === 'number') {
                 this.settings = {
                     x: data.default.x,
                     y: data.default.y,
                     scale: data.default.scale || 1.2,
+                    enabled: data.default.enabled !== false,
                 };
             } else if (typeof data.x === 'number') {
                 this.settings = {
                     x: data.x,
                     y: data.y,
                     scale: data.scale || 1.2,
+                    enabled: data.enabled !== false,
                 };
             }
 
@@ -773,6 +895,7 @@ class OverlayUtils {
                     x: data.scheduler.x,
                     y: data.scheduler.y,
                     scale: data.scheduler.scale || 1.0,
+                    enabled: data.scheduler.enabled !== false,
                 };
             }
 
@@ -780,13 +903,14 @@ class OverlayUtils {
             this.updateScaleProps('scheduler');
         }
 
-        const hudData = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const hudData = getConfigFile('OverlayPositions/hud_positions.json');
         if (hudData && typeof hudData === 'object') {
             if (hudData.stats && typeof hudData.stats.x === 'number') {
                 this.hudSettings.stats = {
                     x: hudData.stats.x,
                     y: hudData.stats.y,
                     scale: typeof hudData.stats.scale === 'number' ? hudData.stats.scale : 1.0,
+                    enabled: hudData.stats.enabled !== false,
                 };
             }
 
@@ -795,200 +919,63 @@ class OverlayUtils {
                     x: hudData.inventory.x,
                     y: hudData.inventory.y,
                     scale: typeof hudData.inventory.scale === 'number' ? hudData.inventory.scale : 1.0,
+                    enabled: hudData.inventory.enabled !== false,
                 };
             }
         }
 
-        const musicData = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        const musicData = getConfigFile('OverlayPositions/music_overlay.json');
         if (musicData && typeof musicData === 'object' && typeof musicData.x === 'number' && typeof musicData.y === 'number') {
             this.musicSettings = {
                 x: musicData.x,
                 y: musicData.y,
                 scale: typeof musicData.scale === 'number' ? musicData.scale : 1.0,
+                enabled: musicData.enabled !== false,
             };
         }
     }
 
     drawHudStatsPreview(sw, sh) {
-        const s = this.hudSettings.stats.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-        const lines = this.getHudStatsLines();
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-        const totalWidth = slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1);
-
-        const width = pad * 2 + totalWidth;
-        const height = pad * 2 + fontSize;
-
-        const clamped = this.clampToScreen(this.hudSettings.stats.x, this.hudSettings.stats.y, width, height, sw, sh);
-        this.hudSettings.stats.x = clamped.x;
-        this.hudSettings.stats.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const labelColor = THEME.TEXT_MUTED;
-        const separatorColor = colorWithAlpha(THEME.TEXT_MUTED, 0.6);
-        const centerY = clamped.y + height / 2;
-        let x = clamped.x + pad;
-
-        lines.forEach((l, index) => {
-            const label = `${l.label}:`;
-            const value = String(l.value);
-
-            drawText(label, x, centerY, fontSize, labelColor, 17);
-            drawText(value, x + getTextWidth(label, fontSize) + gaps[index], centerY, fontSize, l.color, 17);
-
-            x += slotWidths[index];
-
-            if (index < lines.length - 1) {
-                drawText(separator, x, centerY, fontSize, separatorColor, 17);
-                x += separatorWidth;
-            }
-        });
-
-        return { x: clamped.x, y: clamped.y, width, height };
+        const lines = getStatsHudLines();
+        const overlay = {
+            ...this.hudSettings.stats,
+            ...getStatsHudBounds(this.hudSettings.stats.scale),
+        };
+        Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale));
+        Object.assign(overlay, this.hudSettings.stats);
+        drawStatsHud(overlay, lines);
+        return overlay;
     }
 
     drawHudInventoryPreview(sw, sh) {
-        const s = this.hudSettings.inventory.scale;
-        const cols = 9;
-        const mainRows = 3;
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const width = pad * 2 + cols * slot;
-        const height = pad * 2 + mainRows * slot + gap + slot;
-
-        const clamped = this.clampToScreen(this.hudSettings.inventory.x, this.hudSettings.inventory.y, width, height, sw, sh);
-        this.hudSettings.inventory.x = clamped.x;
-        this.hudSettings.inventory.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.55 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const separatorThickness = Math.max(1, 1 * s);
-        const gridStartX = clamped.x + pad;
-        const mainStartY = clamped.y + pad;
-        const rowWidth = cols * slot;
-        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
-        const halfWidth = rowWidth / 2;
-        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
-        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
-
-        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
-        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
-
-        return { x: clamped.x, y: clamped.y, width, height };
+        const overlay = {
+            ...this.hudSettings.inventory,
+            ...getInventoryHudBounds(this.hudSettings.inventory.scale),
+        };
+        Object.assign(
+            this.hudSettings.inventory,
+            this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale)
+        );
+        Object.assign(overlay, this.hudSettings.inventory);
+        drawInventoryHudBackground(overlay);
+        return overlay;
     }
 
     drawMusicPreview(sw, sh) {
-        const s = this.musicSettings.scale || 1.0;
         const songName = 'Searching for Media...';
-        const timeCur = '--:--';
-        const timeMax = '--:--';
-        const padding = 12 * s;
-        const imageSize = 55 * s;
-        const titleFontSize = FontSizes.MEDIUM * 1.3 * s;
-        const timerFontSize = FontSizes.MEDIUM * 0.85 * s;
-        const barHeight = 4 * s;
-        const nameWidth = getTextWidth(songName, titleFontSize);
-        const width = Math.max(200 * s, nameWidth + imageSize + padding * 4);
-        const height = 90 * s;
-        const clamped = this.clampToScreen(this.musicSettings.x, this.musicSettings.y, width, height, sw, sh);
-        this.musicSettings.x = clamped.x;
-        this.musicSettings.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
+        const overlay = {
+            ...this.musicSettings,
+            ...getMusicOverlayBounds(this.musicSettings.scale || 1, songName),
+        };
+        Object.assign(this.musicSettings, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh, BORDER_WIDTH * overlay.scale));
+        Object.assign(overlay, this.musicSettings);
+        drawMusicOverlay({
+            overlay,
+            songName,
+            currentTime: '--:--',
+            totalTime: '--:--',
         });
-
-        const imgX = clamped.x + width - imageSize - padding;
-        const imgY = clamped.y + padding;
-        drawRoundedRectangleWithBorder({
-            x: imgX,
-            y: imgY,
-            width: imageSize,
-            height: imageSize,
-            radius: CORNER_RADIUS * 0.5 * s,
-            color: THEME.BG_INSET,
-            borderWidth: 0,
-            borderColor: 0,
-        });
-
-        const qWidth = getTextWidth('...', titleFontSize);
-        drawText('...', imgX + imageSize / 2 - qWidth / 2, imgY + imageSize / 2 - titleFontSize / 2.5, titleFontSize, THEME.TEXT_MUTED, 16);
-        drawText(songName, clamped.x + padding, clamped.y + padding + titleFontSize, titleFontSize, THEME.TEXT_MUTED, 16);
-
-        const curTimeWidth = getTextWidth(timeCur, timerFontSize);
-        const maxTimeWidth = getTextWidth(timeMax, timerFontSize);
-        const textToBarGap = 4 * s;
-        const barStartX = clamped.x + padding + curTimeWidth + textToBarGap;
-        const barEndX = clamped.x + width - padding - maxTimeWidth - textToBarGap;
-        const barWidth = barEndX - barStartX;
-        const barY = clamped.y + height - padding - barHeight * 0.8;
-        const timerY = barY + barHeight / 2 - timerFontSize / 2.5;
-
-        drawText(timeCur, clamped.x + padding, timerY + timerFontSize / 2.5, timerFontSize, THEME.TEXT_MUTED, 16);
-        drawText(timeMax, clamped.x + width - padding - maxTimeWidth, timerY + timerFontSize / 2.5, timerFontSize, THEME.TEXT_MUTED, 16);
-
-        drawRoundedRectangleWithBorder({
-            x: barStartX,
-            y: barY,
-            width: barWidth,
-            height: barHeight,
-            radius: barHeight / 2,
-            color: THEME.BG_INSET,
-            borderWidth: 0,
-            borderColor: 0,
-        });
-
-        return { x: clamped.x, y: clamped.y, width, height };
-    }
-
-    getHudStatsLines() {
-        const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
-        return [
-            { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        ];
+        return overlay;
     }
 
     openPositionsGUI() {

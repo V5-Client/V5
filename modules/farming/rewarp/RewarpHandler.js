@@ -2,12 +2,11 @@ import { autoSell } from './AutoSell';
 import { philipMacro } from './PhilipMacro';
 import { visitorMacro } from './VisitorMacro';
 import { rewarpSettings } from './RewarpSettings';
-import { Utils } from '../../../utils/Utils';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { pestKiller } from './PestKiller';
 import { loadoutHandler } from '../LoadoutHandler';
 import { farmingDelays } from '../FarmingDelays';
-import { manager } from '../../../utils/SkyblockEvents';
+import { registerSkyblockEvent } from '../../../utils/SkyblockEvents';
 
 const PHASES = {
     BARN: 'Warping to barn',
@@ -24,7 +23,7 @@ const BARN_SETTLE_MS = 250;
 
 class RewarpHandler {
     constructor() {
-        manager.subscribe('barnteleport', () => {
+        registerSkyblockEvent('barnteleport', () => {
             if (this.phase !== PHASES.WAITING_FOR_BARN) return;
             this.phase = PHASES.LANDING_AT_BARN;
             this.nextActionAt = Date.now() + BARN_SETTLE_MS;
@@ -44,10 +43,11 @@ class RewarpHandler {
         const runPhilip = rewarpSettings.shouldRunPhilipBonus();
         this.tasks = runVisitor ? [autoSell, visitorMacro] : [];
         if (runPhilip) this.tasks.push(philipMacro);
-        const hasBarnTasks = this.tasks.length > 0;
+        const hasBarnTasks = runVisitor || (runPhilip && rewarpSettings.philipContactMethod === 'Pathfind');
+        this.resumeAfterTasks = rewarpSettings.looping && !hasBarnTasks && !runPestKiller;
         if (runPestKiller) this.tasks.push(pestKiller, autoSell);
-        this.phase = hasBarnTasks ? PHASES.BARN : PHASES.DECIDING;
-        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + Utils.randomInt(farmingDelays.rewarpDelayMin, farmingDelays.rewarpDelayMax);
+        this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
+        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + farmingDelays.random('rewarp');
     }
 
     stop() {
@@ -89,9 +89,10 @@ class RewarpHandler {
                     break;
                 }
             }
-            // when do we rewarp
-            // if we're looping, or we're hybrid. otherwise we fly back
-            if (!this.task) this.phase = this.runPestKiller && (rewarpSettings.looping || rewarpSettings.hybrid) ? PHASES.REWARP : PHASES.RETURNING;
+            if (!this.task) {
+                if (this.resumeAfterTasks) return this.macro.finishRewarp(Player.getPlayer());
+                this.phase = this.runPestKiller && !rewarpSettings.looping && !rewarpSettings.hybrid ? PHASES.RETURNING : PHASES.REWARP;
+            }
         }
 
         if (this.phase === PHASES.RUNNING && this.task.tick()) this.phase = PHASES.DECIDING;
