@@ -57,7 +57,7 @@ class LoadoutHandler extends ModuleBase {
         this.switching = true;
         ScheduleTask(5, () => {
             if (getGuiName()?.includes('(1/3) Loadouts')) closeInventory();
-            ScheduleTask(farmingDelays.postSwapDelay, () => (this.switching = false));
+            ScheduleTask(farmingDelays.ticks('postSwap'), () => (this.switching = false));
         });
     }
 }

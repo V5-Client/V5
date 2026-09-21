@@ -20,11 +20,10 @@ class FarmingDelays extends ModuleBase {
             mousematAction: { name: 'Mousemat Action Delay', low: 100, high: 200 },
             bazaarAction: { name: 'Bazaar Action Delay', low: 250, high: 750 },
             rewarp: { name: 'Rewarp Delay', low: 500, high: 750 },
+            postSwap: { name: 'Post Swap Delay', low: 200, high: 200 },
         };
-        this.postSwapDelay = 4;
 
         Object.keys(this.ranges).forEach((key) => this.addDelayRange(key));
-        this.addSlider('Post Swap Delay', 1, 20, this.postSwapDelay, (value) => (this.postSwapDelay = Math.round(value)));
     }
 
     addDelayRange(key) {
