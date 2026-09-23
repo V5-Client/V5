@@ -30,17 +30,14 @@ class Freecam extends ModuleBase {
         this.savedPerspective = null;
         this.lastRenderAt = 0;
         this.possessedUUID = null;
-        this.rightClickWasDown = false;
 
         this.addSlider('Move Speed', 5, 30, 10, (value) => (this.moveSpeed = Number(value) / 25), 'Freecam move speed.');
 
-        this.on('tick', () => {
-            const rightClickDown = this.isRightClickDown();
-            if (World.isLoaded() && !Client.isInGui() && rightClickDown && !this.rightClickWasDown) {
+        this.on('clicked', (x, y, button, isPressed) => {
+            if (button === 1 && isPressed && World.isLoaded() && !Client.isInGui()) {
                 if (this.possessedUUID) this.releasePossession();
                 else this.tryPossessPlayer();
             }
-            this.rightClickWasDown = rightClickDown;
         });
         this.on('renderWorld', () => this.onRender());
         this.on('renderEntity', (entity, partialTicks, event) => {
@@ -61,7 +58,6 @@ class Freecam extends ModuleBase {
         this.savedPerspective = mc.options.getCameraType();
         this.lastRenderAt = Date.now();
         this.possessedUUID = null;
-        this.rightClickWasDown = this.isRightClickDown();
         forceGrab();
         Client.setCameraRotation(wrapTo180(player.getYRot()), player.getXRot());
         Client.setFreecam(true);
@@ -85,7 +81,6 @@ class Freecam extends ModuleBase {
         this.cameraPos = null;
         this.velocity = new Vec3d(0, 0, 0);
         this.possessedUUID = null;
-        this.rightClickWasDown = false;
         Client.setUngrabbed(false);
         Client.setFreecam(false);
         Client.setSpectatedEntity(null);
@@ -253,10 +248,6 @@ class Freecam extends ModuleBase {
         }
 
         return nearest;
-    }
-
-    isRightClickDown() {
-        return Client.getCurrentScreen() == null && mc.options.keyUse.isDown();
     }
 
     isKeyDown(keybind) {
