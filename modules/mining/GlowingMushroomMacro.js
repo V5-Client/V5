@@ -274,7 +274,6 @@ class GlowingMushroomMacro extends ModuleBase {
 
             if (!success) {
                 failedTargets.forEach((target) => this.blacklistMushroom(target.x, target.y, target.z, PATH_FAIL_BLACKLIST_MS));
-                this.message('AAAAAAA');
                 this.status = failStatus;
                 return;
             }
