@@ -33,6 +33,7 @@ class MacroScheduler extends ModuleBase {
         this.trackedMacros = [];
         this.timerEnd = 0;
         this.breakDurationMs = 0;
+        this.resumeSessionEnd = 0;
         this.returnStep = 0;
         this.overlayShown = false;
         this.pausedRemainingMs = 0;
@@ -91,6 +92,7 @@ class MacroScheduler extends ModuleBase {
         this.trackedMacros = Array.isArray(data.trackedMacros) ? data.trackedMacros.filter((v) => typeof v === 'string') : [];
         this.timerEnd = Number.isFinite(data.timerEnd) ? data.timerEnd : 0;
         this.breakDurationMs = Number.isFinite(data.breakDurationMs) ? data.breakDurationMs : 0;
+        this.resumeSessionEnd = Number.isFinite(data.resumeSessionEnd) ? data.resumeSessionEnd : 0;
         this.returnStep = Number.isFinite(data.returnStep) ? Math.max(0, Math.min(3, data.returnStep)) : 0;
     }
 
@@ -100,6 +102,7 @@ class MacroScheduler extends ModuleBase {
             trackedMacros: this.trackedMacros,
             timerEnd: this.timerEnd,
             breakDurationMs: this.breakDurationMs,
+            resumeSessionEnd: this.resumeSessionEnd,
             returnStep: this.returnStep,
         });
     }
@@ -180,6 +183,22 @@ class MacroScheduler extends ModuleBase {
 
     handleRunning() {
         const now = Date.now();
+        if (now >= this.timerEnd) {
+            this.endSession();
+            return;
+        }
+
+        if (!World.isLoaded()) {
+            if (!this.worldUnloadTimer.running) this.worldUnloadTimer.setDelayRandom(7000, 13000);
+            if (this.worldUnloadTimer.hasReachedDelay()) {
+                this.worldUnloadTimer.reset();
+                this.resumeSessionEnd = this.timerEnd;
+                this.beginReturn();
+            }
+            return;
+        }
+
+        this.worldUnloadTimer.reset();
         const enabled = this.getSchedulableMacros();
 
         if (enabled.length === 0) {
@@ -191,23 +210,6 @@ class MacroScheduler extends ModuleBase {
         if (enabled.length !== this.trackedMacros.length || enabled.some((m) => !trackedSet.has(m))) {
             this.trackedMacros = [...enabled];
             this.saveState();
-        }
-
-        if (now >= this.timerEnd) {
-            this.endSession();
-            return;
-        }
-
-        if (!World.isLoaded()) {
-            if (!this.worldUnloadTimer.running) this.worldUnloadTimer.setDelayRandom(7000, 13000);
-        } else {
-            this.worldUnloadTimer.reset();
-        }
-
-        if (this.worldUnloadTimer.hasReachedDelay()) {
-            this.worldUnloadTimer.reset();
-            this.message('&eConnecting to Hypixel...');
-            Client.connect('mc.hypixel.net');
         }
     }
 
@@ -293,14 +295,14 @@ class MacroScheduler extends ModuleBase {
             this.message('&aStarting macros.');
             this.startTrackedMacros();
             this.sendSchedulerConnectEmbed();
-            this.beginSession();
+            this.beginSession(this.resumeSessionEnd);
         }
     }
 
-    beginSession() {
+    beginSession(sessionEnd = 0) {
         this.state = STATE.RUNNING;
-        const duration = this.randomDuration(this.macroTimeMin, this.macroTimeMax);
-        this.timerEnd = Date.now() + duration;
+        this.timerEnd = sessionEnd || Date.now() + this.randomDuration(this.macroTimeMin, this.macroTimeMax);
+        this.resumeSessionEnd = 0;
         this.returnStep = 0;
         this.saveState();
         this.updateOverlay();
