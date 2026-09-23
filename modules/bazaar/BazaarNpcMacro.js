@@ -38,7 +38,6 @@ class BazaarNpcMacro extends ModuleBase {
             subcategory: 'Bazaar',
             description: 'Places profitable Bazaar buy orders and sells the fills to NPC.',
             tooltip: 'Requires Cookie Buff access to /bz. Only sellable items added after enabling are sold in /trades.',
-            autoDisableOnWorldUnload: true,
             isMacro: true,
         });
         this.bindToggleKey();
@@ -723,7 +722,7 @@ class BazaarNpcMacro extends ModuleBase {
     finishOrderCancellation() {
         const target = this.target;
         if (this.hasInventoryIncrease()) return this.setAction(this.openTrades, 'Selling claimed items', 500, 0);
-        if (this.cancelQuantity <= 0) return this.orderCheckQueue.length ? this.checkNextOrder() : this.inspectOrder();
+        if (this.cancelQuantity <= 0) return this.checkNextOrder();
         const quantity = Math.min(MAX_ORDER_ITEMS, this.cancelQuantity, Math.floor(this.maxSpend / target.expectedOrderPrice));
         this.cancelQuantity = 0;
         if (quantity > 0) {
@@ -739,8 +738,7 @@ class BazaarNpcMacro extends ModuleBase {
         }
         this.skippedIds.set(target.id, Date.now() + 60_000);
         this.message(`&eSkipping ${target.name}; the new top order is no longer profitable.`);
-        if (this.orderCheckQueue.length) return this.checkNextOrder();
-        this.inspectOrder();
+        this.checkNextOrder();
     }
 
     openTrades() {
