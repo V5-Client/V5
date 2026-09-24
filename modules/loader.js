@@ -47,6 +47,7 @@ import './skills/FishOnMCMacro';
 import './skills/StridersurferMacro';
 import './skills/JerryBoxMacro';
 import './skills/MinionCollector';
+import './skills/MirrorverseMacro';
 import './skills/RouteWalker';
 import './skills/WynnProfessionMacro';
 
