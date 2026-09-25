@@ -34,8 +34,6 @@ It works by:
 - Moves down layers when there is no hardstone left nearby.
 - Automatically refuels through an Abiphone.
 
-(powder nuker macro clip here)
-
 ### Ore Macro
 
 - New route-based mining macro that walks/etherwarps between waypoints and mines ore waypints.
@@ -44,8 +42,6 @@ It works by:
 - Places mining deployables.
 - Automatically activates mining abilities when ready, with rod swapping for autopet rules.
 - Automatically refuels empty drills and restarts the route afterward.
-
-(ore macro clip here)
 
 ### Mining Bot
 
@@ -75,8 +71,6 @@ It works by:
 - The `Hourly Profit` shown in the overlay is an esimate assuming you are never outbid.
 - Hypixel has a 500 million coin NPC sell limit which will limit how long you can run the macro for.
 - In private testing, this macro makes roughly ~150M per day, running for 2-4 hours before NPC limit is reached.
-
-(bazaar npc clip here)
 
 ### Auto Forge
 
