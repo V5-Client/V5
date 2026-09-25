@@ -11,7 +11,7 @@ class MirrorverseMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Mirrorverse Dance Macro',
-            subcategory: 'Skills',
+            subcategory: 'Rift',
             description: 'Completes the Mirrorverse dance room. Enable while standing beside green glass start.',
             tooltip: 'Completes the Mirrorverse dance room. Enable while standing beside green glass start.',
             autoDisableOnWorldUnload: true,

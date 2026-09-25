@@ -93,7 +93,7 @@ class SunGecko extends ModuleBase {
     constructor() {
         super({
             name: 'SunGecko',
-            subcategory: 'Other',
+            subcategory: 'Rift',
             description: 'Automatically does the rift sun gecko',
             tooltip: 'Automatically does the rift sun gecko',
             isMacro: true,

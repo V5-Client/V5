@@ -47,9 +47,13 @@ import './skills/FishOnMCMacro';
 import './skills/StridersurferMacro';
 import './skills/JerryBoxMacro';
 import './skills/MinionCollector';
-import './skills/MirrorverseMacro';
 import './skills/RouteWalker';
 import './skills/WynnProfessionMacro';
+
+/* RIFT */
+import './rift/KloonHackingMacro';
+import './rift/SunGeckoMacro';
+import './rift/MirrorverseMacro';
 
 /* BAZAAR */
 import './bazaar/BazaarNpcMacro';
@@ -72,7 +76,6 @@ import './other/RatProtection';
 import './other/VoidgloomHelper';
 import './other/AutoCombine';
 import './other/AutoFusionRepeat';
-import './other/SunGeckoMacro';
 import './other/RatMacro';
 import './other/PeltMacro';
 import './other/PeltQOL';
