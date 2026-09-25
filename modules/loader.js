@@ -54,6 +54,7 @@ import './skills/WynnProfessionMacro';
 import './rift/KloonHackingMacro';
 import './rift/SunGeckoMacro';
 import './rift/MirrorverseMacro';
+import './rift/ScribeNuker';
 
 /* BAZAAR */
 import './bazaar/BazaarNpcMacro';

@@ -34,7 +34,7 @@ export const ClientboundLevelChunkWithLightPacket = net.minecraft.network.protoc
 export const createSwingPacket = () => (IS_MC_26_3 ? ServerboundSwingPacket.INSTANCE : new ServerboundSwingPacket(MCHand.MAIN_HAND));
 
 export const getLevelParticleData = (packet) => {
-    if (IS_MC_26_3) {
+    if (typeof packet?.particle === 'function') {
         return {
             particle: packet.particle(),
             count: packet.count(),
@@ -49,6 +49,8 @@ export const getLevelParticleData = (packet) => {
             zSpeed: packet.zMaxSpeed(),
         };
     }
+
+    if (typeof packet?.getParticle !== 'function' || typeof packet.getMaxSpeed !== 'function') return { particle: null };
 
     const speed = packet.getMaxSpeed();
     return {

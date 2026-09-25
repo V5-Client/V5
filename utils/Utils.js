@@ -49,13 +49,20 @@ export function subArea() {
     const now = Date.now();
     if (now - subAreaLastChecked < 1000) return currentSubArea;
     subAreaLastChecked = now;
+    currentSubArea = 'Unknown';
 
     try {
-        for (const line of Scoreboard.getLines() || []) {
-            const text = ChatLib.removeFormatting(String(line));
+        const lines = (Scoreboard.getLines() || []).map((line) => ChatLib.removeFormatting(String(line?.getName?.() ?? line)).trim());
+        for (const text of lines) {
             if (!text.includes('')) continue;
             const detected = text.split('')[1]?.trim();
             if (detected) return (currentSubArea = detected);
+        }
+
+        const riftDimension = lines.findIndex((text) => text.includes('Rift Dimension'));
+        if (riftDimension !== -1) {
+            const riftSubArea = lines[riftDimension + 1]?.match(/^[^A-Za-z0-9]*([A-Za-z][A-Za-z '-]*)$/)?.[1];
+            if (riftSubArea && riftSubArea !== 'Motes') return (currentSubArea = riftSubArea);
         }
     } catch (error) {
         console.error('V5 Caught error' + error + error.stack);
