@@ -27,7 +27,7 @@ class KloonHackingMacro extends ModuleBase {
 
     reset() {
         this.clickedRows = new Set();
-        this.pickedColor = false;
+        this.lastColorClick = 0;
     }
 
     onEnable() {
@@ -41,21 +41,22 @@ class KloonHackingMacro extends ModuleBase {
 
         if (name === 'Hacking' || name === 'Hacking (As seen on CSI)') {
             for (let row = 0; row < 5; row++) {
-                if (this.clickedRows.has(row)) continue;
                 const target = items[2 + row]?.getStackSize();
                 const slot = 11 + 10 * row;
-                if (target && items[slot]?.getStackSize() === target && clickSlot(slot, false, 'MIDDLE')) {
-                    this.clickedRows.add(row);
+                if (!target || items[slot]?.getStackSize() !== target) {
+                    this.clickedRows.delete(row);
+                    continue;
                 }
+                if (!this.clickedRows.has(row) && clickSlot(slot, false, 'MIDDLE')) this.clickedRows.add(row);
             }
             return;
         }
 
-        if (name !== 'Hacked Terminal Color Picker' || this.pickedColor) return;
+        if (name !== 'Hacked Terminal Color Picker' || Date.now() - this.lastColorClick < 500) return;
         const terminal = TERMINALS.find(([_, x, y, z]) => Math.hypot(Player.getX() - x, Player.getY() - y, Player.getZ() - z) < 8);
         if (!terminal) return;
         const slot = items.findIndex((item) => item?.getLore()?.some((line) => ChatLib.removeFormatting(line).includes(terminal[0])));
-        if (slot >= 0 && clickSlot(slot)) this.pickedColor = true;
+        if (slot >= 0 && clickSlot(slot)) this.lastColorClick = Date.now();
     }
 }
 
