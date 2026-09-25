@@ -3,7 +3,17 @@
 ## V5.2.1 - 26.3 Support
 
 - Support for 26.3
-- thats basically it
+- Mirrorverse Dance room macro
+- Bazaar to NPC macro auto reconnect if limbo or disconect
+- Improved rendering performance significantly
+
+### Hybrid Rewarp Farming mode
+
+This combines the two existing modes. 
+It is for farms with a start/end point.
+It works by:
+ 1. /sethome, then does rewarp actions such as pest killing, then /warp garden, to get back to the home.
+ 2. Once it reaches the end of the farm it will manually fly back to the configured start and continue farming.
 
 ## V5.2.0 - 26.2 Support
 
