@@ -2,7 +2,7 @@ import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Consta
 import { offsetPitch } from '../../utils/Math';
 import { hasMaxGreatExplorer } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { nukeQueue, queueNuke } from '../../utils/NukerUtils';
+import { isVanillaNukeActive, nukeQueue, queueNuke, queueVanillaNuke } from '../../utils/NukerUtils';
 import { ClientboundLevelParticlesPacket, getLevelParticleData, ServerboundUseItemOnPacket } from '../../utils/Packets';
 import { Rotations } from '../../utils/player/Rotations';
 import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
@@ -42,6 +42,7 @@ class NukerClass extends ModuleBase {
         this.customBlockList = [];
 
         this.targetMode = 'Random';
+        this.breakMode = 'Hypixel';
         this.nukeBelow = false;
         this.onGroundOnly = false;
         this.autoChest = false;
@@ -142,6 +143,10 @@ class NukerClass extends ModuleBase {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.keyAttack?.isDown()) return;
             if (!this.onGround()) return;
+            if (this.breakMode === 'Vanilla' && isVanillaNukeActive()) {
+                this.lastMineTick = this.tickCounter;
+                return;
+            }
 
             let delay = Player.asPlayerMP().isOnGround() ? this.onGroundDelay : this.offGroundDelay;
             if (this.tickCounter - this.lastMineTick < delay) return;
@@ -165,7 +170,8 @@ class NukerClass extends ModuleBase {
 
                 if (target && this.enabled && !this.solvingChest) {
                     const posArr = [target.getX(), target.getY(), target.getZ()];
-                    queueNuke(posArr, delay);
+                    if (this.breakMode === 'Vanilla') queueVanillaNuke(posArr, this.customReach);
+                    else queueNuke(posArr, delay);
                     this.target = target;
                     this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
@@ -276,6 +282,15 @@ class NukerClass extends ModuleBase {
         this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {
             this.targetMode = v.find((o) => o.enabled)?.name;
         });
+        this.addMultiToggle(
+            'Break Mode',
+            ['Hypixel', 'Vanilla'],
+            true,
+            (v) => {
+                this.breakMode = v.find((o) => o.enabled)?.name || 'Hypixel';
+            },
+            'Use Hypixel mode for most hypixel things, only use vanilla for the rift.'
+        );
 
         this.createOverlay([
             {
