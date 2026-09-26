@@ -58,6 +58,7 @@ class ScribeNuker extends ModuleBase {
         if (minY > maxY) return;
 
         for (const block of World.getBlocksInBox(x - RANGE, minY, z - RANGE, x + RANGE, maxY, z + RANGE, [COAL_BLOCK])) {
+            if (block.y === 69 && block.x >= 18 && block.x <= 27 && block.z >= -50 && block.z <= -48) continue;
             const distance = (block.x + 0.5 - eyes.x) ** 2 + (block.y + 0.5 - eyes.y) ** 2 + (block.z + 0.5 - eyes.z) ** 2;
             if (distance >= RANGE ** 2) continue;
             this.blocks.push(new Vec3d(block.x, block.y, block.z));
