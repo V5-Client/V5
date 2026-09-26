@@ -52,6 +52,7 @@ import './skills/WynnProfessionMacro';
 
 /* RIFT */
 import './rift/KloonHackingMacro';
+import './rift/AgaricusCapTriggerbot';
 import './rift/SunGeckoMacro';
 import './rift/MirrorverseMacro';
 import './rift/ScribeNuker';
