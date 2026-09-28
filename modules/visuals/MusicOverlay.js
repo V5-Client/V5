@@ -88,8 +88,8 @@ class Music extends ModuleBase {
         return mins + ':' + (secs < 10 ? '0' + secs : secs);
     }
 
-    getPlaybackState() {
-        if (!this.data) {
+    getPlaybackState(data) {
+        if (!data) {
             this.lastCurrentSecond = null;
             this.lastTotalSecond = null;
             this.lastFallbackTotalText = null;
@@ -99,26 +99,25 @@ class Music extends ModuleBase {
             return this.playback;
         }
 
-        const hasMsTimeline = typeof this.data.positionMs === 'number' && typeof this.data.durationMs === 'number' && this.data.durationMs > 0;
-        const isPaused = !!this.data.isPaused;
+        const hasMsTimeline = typeof data.positionMs === 'number' && typeof data.durationMs === 'number' && data.durationMs > 0;
+        const isPaused = !!data.isPaused;
 
         let currentSec = 0;
         let totalSec = 0;
 
         if (hasMsTimeline) {
-            currentSec = Math.max(0, this.data.positionMs / 1000);
-            totalSec = Math.max(0, this.data.durationMs / 1000);
+            currentSec = Math.max(0, data.positionMs / 1000);
+            totalSec = Math.max(0, data.durationMs / 1000);
 
-            const baseTimestamp =
-                typeof this.data.snapshotUnixMs === 'number' && this.data.snapshotUnixMs > 0 ? this.data.snapshotUnixMs : this.lastDataReceivedAt;
+            const baseTimestamp = typeof data.snapshotUnixMs === 'number' && data.snapshotUnixMs > 0 ? data.snapshotUnixMs : this.lastDataReceivedAt;
 
             if (!isPaused && baseTimestamp > 0) {
                 const elapsedSinceReceive = Math.max(0, (Date.now() - baseTimestamp) / 1000);
                 currentSec += Math.min(elapsedSinceReceive, 5.0);
             }
         } else {
-            const timeText = this.data.time || '0:00';
-            const totalTimeText = this.data.totalTime || '0:00';
+            const timeText = data.time || '0:00';
+            const totalTimeText = data.totalTime || '0:00';
             if (timeText !== this.lastTimeText) {
                 this.lastTimeText = timeText;
                 this.parsedCurrentSeconds = this.parseTimeToSeconds(timeText);
@@ -148,7 +147,7 @@ class Music extends ModuleBase {
             }
             this.lastFallbackTotalText = null;
         } else {
-            const totalText = this.data.totalTime || '0:00';
+            const totalText = data.totalTime || '0:00';
             if (totalText !== this.lastFallbackTotalText) {
                 this.lastFallbackTotalText = totalText;
                 this.playback.totalText = totalText;
@@ -166,11 +165,12 @@ class Music extends ModuleBase {
         if (!settings.enabled) return;
 
         const sw = Render2D.screen.getWidth();
-        const isSkeleton = !this.data;
-        const songName = isSkeleton ? 'Searching for Media...' : this.data.song || 'Unknown Title';
-        const imageURL = isSkeleton || !this.data.art || this.data.art.toLowerCase() === 'none' ? '' : this.data.art;
+        const data = this.data;
+        const isSkeleton = !data;
+        const songName = isSkeleton ? 'Searching for Media...' : data.song || 'Unknown Title';
+        const imageURL = isSkeleton || !data.art || data.art.toLowerCase() === 'none' ? '' : data.art;
 
-        const playback = this.getPlaybackState();
+        const playback = this.getPlaybackState(data);
 
         const scale = settings.scale || 1.0;
         const bounds = getMusicOverlayBounds(scale, songName);
