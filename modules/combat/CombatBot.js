@@ -538,28 +538,38 @@ class Combat extends ModuleBase {
     }
 
     findCustomTargets(config) {
-        if (!config?.entityClass && !Array.isArray(config?.names)) return [];
+        if (Array.isArray(config?.names)) return this.findNamedTargets(config);
+        if (!config?.entityClass) return [];
 
-        const names = Array.isArray(config.names) ? config.names.map((name) => name.toLowerCase()) : null;
-        if (names && !names.length) return [];
+        const entities = World.getAllEntitiesOfType(config.entityClass);
+        const mobs = entities.filter((entity) => this.isMobCandidate(entity, config.allowInvisible));
+
+        return mobs.filter((entity) => {
+            try {
+                return !config.entityCheck || config.entityCheck(entity.toMC());
+            } catch (e) {
+                console.error('V5 Combat Bot target scan error: ' + e);
+                return false;
+            }
+        });
+    }
+
+    findNamedTargets(config) {
+        const names = config.names.map((name) => name.toLowerCase());
+        if (!names.length) return [];
 
         const allowInvisible = config.allowInvisible ?? false;
-        const entities = names ? World.getAllEntities() : World.getAllEntitiesOfType(config.entityClass);
+        const entities = World.getAllEntities();
         const mobs = entities.filter((entity) => this.isMobCandidate(entity, allowInvisible));
         const targets = [];
 
-        for (const entity of names ? entities : mobs) {
+        for (const entity of entities) {
             try {
-                let target = entity;
+                const name = this.getCleanEntityName(entity);
+                if (!names.some((candidate) => name.includes(candidate))) continue;
+                if (this.isTargetNameBlacklisted(entity)) continue;
 
-                if (names) {
-                    const name = this.getCleanEntityName(entity);
-                    if (!names.some((candidate) => name.includes(candidate))) continue;
-                    if (this.isTargetNameBlacklisted(entity)) continue;
-
-                    target = this.resolveNametagTarget(entity, mobs, allowInvisible);
-                }
-
+                const target = this.resolveNametagTarget(entity, mobs, allowInvisible);
                 if (!target) continue;
                 if (config.entityCheck && !config.entityCheck(target.toMC())) continue;
 
