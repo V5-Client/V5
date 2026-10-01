@@ -540,26 +540,36 @@ class Combat extends ModuleBase {
     findCustomTargets(config) {
         if (!config?.entityClass && !Array.isArray(config?.names)) return [];
 
-        const names = config.names?.map((name) => name.toLowerCase());
+        const names = Array.isArray(config.names) ? config.names.map((name) => name.toLowerCase()) : null;
+        if (names && !names.length) return [];
+
+        const allowInvisible = config.allowInvisible ?? false;
         const entities = names ? World.getAllEntities() : World.getAllEntitiesOfType(config.entityClass);
-        const mobs = entities.filter((entity) => this.isMobCandidate(entity, config.allowInvisible));
+        const mobs = entities.filter((entity) => this.isMobCandidate(entity, allowInvisible));
+        const targets = [];
 
-        return (names ? entities : mobs)
-            .map((entity) => {
-                try {
-                    if (names) {
-                        const name = this.getCleanEntityName(entity);
-                        if (!names.some((candidate) => name.includes(candidate)) || this.isTargetNameBlacklisted(entity)) return null;
-                        return this.resolveNametagTarget(entity, mobs);
-                    }
+        for (const entity of names ? entities : mobs) {
+            try {
+                let target = entity;
 
-                    return !config.entityCheck || config.entityCheck(entity.toMC()) ? entity : null;
-                } catch (e) {
-                    console.error('V5 Combat Bot target scan error: ' + e);
-                    return null;
+                if (names) {
+                    const name = this.getCleanEntityName(entity);
+                    if (!names.some((candidate) => name.includes(candidate))) continue;
+                    if (this.isTargetNameBlacklisted(entity)) continue;
+
+                    target = this.resolveNametagTarget(entity, mobs, allowInvisible);
                 }
-            })
-            .filter(Boolean);
+
+                if (!target) continue;
+                if (config.entityCheck && !config.entityCheck(target.toMC())) continue;
+
+                targets.push(target);
+            } catch (e) {
+                console.error('V5 Combat Bot target scan error: ' + e);
+            }
+        }
+
+        return targets;
     }
 
     isMobCandidate(entity, allowInvisible = false) {
@@ -578,25 +588,31 @@ class Combat extends ModuleBase {
         }
     }
 
-    resolveNametagTarget(namedEntity, mobs) {
+    resolveNametagTarget(namedEntity, mobs, allowInvisible = false) {
         const mcEntity = namedEntity.toMC();
-        if (!(mcEntity instanceof ArmorStandEntity)) return this.isMobCandidate(namedEntity) ? namedEntity : null;
+        if (!(mcEntity instanceof ArmorStandEntity)) return this.isMobCandidate(namedEntity, allowInvisible) ? namedEntity : null;
         if (mcEntity.isRemoved?.() || namedEntity.isDead?.()) return null;
 
         const position = this.getTargetPosition(namedEntity);
         if (!position) return null;
         const point = new Vec3d(position.x, position.y, position.z);
 
+        const maxDistanceSq = NAMETAG_MOB_RANGE ** 2;
         let closest = null;
         let closestDistanceSq = Infinity;
-        mobs.forEach((mob) => {
-            if (this.sameTarget(namedEntity, mob)) return;
-            const distanceSq = mob.toMC().getBoundingBox().distanceToSqr(point);
-            if (distanceSq <= NAMETAG_MOB_RANGE ** 2 && distanceSq < closestDistanceSq) {
-                closest = mob;
-                closestDistanceSq = distanceSq;
+
+        for (const mob of mobs) {
+            try {
+                if (this.sameTarget(namedEntity, mob)) continue;
+                const distanceSq = mob.toMC().getBoundingBox().distanceToSqr(point);
+                if (distanceSq <= maxDistanceSq && distanceSq < closestDistanceSq) {
+                    closest = mob;
+                    closestDistanceSq = distanceSq;
+                }
+            } catch (e) {
+                console.error('V5 Combat Bot target scan error: ' + e);
             }
-        });
+        }
 
         return closest;
     }
