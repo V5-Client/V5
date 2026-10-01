@@ -60,6 +60,7 @@ export const BlockHitResult = net.minecraft.world.phys.BlockHitResult;
 export const Blocks = net.minecraft.world.level.block.Blocks;
 export const SnowBlock = net.minecraft.world.level.block.SnowLayerBlock;
 export const MobEntity = net.minecraft.world.entity.Mob;
+export const PlayerEntity = net.minecraft.world.entity.player.Player;
 export const CreeperEntity = net.minecraft.world.entity.monster.Creeper;
 export const ArmorStandEntity = net.minecraft.world.entity.decoration.ArmorStand;
 export const ZombieEntity = net.minecraft.world.entity.monster.zombie.Zombie;
