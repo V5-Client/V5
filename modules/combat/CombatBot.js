@@ -1,4 +1,4 @@
-import { ArmorStandEntity, DataComponents, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+import { ArmorStandEntity, CreeperEntity, DataComponents, EndermanEntity, MobEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
 import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -31,6 +31,7 @@ const BLACKHOLE_TEXTURES = new Set([
 ]);
 
 const ATTACK_REACH = 4;
+const NAMETAG_MOB_RANGE = 1;
 const PATH_HANDOFF_DISTANCE = 6;
 const REPATH_DISTANCE = 7;
 const REPATH_DELAY_MS = 1200;
@@ -53,6 +54,11 @@ const COMBAT_PRESETS = {
     Endermen: {
         entityClass: EndermanEntity,
         checkVisibility: true,
+    },
+    Ghost: {
+        entityClass: CreeperEntity,
+        entityCheck: (entity) => entity.isPowered(),
+        allowInvisible: true,
     },
     Goblins: {
         names: ['Goblin', 'Weakling', 'Knifethrower', 'Fireslinger'],
@@ -179,7 +185,7 @@ class Combat extends ModuleBase {
             'Target Names',
             '',
             (value) => (this.targetNames = parseNames(value)),
-            'Generic internal entity names separated by commas. Use presets for location-specific mobs.'
+            'Case-insensitive nametag text separated by commas. Matches partial names and links armor stands to mob hitboxes within 1 block.'
         );
 
         this.addTextInput(
@@ -531,6 +537,70 @@ class Combat extends ModuleBase {
         });
     }
 
+    findCustomTargets(config) {
+        if (!config?.entityClass && !Array.isArray(config?.names)) return [];
+
+        const names = config.names?.map((name) => name.toLowerCase());
+        const entities = names ? World.getAllEntities() : World.getAllEntitiesOfType(config.entityClass);
+        const mobs = entities.filter((entity) => this.isMobCandidate(entity, config.allowInvisible));
+
+        return (names ? entities : mobs)
+            .map((entity) => {
+                try {
+                    if (names) {
+                        const name = this.getCleanEntityName(entity);
+                        if (!names.some((candidate) => name.includes(candidate)) || this.isTargetNameBlacklisted(entity)) return null;
+                        return this.resolveNametagTarget(entity, mobs);
+                    }
+
+                    return !config.entityCheck || config.entityCheck(entity.toMC()) ? entity : null;
+                } catch (e) {
+                    console.error('V5 Combat Bot target scan error: ' + e);
+                    return null;
+                }
+            })
+            .filter(Boolean);
+    }
+
+    isMobCandidate(entity, allowInvisible = false) {
+        try {
+            const mcEntity = entity.toMC();
+            return (
+                mcEntity instanceof MobEntity &&
+                !mcEntity.isSpectator() &&
+                !mcEntity.isRemoved?.() &&
+                !mcEntity.isDeadOrDying?.() &&
+                (allowInvisible || !entity.isInvisible?.()) &&
+                !entity.isDead?.()
+            );
+        } catch (e) {
+            return false;
+        }
+    }
+
+    resolveNametagTarget(namedEntity, mobs) {
+        const mcEntity = namedEntity.toMC();
+        if (!(mcEntity instanceof ArmorStandEntity)) return this.isMobCandidate(namedEntity) ? namedEntity : null;
+        if (mcEntity.isRemoved?.() || namedEntity.isDead?.()) return null;
+
+        const position = this.getTargetPosition(namedEntity);
+        if (!position) return null;
+        const point = new Vec3d(position.x, position.y, position.z);
+
+        let closest = null;
+        let closestDistanceSq = Infinity;
+        mobs.forEach((mob) => {
+            if (this.sameTarget(namedEntity, mob)) return;
+            const distanceSq = mob.toMC().getBoundingBox().distanceToSqr(point);
+            if (distanceSq <= NAMETAG_MOB_RANGE ** 2 && distanceSq < closestDistanceSq) {
+                closest = mob;
+                closestDistanceSq = distanceSq;
+            }
+        });
+
+        return closest;
+    }
+
     getCleanEntityName(entity) {
         return ChatLib.removeFormatting(String(entity.getName()?.getString?.() ?? entity.getName())).toLowerCase();
     }
@@ -550,8 +620,13 @@ class Combat extends ModuleBase {
     }
 
     getTargets() {
-        const targets = this.externalTargets !== null ? this.externalTargets : this.targetNames.length ? this.findMob({ names: this.targetNames }) : [];
-        if (this.externalTargets === null) this.enabledPresets.forEach((name) => targets.push(...this.findMob(COMBAT_PRESETS[name])));
+        const targets =
+            this.externalTargets !== null ? this.externalTargets : this.targetNames.length ? this.findCustomTargets({ names: this.targetNames }) : [];
+        if (this.externalTargets === null)
+            this.enabledPresets.forEach((name) => {
+                const config = COMBAT_PRESETS[name];
+                targets.push(...(name === 'Ghost' ? this.findCustomTargets(config) : this.findMob(config)));
+            });
         return [...new Map(targets.map((target) => [this.getTargetUuid(target), target])).values()].filter((target) => !this.isTargetNameBlacklisted(target));
     }
 
