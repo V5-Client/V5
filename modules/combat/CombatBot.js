@@ -109,6 +109,16 @@ class Combat extends ModuleBase {
         this.attackButton = 'Left Click';
         this.overrideRotationSpeed = false;
         this.combatRotationSpeed = 400;
+        this.autoHeal = false;
+        this.healThreshold = 20;
+        this.healHealth = null;
+        this.healUpdatedAt = 0;
+        this.healVitality = null;
+        this.healVitalityUpdatedAt = 0;
+        this.healReadyAt = {};
+        this.healNextClickAt = 0;
+        this.healPreviousSlot = null;
+        this.healingSlot = null;
 
         this.addSlider(
             'Pathfinding Threshold',
@@ -131,6 +141,17 @@ class Combat extends ModuleBase {
             },
             'Average attacks per second'
         );
+
+        this.addToggle(
+            'Auto Heal',
+            (value) => {
+                this.autoHeal = value;
+                if (!value) this.stopHealing();
+            },
+            'Use a Zombie Sword or healing wand when health is low.',
+            false
+        );
+        this.addSlider('Heal Below (%)', 1, 100, 20, (value) => (this.healThreshold = value), 'Heal below this percentage of maximum health.');
 
         this.addMultiToggle(
             'Attack Button',
@@ -208,10 +229,21 @@ class Combat extends ModuleBase {
 
         this.on('postRenderWorld', () => this.renderTargets());
         this.on('tick', () => this.onTick());
+        register('actionBar', (text) => {
+            if (this.autoHeal) this.readHealingHealth(text);
+        }).setCriteria('${text}');
+        register('packetReceived', (packet) => {
+            if (this.autoHeal && packet.overlay()) this.readHealingHealth(packet.content().getString());
+        }).setFilteredClass(net.minecraft.network.protocol.game.ClientboundSystemChatPacket);
+        register('packetReceived', (packet) => {
+            if (this.autoHeal) this.readHealingHealth(packet.text().getString());
+        }).setFilteredClass(net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket);
+        register('worldUnload', () => this.resetHealing());
     }
 
     onTick() {
         if (!this.enabled) return;
+        this.heal();
         if (!Client.isInChat() && Client.isInGui()) {
             this.pauseMovement();
             return;
@@ -304,6 +336,7 @@ class Combat extends ModuleBase {
     }
 
     tryAttack(distance) {
+        if (this.healingSlot !== null) return;
         const now = Date.now();
         if (distance > ATTACK_REACH + 0.35 || now < this.nextAttackAt) return;
         if (!isLookingAtEntity(this.target, ATTACK_REACH + 0.5)) return;
@@ -524,7 +557,6 @@ class Combat extends ModuleBase {
         if (names && !names.length) return [];
 
         const entities = names ? World.getAllEntities() : World.getAllEntitiesOfType(config.entityClass);
-        const nametagMobs = names ? entities.filter((entity) => this.isCombatTargetCandidate(entity, true)) : [];
         const mobs = entities.filter((entity) => {
             try {
                 if (!this.isCombatTargetCandidate(entity, config.allowInvisible)) return false;
@@ -548,7 +580,10 @@ class Combat extends ModuleBase {
                 const name = this.getCleanEntityName(entity);
                 if (!names.some((candidate) => name.includes(candidate)) || this.isTargetNameBlacklisted(entity)) continue;
 
-                const target = entity.toMC() instanceof ArmorStandEntity ? this.resolveNametagTarget(entity, nametagMobs) : entity;
+                const target =
+                    entity.toMC() instanceof ArmorStandEntity
+                        ? this.resolveNametagTarget(entity, mobs, config.nametagRange, config.nametagHorizontalRange)
+                        : entity;
                 if (target && candidates.has(this.getTargetUuid(target))) targets.set(this.getTargetUuid(target), target);
             } catch (e) {
                 console.error('V5 Combat Bot target scan error: ' + e);
@@ -580,19 +615,25 @@ class Combat extends ModuleBase {
         }
     }
 
-    resolveNametagTarget(namedEntity, mobs) {
+    resolveNametagTarget(namedEntity, mobs, range = NAMETAG_MOB_RANGE, horizontalRange = null) {
         const mcEntity = namedEntity.toMC();
         if (mcEntity.isRemoved?.() || namedEntity.isDead?.()) return null;
 
         const point = mcEntity.position();
 
-        const maxDistanceSq = NAMETAG_MOB_RANGE ** 2;
+        const maxDistanceSq = range ** 2;
         let closest = null;
         let closestDistanceSq = Infinity;
 
         for (const mob of mobs) {
             try {
-                const distanceSq = mob.toMC().getBoundingBox().distanceToSqr(point);
+                const box = mob.toMC().getBoundingBox();
+                if (horizontalRange !== null) {
+                    const dx = Math.max(box.minX - namedEntity.getX(), 0, namedEntity.getX() - box.maxX);
+                    const dz = Math.max(box.minZ - namedEntity.getZ(), 0, namedEntity.getZ() - box.maxZ);
+                    if (Math.hypot(dx, dz) > horizontalRange || namedEntity.getY() < box.minY - 0.5 || namedEntity.getY() > box.maxY + range) continue;
+                }
+                const distanceSq = box.distanceToSqr(point);
                 if (distanceSq <= maxDistanceSq && distanceSq < closestDistanceSq) {
                     closest = mob;
                     closestDistanceSq = distanceSq;
@@ -729,6 +770,124 @@ class Combat extends ModuleBase {
         }
     }
 
+    readHealingHealth(text) {
+        const clean = this.stripHealingFormatting(text);
+        const vitalityMatch = clean.match(/([\d,]+(?:\.\d+)?)\s*\/\s*([\d,]+(?:\.\d+)?)\s*[♡\uE028]/);
+        if (vitalityMatch) {
+            const current = Number(vitalityMatch[1].replace(/,/g, ''));
+            const maximum = Number(vitalityMatch[2].replace(/,/g, ''));
+            if (Number.isFinite(current) && Number.isFinite(maximum) && current >= 0 && maximum > 0) {
+                this.healVitality = current;
+                this.healVitalityUpdatedAt = Date.now();
+            }
+        }
+        const match = clean.match(/([\d,]+(?:\.\d+)?)\s*\/\s*([\d,]+(?:\.\d+)?)\s*[❤♥\uE010]/);
+        if (!match) return;
+
+        const current = Number(match[1].replace(/,/g, ''));
+        const maximum = Number(match[2].replace(/,/g, ''));
+        if (!Number.isFinite(current) || !Number.isFinite(maximum) || current < 0 || maximum <= 0) return;
+
+        this.healHealth = { current, maximum };
+        this.healUpdatedAt = Date.now();
+    }
+
+    stripHealingFormatting(text) {
+        if (text == null) return '';
+        const value = text.getUnformattedText?.() ?? text.getString?.() ?? String(text);
+        return ChatLib.removeFormatting(String(value)).replace(/\s+/g, ' ').trim();
+    }
+
+    isHealingItem(item) {
+        const name = this.stripHealingFormatting(item?.getName?.()).toLowerCase();
+        return name.includes('zombie sword') || /\bwand of (healing|mending|restoration|atonement)\b/.test(name);
+    }
+
+    getHealingAbility(item) {
+        if (!this.isHealingItem(item)) return null;
+        const lore = Array.from(item.getLore() || [], (line) => this.stripHealingFormatting(line)).join('\n');
+        const costMatch = lore.match(/Vitality Cost:\s*([\d,]+(?:\.\d+)?)/i);
+        if (!costMatch) return null;
+        const cost = Number(costMatch[1].replace(/,/g, ''));
+        if (!Number.isFinite(cost) || cost < 0) return null;
+        const cooldownMatch = lore.match(/Cooldown:\s*([\d,]+(?:\.\d+)?)\s*(ms|s)\b/i);
+        const cooldown = cooldownMatch ? Number(cooldownMatch[1].replace(/,/g, '')) * (cooldownMatch[2].toLowerCase() === 'ms' ? 1 : 1000) : 1000;
+        return { cost, cooldown: Math.max(0, cooldown) };
+    }
+
+    findHealingItem() {
+        const inventory = Player.getInventory();
+        if (!inventory) return null;
+        for (let slot = 0; slot < Math.min(inventory.getSize(), 9); slot++) {
+            if (Date.now() < (this.healReadyAt[slot] || 0)) continue;
+            const ability = this.getHealingAbility(inventory.getStackInSlot(slot));
+            if (ability && this.healVitality >= ability.cost) return { slot, ...ability };
+        }
+        return null;
+    }
+
+    heal() {
+        if (
+            !this.autoHeal ||
+            !World.isLoaded() ||
+            !Player.getPlayer() ||
+            Player.getPlayer().isDeadOrDying() ||
+            Client.isInGui() ||
+            !this.healHealth ||
+            this.healVitality === null ||
+            Date.now() - this.healVitalityUpdatedAt >= 5000 ||
+            Date.now() - this.healUpdatedAt >= 5000 ||
+            this.healHealth.current <= 0 ||
+            this.healHealth.current >= (this.healHealth.maximum * this.healThreshold) / 100
+        ) {
+            this.stopHealing();
+            return;
+        }
+
+        if (Date.now() < this.healNextClickAt) return;
+
+        const candidate = this.findHealingItem();
+        if (!candidate) {
+            this.stopHealing();
+            return;
+        }
+
+        const { slot } = candidate;
+        if (this.healPreviousSlot === null) this.healPreviousSlot = Player.getHeldItemIndex();
+        this.healingSlot = slot;
+        if (Player.getHeldItemIndex() !== slot) {
+            Player.setHeldItemIndex(slot);
+            return;
+        }
+        const ability = this.getHealingAbility(Player.getHeldItem());
+        if (!ability || this.healVitality < ability.cost) {
+            this.stopHealing();
+            return;
+        }
+        Client.rightClick();
+        this.healNextClickAt = Date.now() + 1000 / (13 + Math.random() * 4);
+        this.healReadyAt[slot] = Date.now() + ability.cooldown;
+        this.healVitality = Math.max(0, this.healVitality - ability.cost);
+    }
+
+    stopHealing() {
+        if (this.healPreviousSlot !== null && World.isLoaded() && Player.getPlayer() && Player.getHeldItemIndex() === this.healingSlot) {
+            Player.setHeldItemIndex(this.healPreviousSlot);
+        }
+        this.healPreviousSlot = null;
+        this.healingSlot = null;
+    }
+
+    resetHealing() {
+        this.stopHealing();
+        this.healHealth = null;
+        this.healUpdatedAt = 0;
+        this.healVitality = null;
+        this.healVitalityUpdatedAt = 0;
+        this.healReadyAt = {};
+        this.healNextClickAt = 0;
+    }
+
     onEnable() {
         this.activeBlackholes = [];
         this.scanTicker = 0;
@@ -738,6 +897,7 @@ class Combat extends ModuleBase {
     }
 
     onDisable() {
+        this.stopHealing();
         if (!this.isParentManaged) this.message('&cDisabled');
 
         this.cancelPath();
