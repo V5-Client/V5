@@ -240,25 +240,13 @@ class Combat extends ModuleBase {
         register('packetReceived', (packet) => this.readHealth(packet.text().getString())).setFilteredClass(
             net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
         );
-        register('worldUnload', () => {
-            this.health = null;
-            this.healthUpdatedAt = 0;
-            this.vitality = null;
-            this.vitalityUpdatedAt = 0;
-            this.healReadyAt.clear();
-            this.stopHealing(false);
-        });
+        register('worldUnload', () => this.resetHealing());
     }
 
     onTick() {
         if (!this.enabled) return;
         if (!World.isLoaded() || !Player.getPlayer()) {
-            this.health = null;
-            this.healthUpdatedAt = 0;
-            this.vitality = null;
-            this.vitalityUpdatedAt = 0;
-            this.healReadyAt.clear();
-            this.stopHealing(false);
+            this.resetHealing();
             this.pauseMovement();
             return;
         }
@@ -366,68 +354,86 @@ class Combat extends ModuleBase {
         return { cost, cooldown: Number.isFinite(cooldown) ? Math.max(100, cooldown) : 1000 };
     }
 
-    findHealSlot(usableOnly = false) {
+    findHealingItem(usableOnly = false, now = Date.now()) {
         const inventory = Player.getInventory();
-        if (!inventory) return -1;
-        let wandSlot = -1;
+        if (!inventory) return null;
+
+        let wand = null;
         for (let slot = 0; slot < Math.min(inventory.getSize(), 9); slot++) {
+            if (usableOnly && now < (this.healReadyAt.get(slot) || 0)) continue;
+
             const item = inventory.getStackInSlot(slot);
             const name = this.stripHealingFormatting(item?.getName?.()).toLowerCase();
-            if (!name.includes('zombie sword') && !/\bwand of (healing|mending|restoration|atonement)\b/.test(name)) continue;
-            if (usableOnly) {
-                if (Date.now() < (this.healReadyAt.get(slot) || 0)) continue;
-                const ability = this.getHealingAbility(item);
-                if (!ability || this.vitality < ability.cost) continue;
-            }
-            if (name.includes('zombie sword')) return slot;
-            if (wandSlot === -1 && /\bwand of (healing|mending|restoration|atonement)\b/.test(name)) wandSlot = slot;
+            const isSword = name.includes('zombie sword');
+            const isWand = /\bwand of (healing|mending|restoration|atonement)\b/.test(name);
+            if (!isSword && !isWand) continue;
+
+            const ability = usableOnly ? this.getHealingAbility(item) : null;
+            if (usableOnly && (!ability || this.vitality < ability.cost)) continue;
+
+            const candidate = { slot, ability };
+            if (isSword) return candidate;
+            if (!wand) wand = candidate;
         }
-        return wandSlot;
+        return wand;
+    }
+
+    findHealSlot(usableOnly = false) {
+        return this.findHealingItem(usableOnly)?.slot ?? -1;
     }
 
     heal() {
         const now = Date.now();
+        const player = Player.getPlayer();
+        const health = this.health;
         if (
             !this.autoHeal ||
             !World.isLoaded() ||
-            !Player.getPlayer() ||
-            Player.getPlayer().isDeadOrDying() ||
+            !player ||
+            player.isDeadOrDying() ||
             Client.isInGui() ||
-            !this.health ||
+            !health ||
             this.vitality === null ||
             now - this.vitalityUpdatedAt >= 5000 ||
             now - this.healthUpdatedAt >= 5000 ||
-            this.health.current <= 0 ||
-            this.health.current >= (this.health.maximum * this.healThreshold) / 100
+            health.current <= 0 ||
+            health.current >= (health.maximum * this.healThreshold) / 100
         ) {
             return this.stopHealing();
         }
 
-        const slot = this.findHealSlot(true);
-        if (slot === -1) return this.stopHealing();
+        const candidate = this.findHealingItem(true, now);
+        if (!candidate) return this.stopHealing();
 
+        const { slot, ability } = candidate;
+        const heldSlot = Player.getHeldItemIndex();
         if (this.healReturnSlot === null) {
-            this.healReturnSlot = Player.getHeldItemIndex();
+            this.healReturnSlot = heldSlot;
             if (this.enabled) {
                 this.pauseMovement();
                 this.setState(STATES.HEALING);
             }
         }
         this.healingSlot = slot;
-        if (Player.getHeldItemIndex() !== slot) {
+        if (heldSlot !== slot) {
             Player.setHeldItemIndex(slot);
             this.nextHealAt = now + 100;
-            return true;
-        }
-        if (now >= this.nextHealAt) {
-            const ability = this.getHealingAbility(Player.getInventory().getStackInSlot(slot));
-            if (!ability || this.vitality < ability.cost) return this.stopHealing();
+        } else if (now >= this.nextHealAt) {
             Client.rightClick();
             this.vitality = Math.max(0, this.vitality - ability.cost);
             this.healReadyAt.set(slot, now + ability.cooldown);
             this.nextHealAt = now + 100;
         }
         return true;
+    }
+
+    resetHealing() {
+        this.health = null;
+        this.healthUpdatedAt = 0;
+        this.vitality = null;
+        this.vitalityUpdatedAt = 0;
+        this.healReadyAt.clear();
+        this.stopHealing(false);
     }
 
     stopHealing(restoreSlot = true) {
