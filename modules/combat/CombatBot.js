@@ -11,7 +11,6 @@ const STATES = {
     IDLE: 'IDLE',
     PATHING: 'PATHING',
     FIGHTING: 'FIGHTING',
-    HEALING: 'HEALING',
 };
 
 const parseNames = (value) => [
@@ -119,6 +118,7 @@ class Combat extends ModuleBase {
         this.healReturnSlot = null;
         this.healingSlot = null;
         this.nextHealAt = 0;
+        this.suppressCombatClickThisTick = false;
         this.overrideRotationSpeed = false;
         this.combatRotationSpeed = 400;
 
@@ -245,6 +245,7 @@ class Combat extends ModuleBase {
 
     onTick() {
         if (!this.enabled) return;
+        this.suppressCombatClickThisTick = false;
         if (!World.isLoaded() || !Player.getPlayer()) {
             this.resetHealing();
             this.pauseMovement();
@@ -256,7 +257,7 @@ class Combat extends ModuleBase {
             return;
         }
 
-        if (this.heal()) return;
+        this.heal();
 
         this.scanBlackholes();
         this.expireTargetData();
@@ -407,13 +408,9 @@ class Combat extends ModuleBase {
 
         const { slot, ability } = candidate;
         const heldSlot = Player.getHeldItemIndex();
-        if (this.healReturnSlot === null) {
-            this.healReturnSlot = heldSlot;
-            if (this.enabled) {
-                this.pauseMovement();
-                this.setState(STATES.HEALING);
-            }
-        }
+        if (this.healReturnSlot === null) this.healReturnSlot = heldSlot;
+        // Keep movement and rotation active, but reserve clicks while using a healing item.
+        this.suppressCombatClickThisTick = true;
         this.healingSlot = slot;
         if (heldSlot !== slot) {
             Player.setHeldItemIndex(slot);
@@ -438,13 +435,14 @@ class Combat extends ModuleBase {
 
     stopHealing(restoreSlot = true) {
         if (this.healReturnSlot === null) return false;
+        // Allow the restored combat item to settle before combat clicks resume next tick.
+        this.suppressCombatClickThisTick = true;
         if (restoreSlot && World.isLoaded() && Player.getPlayer() && Player.getHeldItemIndex() === this.healingSlot) {
             Player.setHeldItemIndex(this.healReturnSlot);
         }
         this.healReturnSlot = null;
         this.healingSlot = null;
         this.nextHealAt = 0;
-        if (this.enabled) this.setState(STATES.IDLE);
         return true;
     }
 
@@ -490,6 +488,7 @@ class Combat extends ModuleBase {
     }
 
     tryAttack(distance) {
+        if (this.suppressCombatClickThisTick || this.healReturnSlot !== null) return;
         const now = Date.now();
         if (distance > ATTACK_REACH + 0.35 || now < this.nextAttackAt) return;
         if (!isLookingAtEntity(this.target, ATTACK_REACH + 0.5)) return;
