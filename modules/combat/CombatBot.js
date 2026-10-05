@@ -409,7 +409,6 @@ class Combat extends ModuleBase {
         const { slot, ability } = candidate;
         const heldSlot = Player.getHeldItemIndex();
         if (this.healReturnSlot === null) this.healReturnSlot = heldSlot;
-        // Keep movement and rotation active, but reserve clicks while using a healing item.
         this.suppressCombatClickThisTick = true;
         this.healingSlot = slot;
         if (heldSlot !== slot) {
@@ -435,7 +434,6 @@ class Combat extends ModuleBase {
 
     stopHealing(restoreSlot = true) {
         if (this.healReturnSlot === null) return false;
-        // Allow the restored combat item to settle before combat clicks resume next tick.
         this.suppressCombatClickThisTick = true;
         if (restoreSlot && World.isLoaded() && Player.getPlayer() && Player.getHeldItemIndex() === this.healingSlot) {
             Player.setHeldItemIndex(this.healReturnSlot);
