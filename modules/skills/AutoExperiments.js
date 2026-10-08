@@ -34,7 +34,7 @@ class AutoExperiments extends ModuleBase {
             tooltip: 'Automatically does the experiments',
         });
 
-        this.actionDelay = 500;
+        this.actionDelay = 250;
         this.serumCountValue = 0;
         this.getMaxXpEnabled = false;
         this.automaticSuperpairs = true;
@@ -60,9 +60,9 @@ class AutoExperiments extends ModuleBase {
 
         this.addSlider(
             'Action Delay (ms)',
-            75,
-            1000,
+            50,
             500,
+            250,
             (v) => (this.actionDelay = v),
             'Delay in milliseconds between experiment clicks and table reopen steps.'
         );
