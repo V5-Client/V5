@@ -57,17 +57,3 @@ jobs:
                     gh release create "$tag" --target "$SHA" --title "$tag" --generate-notes
                   fi
                   gh release upload "$tag" V5-Mojmap.zip --clobber
-
-            - name: Setup Node
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-              with:
-                  node-version: 22
-
-            - name: Install Wrangler
-              run: npm install -g wrangler@4.110.0 --prefer-offline
-
-            - name: Upload release ZIP to R2
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-              run: wrangler r2 object put v5-builds/V5-Mojmap.zip --file V5-Mojmap.zip --remote
