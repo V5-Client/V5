@@ -254,7 +254,6 @@ class Bot extends ModuleBase {
                 return;
             }
             if (Client.isInGui()) {
-                Client.unpressKeys();
                 OreRotations.stop();
                 return;
             }
