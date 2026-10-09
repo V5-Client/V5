@@ -29,6 +29,8 @@ const AIM_POINT_LO = 0.02;
 const AIM_POINT_HI = 0.98;
 const AIM_RETRY_MIN_DELTA_SQ = 0.0025;
 const VISIBLE_RAY_OFFSETS = [0.15, 0.5, 0.85];
+const TITANIUM_BLOCK = 'minecraft:polished_diorite';
+
 const TARGET_MODES = {
     REACHABLE: 'reachable',
     APPROACH: 'approach',
@@ -1070,31 +1072,21 @@ class Bot extends ModuleBase {
         const allowApproachTargets = this.MOVEMENT && !this.manualScan && !this.isTunnelMode() && this.approachScanReach > this.mineReach;
         const mineReachSq = this.mineReach * this.mineReach;
 
-        const scanned = this.collectScanTargets(targetCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+        let found = [];
+        // Look direction outweighs block type in the cost, so titanium needs its own pass to actually win.
+        if (this.PRIORITIZE_TITANIUM && targetCosts[TITANIUM_BLOCK] !== undefined) {
+            const titaniumCosts = { [TITANIUM_BLOCK]: targetCosts[TITANIUM_BLOCK] };
+            const titanium = this.collectScanTargets(titaniumCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+            found = this.evaluateReachableCandidates(titanium.reachableCandidates, eyePos, lookVec, mineReachSq);
+            if (found.length === 0 && allowApproachTargets) found = this.findApproachTargets(titaniumCosts, eyePos, lookVec, excludedBlock);
+        }
 
-        let found = this.evaluateReachableCandidates(scanned.reachableCandidates, eyePos, lookVec, mineReachSq);
+        if (found.length === 0) {
+            const scanned = this.collectScanTargets(targetCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+            found = this.evaluateReachableCandidates(scanned.reachableCandidates, eyePos, lookVec, mineReachSq);
+        }
         if (found.length === 0 && allowApproachTargets) {
-            found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true)
-                .approachTargets.map((candidate) => {
-                    const aim = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, this.approachScanReach ** 2, false);
-                    if (!aim) return null;
-
-                    const visibleRays = this.minimumVisibleRays > 0 ? this.countVisibleRays(candidate, aim, eyePos) : 9;
-                    return {
-                        ...candidate,
-                        aimX: aim.x,
-                        aimY: aim.y,
-                        aimZ: aim.z,
-                        dist: aim.dist,
-                        visibleRays,
-                    };
-                })
-                .filter(Boolean);
-
-            const approachTarget = found[0];
-            if (approachTarget && approachTarget.visibleRays < this.minimumVisibleRays) {
-                approachTarget.visibilityStrafeKey = this.findVisibilityStrafeKey(approachTarget, eyePos, approachTarget.visibleRays);
-            }
+            found = this.findApproachTargets(targetCosts, eyePos, lookVec, excludedBlock);
         }
 
         if (found.length > 0) {
@@ -1109,6 +1101,31 @@ class Bot extends ModuleBase {
         }
 
         this.scanning = false;
+    }
+
+    findApproachTargets(targetCosts, eyePos, lookVec, excludedBlock) {
+        const found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true)
+            .approachTargets.map((candidate) => {
+                const aim = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, this.approachScanReach ** 2, false);
+                if (!aim) return null;
+
+                const visibleRays = this.minimumVisibleRays > 0 ? this.countVisibleRays(candidate, aim, eyePos) : 9;
+                return {
+                    ...candidate,
+                    aimX: aim.x,
+                    aimY: aim.y,
+                    aimZ: aim.z,
+                    dist: aim.dist,
+                    visibleRays,
+                };
+            })
+            .filter(Boolean);
+
+        const approachTarget = found[0];
+        if (approachTarget && approachTarget.visibleRays < this.minimumVisibleRays) {
+            approachTarget.visibilityStrafeKey = this.findVisibilityStrafeKey(approachTarget, eyePos, approachTarget.visibleRays);
+        }
+        return found;
     }
 
     isScanning() {
