@@ -507,7 +507,9 @@ class Finder {
         if (!result || this.isFly || Recovery.isStallRecoveryActive()) return;
         if (!Array.isArray(result.path_flags) || !result.path_flags.length) return;
 
-        const pathIndex = Math.max(0, Math.min(result.path_flags.length - 1, Math.floor(Rotations.currentPathPosition || 0)));
+        // path_flags is indexed by path node, not by look point.
+        if (Jump.lastNearestIndex < 0) return;
+        const pathIndex = Math.min(result.path_flags.length - 1, Jump.lastNearestIndex + 1);
         const flags = result.path_flags[pathIndex] || 0;
 
         const bits = Array.isArray(result.path_flag_bits) && result.path_flag_bits.length >= 8 ? result.path_flag_bits : null;
