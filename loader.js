@@ -25,6 +25,7 @@ import './modules/other/DiscordIntegration';
 import './utils/pathfinder/PathFinder';
 import './utils/FastEtherwarp';
 import './utils/Misc';
+import './utils/player/AttackResync';
 import './failsafes/FailsafeManager';
 import './utils/SkyblockEvents';
 

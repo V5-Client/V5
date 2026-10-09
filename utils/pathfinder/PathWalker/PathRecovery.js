@@ -9,8 +9,10 @@ class PathRecovery {
         this.PROGRESS_THRESHOLD_SQ = this.PROGRESS_THRESHOLD * this.PROGRESS_THRESHOLD;
 
         this.STUCK_TICKS_JUMP = 10;
-        this.STUCK_TICKS_CLOSE_LOOK = 22;
-        this.STUCK_TICKS_BACKUP_RECALC = 44;
+        this.STUCK_TICKS_CLOSE_LOOK = 16;
+        this.STUCK_TICKS_BACKUP_RECALC = 36;
+        this.WALL_TICKS = 3;
+        this.wallTicks = 0;
 
         this.lastPos = null;
         this.stuckPos = null;
@@ -34,6 +36,13 @@ class PathRecovery {
             this.resetTracking();
             this.lastPos = null;
             return null;
+        }
+
+        if (player.onGround() && player.horizontalCollision) {
+            if (++this.wallTicks === this.WALL_TICKS) return 'WALL';
+            if (this.wallTicks > 20) this.wallTicks = 0;
+        } else {
+            this.wallTicks = 0;
         }
 
         let distMovedSq = 1.0;
@@ -118,6 +127,7 @@ class PathRecovery {
 
     stop() {
         this.resetTracking();
+        this.wallTicks = 0;
         this.lastPos = null;
         this.stuckPos = null;
     }

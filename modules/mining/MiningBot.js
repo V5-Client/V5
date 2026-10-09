@@ -29,6 +29,9 @@ const AIM_POINT_LO = 0.02;
 const AIM_POINT_HI = 0.98;
 const AIM_RETRY_MIN_DELTA_SQ = 0.0025;
 const VISIBLE_RAY_OFFSETS = [0.15, 0.5, 0.85];
+const TITANIUM_BLOCK = 'minecraft:polished_diorite';
+const SNEAK_EYE_DROP = 0.35;
+
 const TARGET_MODES = {
     REACHABLE: 'reachable',
     APPROACH: 'approach',
@@ -77,6 +80,10 @@ class Bot extends ModuleBase {
         this.mineTickCount = 0;
         this.tickCount = 0;
         this.totalTicks = 0;
+        this.blockTimeouts = new Map();
+        this.skippedBlocks = new Map();
+        this.MAX_TIMEOUTS_PER_BLOCK = 2;
+        this.SKIP_BLOCK_MS = 15000;
         this.allowScan = false;
         this.speedBoost = false;
         this.nukedBlock = false;
@@ -347,6 +354,32 @@ class Bot extends ModuleBase {
     resetTickCounters() {
         this.mineTickCount = 0;
         this.tickCount = 0;
+    }
+
+    blockKey(block) {
+        return `${block.x},${block.y},${block.z}`;
+    }
+
+    isSkippedBlock(x, y, z) {
+        const key = `${x},${y},${z}`;
+        const until = this.skippedBlocks.get(key);
+        if (!until) return false;
+        if (until > Date.now()) return true;
+        this.skippedBlocks.delete(key);
+        return false;
+    }
+
+    // Returns true once a block has timed out too often and should be left alone for a while.
+    registerBlockTimeout(block) {
+        const key = this.blockKey(block);
+        const count = (this.blockTimeouts.get(key) || 0) + 1;
+        if (count < this.MAX_TIMEOUTS_PER_BLOCK) {
+            this.blockTimeouts.set(key, count);
+            return false;
+        }
+        this.blockTimeouts.delete(key);
+        this.skippedBlocks.set(key, Date.now() + this.SKIP_BLOCK_MS);
+        return true;
     }
 
     initSettings() {
@@ -819,7 +852,10 @@ class Bot extends ModuleBase {
 
         const timedOut = this.tickCount > this.totalTicks * 2;
         const shouldGlide = this.shouldGlideToNextBlock(blockName);
-        if (timedOut && !this.isAirOrBedrock(blockName)) {
+        if (timedOut && !this.isAirOrBedrock(blockName) && this.registerBlockTimeout(this.currentTarget)) {
+            this.resetTickCounters();
+            this.handleRotationOrScan(false);
+        } else if (timedOut && !this.isAirOrBedrock(blockName)) {
             const failedAim = {
                 x: this.currentTarget.aimX,
                 y: this.currentTarget.aimY,
@@ -830,6 +866,7 @@ class Bot extends ModuleBase {
             this.currentTarget.aimX = this.currentTarget.aimY = this.currentTarget.aimZ = null;
             if (!this.refreshCurrentTargetAimPoint(failedAim)) this.handleRotationOrScan(false);
         } else if (shouldGlide) {
+            if (this.currentTarget) this.blockTimeouts.delete(this.blockKey(this.currentTarget));
             this.resetTickCounters();
             this.handleRotationOrScan(false);
         }
@@ -956,6 +993,7 @@ class Bot extends ModuleBase {
             const z = block.z;
 
             if (excludedBlock && x === excludedBlock.x && y === excludedBlock.y && z === excludedBlock.z) continue;
+            if (this.isSkippedBlock(x, y, z)) continue;
 
             const blockName = block.type.getRegistryName();
             const targetCost = blockName ? targetCosts[blockName] : undefined;
@@ -1070,31 +1108,21 @@ class Bot extends ModuleBase {
         const allowApproachTargets = this.MOVEMENT && !this.manualScan && !this.isTunnelMode() && this.approachScanReach > this.mineReach;
         const mineReachSq = this.mineReach * this.mineReach;
 
-        const scanned = this.collectScanTargets(targetCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+        let found = [];
+        // Look direction outweighs block type in the cost, so titanium needs its own pass to actually win.
+        if (this.PRIORITIZE_TITANIUM && targetCosts[TITANIUM_BLOCK] !== undefined) {
+            const titaniumCosts = { [TITANIUM_BLOCK]: targetCosts[TITANIUM_BLOCK] };
+            const titanium = this.collectScanTargets(titaniumCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+            found = this.evaluateReachableCandidates(titanium.reachableCandidates, eyePos, lookVec, mineReachSq);
+            if (found.length === 0 && allowApproachTargets) found = this.findApproachTargets(titaniumCosts, eyePos, lookVec, excludedBlock);
+        }
 
-        let found = this.evaluateReachableCandidates(scanned.reachableCandidates, eyePos, lookVec, mineReachSq);
+        if (found.length === 0) {
+            const scanned = this.collectScanTargets(targetCosts, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+            found = this.evaluateReachableCandidates(scanned.reachableCandidates, eyePos, lookVec, mineReachSq);
+        }
         if (found.length === 0 && allowApproachTargets) {
-            found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true)
-                .approachTargets.map((candidate) => {
-                    const aim = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, this.approachScanReach ** 2, false);
-                    if (!aim) return null;
-
-                    const visibleRays = this.minimumVisibleRays > 0 ? this.countVisibleRays(candidate, aim, eyePos) : 9;
-                    return {
-                        ...candidate,
-                        aimX: aim.x,
-                        aimY: aim.y,
-                        aimZ: aim.z,
-                        dist: aim.dist,
-                        visibleRays,
-                    };
-                })
-                .filter(Boolean);
-
-            const approachTarget = found[0];
-            if (approachTarget && approachTarget.visibleRays < this.minimumVisibleRays) {
-                approachTarget.visibilityStrafeKey = this.findVisibilityStrafeKey(approachTarget, eyePos, approachTarget.visibleRays);
-            }
+            found = this.findApproachTargets(targetCosts, eyePos, lookVec, excludedBlock);
         }
 
         if (found.length > 0) {
@@ -1109,6 +1137,31 @@ class Bot extends ModuleBase {
         }
 
         this.scanning = false;
+    }
+
+    findApproachTargets(targetCosts, eyePos, lookVec, excludedBlock) {
+        const found = this.collectScanTargets(targetCosts, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true)
+            .approachTargets.map((candidate) => {
+                const aim = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, this.approachScanReach ** 2, false);
+                if (!aim) return null;
+
+                const visibleRays = this.minimumVisibleRays > 0 ? this.countVisibleRays(candidate, aim, eyePos) : 9;
+                return {
+                    ...candidate,
+                    aimX: aim.x,
+                    aimY: aim.y,
+                    aimZ: aim.z,
+                    dist: aim.dist,
+                    visibleRays,
+                };
+            })
+            .filter(Boolean);
+
+        const approachTarget = found[0];
+        if (approachTarget && approachTarget.visibleRays < this.minimumVisibleRays) {
+            approachTarget.visibilityStrafeKey = this.findVisibilityStrafeKey(approachTarget, eyePos, approachTarget.visibleRays);
+        }
+        return found;
     }
 
     isScanning() {
@@ -1412,6 +1465,18 @@ class Bot extends ModuleBase {
         return bestKey;
     }
 
+    // Sneaking lowers the eyes, which can push an overhead target out of reach and make it flip targets.
+    shouldSneakForTarget() {
+        if (!this.sneakWhileMining) return false;
+        const target = this.currentTarget;
+        const player = Player.getPlayer();
+        if (!target || !player || ![target.aimX, target.aimY, target.aimZ].every(Number.isFinite)) return true;
+
+        const eye = player.getEyePosition();
+        const sneakEyeY = Player.isSneaking() ? eye.y() : eye.y() - SNEAK_EYE_DROP;
+        return Math.hypot(target.aimX - eye.x(), target.aimY - sneakEyeY, target.aimZ - eye.z()) <= this.faceReach - 0.05;
+    }
+
     setSneak(shouldSneak, force = false) {
         if (force || this.lastSneakCommand !== shouldSneak || Player.isSneaking() !== shouldSneak) {
             Client.setKey('shift', shouldSneak);
@@ -1430,7 +1495,7 @@ class Bot extends ModuleBase {
         if (!this.MOVEMENT) {
             Client.stopMovement();
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             return;
         }
 
@@ -1446,7 +1511,7 @@ class Bot extends ModuleBase {
         if (!this.isApproachTarget()) {
             Client.stopMovement();
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             return;
         }
 
@@ -1458,7 +1523,7 @@ class Bot extends ModuleBase {
             Client.setKey('w', false);
             Client.setKey('s', false);
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             if (!aligned) return;
             if (strafeTicks < 20) {
                 this.currentTarget.visibilityStrafeTicks = strafeTicks + 1;
@@ -1474,7 +1539,7 @@ class Bot extends ModuleBase {
 
         const blockedForward = aligned && this.hasForwardObstacle();
         const shouldJump = Player.getPlayer()?.onGround() && blockedForward && this.currentTarget.y >= Math.floor(Player.getY());
-        this.setSneak(this.sneakWhileMining);
+        this.setSneak(this.shouldSneakForTarget());
         Client.setKey('space', shouldJump);
     }
 

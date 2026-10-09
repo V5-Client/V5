@@ -4,6 +4,21 @@ import PathConfig from '../PathConfig';
 import { onPathTick } from '../PathExecutor';
 import { isRecovering } from './PathMovement';
 
+const GRAVITY = 0.08;
+const AIR_DRAG = 0.98;
+const AIR_FRICTION = 0.91;
+const SPRINT_JUMP_BOOST = 0.2;
+const MAX_SIM_TICKS = 40;
+
+let MobEffects = null;
+let Attributes = null;
+try {
+    MobEffects = Java.type('net.minecraft.world.effect.MobEffects');
+    Attributes = Java.type('net.minecraft.world.entity.ai.attributes.Attributes');
+} catch (e) {
+    console.error('PathJumps: could not load effect/attribute classes, assuming vanilla jump', e);
+}
+
 class PathJumps {
     constructor() {
         this.lastLookaheadPositions = [];
@@ -16,9 +31,11 @@ class PathJumps {
         this.lastNearestIndex = -1;
 
         this.STEP_HEIGHT = 0.6;
-        this.LOOKAHEAD_NODES = 3;
+        this.LOOKAHEAD_NODES = 5;
         this.NEAREST_SEARCH_WINDOW = 16;
-        this.PREEMPTIVE_JUMP_DISTANCE = 1.65;
+        this.MIN_JUMP_TRIGGER = 0.2;
+        this.JUMP_EARLY_MARGIN = 0.15;
+        this.LANDING_MARGIN = 0.4;
 
         this.FLAG_FLUID_FEET = 1 << 0;
         this.FLAG_FLUID_HEAD = 1 << 1;
@@ -211,6 +228,96 @@ class PathJumps {
         return false;
     }
 
+    getEdgeDistance(blockX, blockZ) {
+        const half = 0.3;
+        const pX = Player.getX();
+        const pZ = Player.getZ();
+        const bx = Math.floor(blockX);
+        const bz = Math.floor(blockZ);
+        const dx = Math.max(bx - (pX + half), 0, pX - half - (bx + 1));
+        const dz = Math.max(bz - (pZ + half), 0, pZ - half - (bz + 1));
+        return Math.hypot(dx, dz);
+    }
+
+    getJumpVelocity(player) {
+        let velocity = 0.42;
+        try {
+            const strength = Attributes ? player.getAttributeValue(Attributes.JUMP_STRENGTH) : NaN;
+            if (Number.isFinite(strength) && strength > 0) velocity = strength;
+        } catch (e) {}
+        try {
+            const effect = MobEffects ? player.getEffect(MobEffects.JUMP_BOOST) : null;
+            if (effect) velocity += 0.1 * (effect.getAmplifier() + 1);
+        } catch (e) {}
+        return velocity;
+    }
+
+    // Unaffected by the Speed stat.
+    getAirAcceleration(sprinting) {
+        return sprinting ? 0.026 : 0.02;
+    }
+
+    // Horizontal distances between which a jump started now keeps our feet above `rise`; null if it can't.
+    simulateJumpWindow(rise) {
+        const player = Player.getPlayer();
+        if (!player) return null;
+
+        const sprinting = player.isSprinting();
+        const groundSpeed = Math.hypot(Player.getMotionX(), Player.getMotionZ());
+        const airAccel = this.getAirAcceleration(sprinting);
+
+        // One ground tick passes before the jump key is processed.
+        let distance = groundSpeed;
+        let y = 0;
+        let vy = this.getJumpVelocity(player);
+        let vh = groundSpeed + (sprinting ? SPRINT_JUMP_BOOST : 0);
+        let enter = null;
+
+        for (let tick = 0; tick < MAX_SIM_TICKS; tick++) {
+            y += vy;
+            distance += vh;
+            vy = (vy - GRAVITY) * AIR_DRAG;
+            vh = vh * AIR_FRICTION + airAccel;
+
+            if (enter === null && y >= rise) enter = distance;
+            if (enter !== null && (y < rise || vy < 0 && y + vy < rise)) return { enter, exit: distance };
+            if (enter === null && vy < 0) return null;
+        }
+        return enter === null ? null : { enter, exit: distance };
+    }
+
+    getBlockTop(x, y, z) {
+        try {
+            const world = World.getWorld();
+            const pos = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
+            const shape = world.getBlockState(pos).getCollisionShape(world, pos);
+            if (!shape.isEmpty()) return Math.floor(y) + shape.bounds().maxY;
+        } catch (e) {}
+        return Math.floor(y) + 1;
+    }
+
+    isHeadingToward(blockX, blockZ) {
+        const dx = Math.floor(blockX) + 0.5 - Player.getX();
+        const dz = Math.floor(blockZ) + 0.5 - Player.getZ();
+        const len = Math.hypot(dx, dz);
+        if (len < 0.5) return true;
+        const yaw = (Player.getYaw() * Math.PI) / 180;
+        return (-Math.sin(yaw) * dx + Math.cos(yaw) * dz) / len > 0.3;
+    }
+
+    isJumpTimed(blockX, blockY, blockZ) {
+        if (!this.isHeadingToward(blockX, blockZ)) return false;
+        const rise = this.getBlockTop(blockX, blockY, blockZ) - Player.getY();
+        if (rise <= this.STEP_HEIGHT) return false;
+
+        const window = this.simulateJumpWindow(rise);
+        if (!window) return this.getEdgeDistance(blockX, blockZ) <= this.MIN_JUMP_TRIGGER;
+
+        const edge = this.getEdgeDistance(blockX, blockZ);
+        const latest = Math.min(window.enter + this.JUMP_EARLY_MARGIN, window.exit - this.LANDING_MARGIN);
+        return edge <= Math.max(this.MIN_JUMP_TRIGGER, latest);
+    }
+
     checkObstacleJump(lookahead) {
         if (lookahead.length === 0) return false;
         const pX = Player.getX(),
@@ -226,7 +333,9 @@ class PathJumps {
         for (const data of lookahead) {
             if (this.getBlockName(data.block).includes('snow')) continue;
             const heightDifference = data.vec.y() - playerFloorY;
-            if (heightDifference > stairClimbLimit) needsJump = true;
+            if (heightDifference <= stairClimbLimit) continue;
+            if (!this.isJumpTimed(data.vec.x(), data.vec.y(), data.vec.z())) continue;
+            needsJump = true;
             if (data.name.includes('slab')) {
                 canWalkInstead = true;
             } else if (data.name.includes('stair')) {
@@ -253,16 +362,10 @@ class PathJumps {
         const nextY = Math.round(nextNode.y);
         if (nextY <= currentY) return false;
 
-        const targetX = nextNode.x + 0.5;
-        const targetZ = nextNode.z + 0.5;
-        const dx = targetX - Player.getX();
-        const dz = targetZ - Player.getZ();
-        const distSq = dx * dx + dz * dz;
-
-        if (distSq > this.PREEMPTIVE_JUMP_DISTANCE * this.PREEMPTIVE_JUMP_DISTANCE) return false;
+        if (!this.isJumpTimed(nextNode.x, nextY, nextNode.z)) return false;
 
         const rise = nextY - Math.floor(Player.getY() - 0.001);
-        if (rise < 1 || rise > 2) return false;
+        if (rise < 1) return false;
 
         if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Predictive climb jump');
         Client.setKey('space', true);

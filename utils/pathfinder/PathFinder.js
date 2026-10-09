@@ -103,7 +103,7 @@ class Finder {
 
         const goals = [];
         for (let i = 0; i < coords.length; i += 3) {
-            const point = isFly ? this.resolveFlyPoint(coords[i], coords[i + 1], coords[i + 2]) : [coords[i], coords[i + 1], coords[i + 2]];
+            const point = isFly ? this.resolveFlyPoint(coords[i], coords[i + 1], coords[i + 2]) : this.resolveWalkPoint(coords[i], coords[i + 1], coords[i + 2]);
             if (!point) {
                 showNotification('Invalid Fly Goal', `No valid fly position near ${coords[i]}, ${coords[i + 1]}, ${coords[i + 2]}.`, 'ERROR', 5000);
                 return null;
@@ -369,6 +369,9 @@ class Finder {
             case 'JUMP':
                 forceJump(4);
                 break;
+            case 'WALL':
+                Rotations.setTemporaryLookahead(Math.max(Rotations.RECOVERY_MIN_LOOKAHEAD, 0.35), 12);
+                break;
             case 'CLOSE_LOOK':
                 Rotations.setTemporaryLookahead(Rotations.RECOVERY_MIN_LOOKAHEAD, 40);
                 //forceJump(4);
@@ -507,7 +510,9 @@ class Finder {
         if (!result || this.isFly || Recovery.isStallRecoveryActive()) return;
         if (!Array.isArray(result.path_flags) || !result.path_flags.length) return;
 
-        const pathIndex = Math.max(0, Math.min(result.path_flags.length - 1, Math.floor(Rotations.currentPathPosition || 0)));
+        // path_flags is indexed by path node, not by look point.
+        if (Jump.lastNearestIndex < 0) return;
+        const pathIndex = Math.min(result.path_flags.length - 1, Jump.lastNearestIndex + 1);
         const flags = result.path_flags[pathIndex] || 0;
 
         const bits = Array.isArray(result.path_flag_bits) && result.path_flag_bits.length >= 8 ? result.path_flag_bits : null;
@@ -693,6 +698,20 @@ class Finder {
         } catch (e) {
             return false;
         }
+    }
+
+    // Walk goals are the block stood on; F3 feet coordinates are one higher (air), which never resolves.
+    resolveWalkPoint(x, y, z, verticalSearch = 3) {
+        const baseX = Math.floor(x);
+        const baseY = Math.floor(y);
+        const baseZ = Math.floor(z);
+        const isStandable = (groundY) =>
+            !this.isBlockWalkable(baseX, groundY, baseZ) && this.isBlockWalkable(baseX, groundY + 1, baseZ) && this.isBlockWalkable(baseX, groundY + 2, baseZ);
+
+        for (const offset of [0, -1, 1, -2, 2, -3, 3].filter((o) => Math.abs(o) <= verticalSearch)) {
+            if (isStandable(baseY + offset)) return [baseX, baseY + offset, baseZ];
+        }
+        return [baseX, baseY, baseZ];
     }
 
     resolveFlyPoint(x, y, z, verticalSearch = 3) {
