@@ -25,6 +25,7 @@ const VISIBILITY_SAMPLE_COUNT = VISIBILITY_OFFSETS.length / 3;
 const AIM_POINT_FACE_INSET = 0.48;
 const AIM_POINT_EDGE_MAG = 0.4;
 const AIM_POINT_MID_CAP = 0.3;
+const SNEAK_EYE_DROP = 0.35;
 const AIM_POINT_LO = 0.02;
 const AIM_POINT_HI = 0.98;
 const AIM_RETRY_MIN_DELTA_SQ = 0.0025;
@@ -1412,6 +1413,18 @@ class Bot extends ModuleBase {
         return bestKey;
     }
 
+    // Sneaking lowers the eyes, which can push an overhead target out of reach and make it flip targets.
+    shouldSneakForTarget() {
+        if (!this.sneakWhileMining) return false;
+        const target = this.currentTarget;
+        const player = Player.getPlayer();
+        if (!target || !player || ![target.aimX, target.aimY, target.aimZ].every(Number.isFinite)) return true;
+
+        const eye = player.getEyePosition();
+        const sneakEyeY = Player.isSneaking() ? eye.y() : eye.y() - SNEAK_EYE_DROP;
+        return Math.hypot(target.aimX - eye.x(), target.aimY - sneakEyeY, target.aimZ - eye.z()) <= this.faceReach - 0.05;
+    }
+
     setSneak(shouldSneak, force = false) {
         if (force || this.lastSneakCommand !== shouldSneak || Player.isSneaking() !== shouldSneak) {
             Client.setKey('shift', shouldSneak);
@@ -1430,7 +1443,7 @@ class Bot extends ModuleBase {
         if (!this.MOVEMENT) {
             Client.stopMovement();
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             return;
         }
 
@@ -1446,7 +1459,7 @@ class Bot extends ModuleBase {
         if (!this.isApproachTarget()) {
             Client.stopMovement();
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             return;
         }
 
@@ -1458,7 +1471,7 @@ class Bot extends ModuleBase {
             Client.setKey('w', false);
             Client.setKey('s', false);
             Client.setKey('space', false);
-            this.setSneak(this.sneakWhileMining);
+            this.setSneak(this.shouldSneakForTarget());
             if (!aligned) return;
             if (strafeTicks < 20) {
                 this.currentTarget.visibilityStrafeTicks = strafeTicks + 1;
@@ -1474,7 +1487,7 @@ class Bot extends ModuleBase {
 
         const blockedForward = aligned && this.hasForwardObstacle();
         const shouldJump = Player.getPlayer()?.onGround() && blockedForward && this.currentTarget.y >= Math.floor(Player.getY());
-        this.setSneak(this.sneakWhileMining);
+        this.setSneak(this.shouldSneakForTarget());
         Client.setKey('space', shouldJump);
     }
 
