@@ -77,6 +77,10 @@ class Bot extends ModuleBase {
         this.mineTickCount = 0;
         this.tickCount = 0;
         this.totalTicks = 0;
+        this.blockTimeouts = new Map();
+        this.skippedBlocks = new Map();
+        this.MAX_TIMEOUTS_PER_BLOCK = 2;
+        this.SKIP_BLOCK_MS = 15000;
         this.allowScan = false;
         this.speedBoost = false;
         this.nukedBlock = false;
@@ -347,6 +351,32 @@ class Bot extends ModuleBase {
     resetTickCounters() {
         this.mineTickCount = 0;
         this.tickCount = 0;
+    }
+
+    blockKey(block) {
+        return `${block.x},${block.y},${block.z}`;
+    }
+
+    isSkippedBlock(x, y, z) {
+        const key = `${x},${y},${z}`;
+        const until = this.skippedBlocks.get(key);
+        if (!until) return false;
+        if (until > Date.now()) return true;
+        this.skippedBlocks.delete(key);
+        return false;
+    }
+
+    // Returns true once a block has timed out too often and should be left alone for a while.
+    registerBlockTimeout(block) {
+        const key = this.blockKey(block);
+        const count = (this.blockTimeouts.get(key) || 0) + 1;
+        if (count < this.MAX_TIMEOUTS_PER_BLOCK) {
+            this.blockTimeouts.set(key, count);
+            return false;
+        }
+        this.blockTimeouts.delete(key);
+        this.skippedBlocks.set(key, Date.now() + this.SKIP_BLOCK_MS);
+        return true;
     }
 
     initSettings() {
@@ -819,7 +849,10 @@ class Bot extends ModuleBase {
 
         const timedOut = this.tickCount > this.totalTicks * 2;
         const shouldGlide = this.shouldGlideToNextBlock(blockName);
-        if (timedOut && !this.isAirOrBedrock(blockName)) {
+        if (timedOut && !this.isAirOrBedrock(blockName) && this.registerBlockTimeout(this.currentTarget)) {
+            this.resetTickCounters();
+            this.handleRotationOrScan(false);
+        } else if (timedOut && !this.isAirOrBedrock(blockName)) {
             const failedAim = {
                 x: this.currentTarget.aimX,
                 y: this.currentTarget.aimY,
@@ -830,6 +863,7 @@ class Bot extends ModuleBase {
             this.currentTarget.aimX = this.currentTarget.aimY = this.currentTarget.aimZ = null;
             if (!this.refreshCurrentTargetAimPoint(failedAim)) this.handleRotationOrScan(false);
         } else if (shouldGlide) {
+            if (this.currentTarget) this.blockTimeouts.delete(this.blockKey(this.currentTarget));
             this.resetTickCounters();
             this.handleRotationOrScan(false);
         }
@@ -956,6 +990,7 @@ class Bot extends ModuleBase {
             const z = block.z;
 
             if (excludedBlock && x === excludedBlock.x && y === excludedBlock.y && z === excludedBlock.z) continue;
+            if (this.isSkippedBlock(x, y, z)) continue;
 
             const blockName = block.type.getRegistryName();
             const targetCost = blockName ? targetCosts[blockName] : undefined;
