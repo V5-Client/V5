@@ -103,7 +103,7 @@ class Finder {
 
         const goals = [];
         for (let i = 0; i < coords.length; i += 3) {
-            const point = isFly ? this.resolveFlyPoint(coords[i], coords[i + 1], coords[i + 2]) : [coords[i], coords[i + 1], coords[i + 2]];
+            const point = isFly ? this.resolveFlyPoint(coords[i], coords[i + 1], coords[i + 2]) : this.resolveWalkPoint(coords[i], coords[i + 1], coords[i + 2]);
             if (!point) {
                 showNotification('Invalid Fly Goal', `No valid fly position near ${coords[i]}, ${coords[i + 1]}, ${coords[i + 2]}.`, 'ERROR', 5000);
                 return null;
@@ -693,6 +693,20 @@ class Finder {
         } catch (e) {
             return false;
         }
+    }
+
+    // Walk goals are the block stood on; F3 feet coordinates are one higher (air), which never resolves.
+    resolveWalkPoint(x, y, z, verticalSearch = 3) {
+        const baseX = Math.floor(x);
+        const baseY = Math.floor(y);
+        const baseZ = Math.floor(z);
+        const isStandable = (groundY) =>
+            !this.isBlockWalkable(baseX, groundY, baseZ) && this.isBlockWalkable(baseX, groundY + 1, baseZ) && this.isBlockWalkable(baseX, groundY + 2, baseZ);
+
+        for (const offset of [0, -1, 1, -2, 2, -3, 3].filter((o) => Math.abs(o) <= verticalSearch)) {
+            if (isStandable(baseY + offset)) return [baseX, baseY + offset, baseZ];
+        }
+        return [baseX, baseY, baseZ];
     }
 
     resolveFlyPoint(x, y, z, verticalSearch = 3) {
