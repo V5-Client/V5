@@ -47,7 +47,8 @@ class BazaarNpcMacro extends ModuleBase {
         this.bindToggleKey();
         this.dailyTrackers = getConfigFile(TRACKER_FILE) || {};
         this.realisedProfit = 0;
-        this.realisedProfitStartedAt = Date.now();
+        this.realisedProfitStartedAt = 0;
+        this.realisedProfitElapsedMs = 0;
         this.claimedCosts = new Map();
         this.pendingClaim = null;
         this.pendingSale = null;
@@ -115,7 +116,10 @@ class BazaarNpcMacro extends ModuleBase {
                     'Active Orders': () => `${this.activeTargets.length}/${this.maxBuyOrders}`,
                     'Realised Profit': () => `${formatCoins(this.realisedProfit)} coins`,
                     'Realised Profit/h': () =>
-                        `${formatCoins((this.realisedProfit * 3_600_000) / Math.max(1, Date.now() - this.realisedProfitStartedAt))} coins`,
+                        `${formatCoins(
+                            (this.realisedProfit * 3_600_000) /
+                                Math.max(1, this.realisedProfitElapsedMs + (this.realisedProfitStartedAt ? Date.now() - this.realisedProfitStartedAt : 0))
+                        )} coins`,
                     'Maximum Profit/h': () => `${formatCoins(this.activeTargets.reduce((total, target) => total + Number(target.profit || 0) * 2, 0))} coins`,
                 },
             },
@@ -147,13 +151,6 @@ class BazaarNpcMacro extends ModuleBase {
         this.cleanupInventory = null;
         this.reset();
         this.dailyTracker();
-        if (!cleanupMode) {
-            this.realisedProfit = 0;
-            this.realisedProfitStartedAt = Date.now();
-            this.claimedCosts.clear();
-            this.pendingClaim = null;
-            this.pendingSale = null;
-        }
         const inventory = Player.getInventory();
         if (!inventory) return this.fail('Could not snapshot your inventory.');
         if (
@@ -168,11 +165,14 @@ class BazaarNpcMacro extends ModuleBase {
         this.startingInventory = cleanupMode && cleanupInventory ? cleanupInventory : this.inventorySnapshot(inventory.getItems());
         this.lastCheckedInventory = this.startingInventory;
         this.inventoryReady = true;
+        this.realisedProfitStartedAt = Date.now();
         this.message(this.cleanupMode ? '&aCleanup started' : '&aEnabled');
         this.openOrders();
     }
 
     onDisable() {
+        if (this.realisedProfitStartedAt) this.realisedProfitElapsedMs += Date.now() - this.realisedProfitStartedAt;
+        this.realisedProfitStartedAt = 0;
         const cleanupFinished = this.cleanupFinished;
         if (!cleanupFinished && this.inventoryReady) this.cleanupInventory = this.startingInventory;
         else if (cleanupFinished) this.cleanupInventory = null;
