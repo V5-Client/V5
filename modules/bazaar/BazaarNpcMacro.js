@@ -120,7 +120,7 @@ class BazaarNpcMacro extends ModuleBase {
                             (this.realisedProfit * 3_600_000) /
                                 Math.max(1, this.realisedProfitElapsedMs + (this.realisedProfitStartedAt ? Date.now() - this.realisedProfitStartedAt : 0))
                         )} coins`,
-                    'Maximum Profit/h': () => `${formatCoins(this.activeTargets.reduce((total, target) => total + Number(target.profit || 0) * 2, 0))} coins`,
+                    'Estimated Profit/h': () => `${formatCoins(this.activeTargets.reduce((total, target) => total + Number(target.profit || 0) * 2, 0))} coins`,
                 },
             },
             {
