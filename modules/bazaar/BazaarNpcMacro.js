@@ -4,7 +4,6 @@ import { DataComponents } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { setSignLine } from '../../utils/Sign';
 import { v5Command } from '../../utils/V5Commands';
-import { area } from '../../utils/Utils';
 import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 
 // This entire macro is AI generated, good luck!
@@ -120,7 +119,6 @@ class BazaarNpcMacro extends ModuleBase {
         this.on('tick', () => this.tick());
         this.on('chat', (event) => this.onChat(event));
         v5Command('bazaar npc cleanup', () => this.startCleanup());
-        v5Command('bazaar npc jerry', () => this.startCleanup('jerry'));
         this.commandTokens = COMMAND_CAPACITY;
         this.commandRefillAt = Date.now();
         this.cleanupOnEnable = false;
@@ -137,12 +135,6 @@ class BazaarNpcMacro extends ModuleBase {
         this.cleanupOnEnable = false;
         this.cleanupInventory = null;
         this.reset();
-        this.cleanupMode = cleanupMode;
-        if (cleanupMode === 'jerry') {
-            this.cleanupInventory = cleanupInventory;
-            this.message('&aJerry Lost and Found cleanup started');
-            return this.openJerry();
-        }
         if (!cleanupMode) {
             this.currentProfit = 0;
             this.claimedPurchases.clear();
@@ -157,6 +149,7 @@ class BazaarNpcMacro extends ModuleBase {
                 .some((item) => item && item.getStackSize() > 0 && !clean(item.getName()).startsWith('skyblock menu'))
         )
             return this.fail('Empty your inventory before enabling the macro.');
+        this.cleanupMode = cleanupMode;
         this.startingInventory = cleanupMode && cleanupInventory ? cleanupInventory : this.inventorySnapshot(inventory.getItems());
         this.lastCheckedInventory = this.startingInventory;
         this.inventoryReady = true;
@@ -166,16 +159,13 @@ class BazaarNpcMacro extends ModuleBase {
 
     onDisable() {
         const cleanupFinished = this.cleanupFinished;
-        const jerryCleanup = this.cleanupMode === 'jerry';
-        if (!jerryCleanup) {
-            if (!cleanupFinished && this.inventoryReady) this.cleanupInventory = this.startingInventory;
-            else if (cleanupFinished) this.cleanupInventory = null;
-        }
+        if (!cleanupFinished && this.inventoryReady) this.cleanupInventory = this.startingInventory;
+        else if (cleanupFinished) this.cleanupInventory = null;
         this.requestToken++;
         closeInventory();
         this.reset();
         this.cleanupFinished = false;
-        this.message(cleanupFinished ? (jerryCleanup ? '&aAll clear!' : '&aCleanup complete; no buy orders remain.') : '&cDisabled');
+        this.message(cleanupFinished ? '&aCleanup complete; no buy orders remain.' : '&cDisabled');
         if (!cleanupFinished) this.offerCleanup();
     }
 
@@ -212,71 +202,14 @@ class BazaarNpcMacro extends ModuleBase {
         this.orderCooldownUntil = 0;
         this.orderMissingSince = 0;
         this.cleanupMode = false;
-        this.jerryEmptySince = 0;
         this.inventoryReady = false;
         this.requestToken = (this.requestToken || 0) + 1;
     }
 
-    startCleanup(mode = true) {
+    startCleanup() {
         if (this.enabled) return this.message('&eThe macro is already enabled.');
-        if (mode === 'jerry' && !this.checkJerryIsland()) return;
-        this.cleanupOnEnable = mode;
+        this.cleanupOnEnable = true;
         this.toggle(true);
-    }
-
-    checkJerryIsland() {
-        if (area() === 'Private Island') return true;
-        chat(
-            new TextComponent(
-                {
-                    text: `${this.name}: You must be on your Private Island. `,
-                    color: 'red',
-                },
-                {
-                    text: '[Go to island]',
-                    color: 'yellow',
-                    underline: true,
-                    clickEvent: { action: 'run_command', value: '/is' },
-                }
-            )
-        );
-        return false;
-    }
-
-    openJerry() {
-        if (!this.checkJerryIsland()) return this.toggle(false);
-        closeInventory();
-        this.jerryEmptySince = 0;
-        this.commandAndWait('jerry', this.inspectJerry, 'Opening Jerry', Math.max(500, this.clickDelay));
-    }
-
-    inspectJerry() {
-        const gui = clean(getGuiName());
-        if (gui !== 'jerry' && gui !== 'jerry the assistant') return;
-        const ampersandSlot = this.findSlot('Lost & Found', true);
-        const slot = ampersandSlot !== -1 ? ampersandSlot : this.findSlot('Lost and Found', true);
-        if (slot !== -1) {
-            this.jerryEmptySince = 0;
-            return this.clickAndWait(slot, this.collectJerry, 'Opening Lost and Found', Math.max(500, this.clickDelay));
-        }
-        if (!this.jerryEmptySince) this.jerryEmptySince = Date.now();
-        if (Date.now() - this.jerryEmptySince < 1_000) return;
-        this.cleanupFinished = true;
-        this.toggle(false);
-    }
-
-    collectJerry() {
-        if (!/lost (?:&|and) found/.test(clean(getGuiName()))) return;
-        const items = Player.getContainer()?.getItems() || [];
-        for (let slot = 0; slot < Math.max(0, items.length - 36); slot++) {
-            if (!lore(items[slot]).some((line) => line.includes('Click to collect!'))) continue;
-            if (this.inventoryFull()) return this.fail('Your inventory is full. Make space, then run Jerry cleanup again.');
-            clickSlot(slot);
-            return this.setAction(this.openJerry, 'Collecting Lost and Found', Math.max(500, this.clickDelay));
-        }
-        if (!this.jerryEmptySince) this.jerryEmptySince = Date.now();
-        if (Date.now() - this.jerryEmptySince < 1_000) return;
-        this.openJerry();
     }
 
     offerCleanup() {
@@ -289,17 +222,6 @@ class BazaarNpcMacro extends ModuleBase {
                     underline: true,
                     clickEvent: { action: 'run_command', value: '/v5 bazaar npc cleanup' },
                     hoverEvent: { action: 'show_text', value: 'Claim and cancel all buy orders, then sell their items to NPC.' },
-                },
-                { text: ' ' },
-                {
-                    text: '[Clean up Jerry Lost and Found]',
-                    color: 'yellow',
-                    underline: true,
-                    clickEvent: { action: 'run_command', value: '/v5 bazaar npc jerry' },
-                    hoverEvent: {
-                        action: 'show_text',
-                        value: 'Collect Lost and Found items from Jerry on your Private Island.',
-                    },
                 }
             )
         );
@@ -307,7 +229,6 @@ class BazaarNpcMacro extends ModuleBase {
 
     tick() {
         const now = Date.now();
-        if (this.cleanupMode === 'jerry' && !this.checkJerryIsland()) return this.toggle(false);
         if (this.deadline && now >= this.deadline) return this.restart(`Timed out while ${this.status.toLowerCase()}.`);
         if (this.retryAction && now >= this.retryAt) {
             this.retryAt = now + STUCK_RETRY_DELAY;
@@ -868,7 +789,6 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     onChat(event) {
-        if (this.cleanupMode === 'jerry') return;
         const message = ChatLib.removeFormatting(event?.message?.getUnformattedText?.() ?? event?.message?.getString?.() ?? '').trim();
         const claim = message.match(/^\[Bazaar\] Claimed ([\d,]+)x (.+) worth ([\d,.]+) coins? bought for [\d,.]+ each!$/i);
         if (claim) {
@@ -1091,7 +1011,6 @@ class BazaarNpcMacro extends ModuleBase {
     }
 
     restart(message) {
-        if (this.cleanupMode === 'jerry') return this.fail(message);
         const startingInventory = this.startingInventory;
         const lastCheckedInventory = this.lastCheckedInventory;
         const cleanupMode = this.cleanupMode;
