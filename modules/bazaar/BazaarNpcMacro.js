@@ -273,10 +273,11 @@ class BazaarNpcMacro extends ModuleBase {
 
     recordSale(message, coins) {
         const match = message.match(/^You sold (.+) x([\d,]+) for [\d,.]+ Coins!$/);
-        if (!this.pendingSale || !match) return;
+        if (!match) return;
         const name = clean(match[1]);
         const quantity = Number(match[2].replace(/,/g, ''));
         const lots = this.claimedCosts.get(name) || [];
+        if (!lots.length) return;
         let remaining = quantity;
         let cost = 0;
         for (const lot of lots) {
@@ -291,7 +292,6 @@ class BazaarNpcMacro extends ModuleBase {
         );
         if (!remaining) this.realisedProfit += coins - cost;
         else this.message('&eSale cost was unavailable; excluded it from realised profit.');
-        this.pendingSale = null;
     }
 
     offerCleanup() {
@@ -856,18 +856,21 @@ class BazaarNpcMacro extends ModuleBase {
         this.deadline = 0;
         this.nextTradesRetryAt = now + STUCK_RETRY_DELAY;
         const items = Player.getContainer()?.getItems() || [];
+        if (items.length < 90) return;
         if (this.pendingSale) {
-            if (now - this.pendingSale.at >= GUI_TIMEOUT) {
-                this.pendingSale = null;
+            const remaining = this.inventorySnapshot(items.slice(54)).get(this.pendingSale.key) || 0;
+            if (remaining >= this.pendingSale.quantity && now - this.pendingSale.at < STUCK_RETRY_DELAY) {
+                this.nextActionAt = now + this.clickDelay;
+                return;
             }
-            this.nextActionAt = now + this.clickDelay;
-            return;
+            this.pendingSale = null;
         }
         const slot = this.findNewSellSlot(items);
         if (slot !== -1) {
             const tracker = this.dailyTracker();
             if (tracker.soldCoins >= NPC_DAILY_LIMIT) return this.fail('NPC daily limit reached; remaining items could not be sold.');
-            this.pendingSale = { at: now };
+            const key = this.itemKey(items[slot]);
+            this.pendingSale = { at: now, key, quantity: this.inventorySnapshot(items.slice(54)).get(key) || 0 };
             this.sellEmptySince = 0;
             clickSlot(slot, false, 'LEFT');
             this.status = 'Selling to NPC';
