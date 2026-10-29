@@ -1,3 +1,18 @@
+export function parseDurationMs(input) {
+    const units = { d: 86400000, h: 3600000, m: 60000, s: 1000 };
+    const text = String(input).trim().toLowerCase();
+    const pattern = /(\d+(?:\.\d+)?|\.\d+)\s*([dhms])/g;
+    let total = 0;
+    let end = 0;
+    let match;
+    while ((match = pattern.exec(text))) {
+        if (text.slice(end, match.index).trim()) return null;
+        total += Number(match[1]) * units[match[2]];
+        end = pattern.lastIndex;
+    }
+    return end && !text.slice(end).trim() && Number.isSafeInteger(total) && total > 0 ? total : null;
+}
+
 export class Timer {
     constructor() {
         this.epoch = Date.now();

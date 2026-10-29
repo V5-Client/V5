@@ -2,6 +2,7 @@ import { chat } from './Chat';
 import { File } from './Constants';
 import { isDeveloperModeEnabled, setDeveloperModeEnabled } from './DeveloperModeState';
 import { togglePiP } from './PiP';
+import { formatDurationMs, parseDurationMs } from './TimeUtils';
 import { getPingColor, getServerInfo, getTpsColor } from './player/ServerInfo';
 
 const commandRegistry = new Map();
@@ -91,6 +92,45 @@ const showServerInfo = () => {
 
 v5Command('tps', showServerInfo);
 v5Command('ping', showServerInfo);
+
+let timerDeadline = 0;
+let timerAction;
+const timerTick = register('tick', () => {
+    if (Date.now() < timerDeadline) return;
+    timerTick.unregister();
+    const mc = Client.getMinecraft();
+    if (timerAction === 'closegame') mc.stop();
+    else if (mc.getConnection()) mc.getConnection().getConnection().disconnect(net.minecraft.network.chat.Component.literal('V5 timer expired'));
+    else chat('&cTimer expired, but you are not connected to a server.');
+}).unregister();
+
+const showTimerHelp = () => {
+    chat('&bV5 Timer:');
+    chat('&7/v5 timer <duration> <leave|closegame>');
+    chat('&7Use d, h, m, or s; combine units or use decimals.');
+    chat('&7Examples: /v5 timer 3m 15s leave &8| &7/v5 timer 3.25m closegame');
+    chat('&7A new timer replaces the previous timer.');
+};
+
+v5Command('timer help', showTimerHelp);
+v5Command(
+    'timer',
+    (...args) => {
+        if (args.length < 2) {
+            chat('&cProvide a duration and an action. Use /v5 timer help for details.');
+            return;
+        }
+        const action = args.pop()?.toLowerCase();
+        const duration = parseDurationMs(args.join(' '));
+        if (!['closegame', 'leave'].includes(action)) return chat('&cInvalid action. Choose leave or closegame. Use /v5 timer help for details.');
+        if (!duration || !Number.isSafeInteger(Date.now() + duration)) return chat('&cInvalid duration. Use /v5 timer help for examples.');
+        timerDeadline = Date.now() + duration;
+        timerAction = action;
+        timerTick.register();
+        chat(`&aTimer set to ${action === 'leave' ? 'leave the server' : 'close the game'} in ${formatDurationMs(duration)}.`);
+    },
+    ['greedyString']
+);
 
 v5Command('pip', () => {
     togglePiP();
