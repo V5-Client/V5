@@ -107,12 +107,20 @@ const timerTick = register('tick', () => {
 const showTimerHelp = () => {
     chat('&bV5 Timer:');
     chat('&7/v5 timer <duration> <leave|closegame>');
+    chat('&7/v5 timer cancel');
     chat('&7Use d, h, m, or s; combine units or use decimals.');
     chat('&7Examples: /v5 timer 3m 15s leave &8| &7/v5 timer 3.25m closegame');
     chat('&7A new timer replaces the previous timer.');
 };
 
 v5Command('timer help', showTimerHelp);
+v5Command('timer cancel', () => {
+    if (!timerTick.isRegistered()) return chat('&cThere is no active timer.');
+    timerTick.unregister();
+    timerDeadline = 0;
+    timerAction = undefined;
+    chat('&aTimer cancelled.');
+});
 v5Command(
     'timer',
     (...args) => {
