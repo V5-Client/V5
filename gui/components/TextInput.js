@@ -1,470 +1,308 @@
+import { IS_MC_26_3, ScriptKey, isMacOS } from '../../utils/Constants';
 import {
-  DataFlavor,
-  IS_MC_26_3,
-  ScriptKey,
-  Toolkit,
-} from "../../utils/Constants";
-import {
-  FontSizes,
-  PADDING,
-  THEME,
-  TypingState,
-  createHighlight,
-  drawRect,
-  drawRoundedRectangle,
-  drawText,
-  getTypedCharacter,
-  getTextWidth,
-  isInside,
-  playClickSound,
-  setTextInputArea,
-  startTextInput,
-  stopTextInput,
-} from "../Utils";
-import { setTooltip } from "../core/GuiTooltip";
-import { GuiState } from "../core/GuiState";
-import { Runtime } from "../../utils/Constants";
+    FontSizes,
+    PADDING,
+    THEME,
+    TypingState,
+    createHighlight,
+    drawRect,
+    drawRoundedRectangle,
+    drawText,
+    getTypedCharacter,
+    getTextWidth,
+    isInside,
+    playClickSound,
+    setTextInputArea,
+    startTextInput,
+    stopTextInput,
+} from '../Utils';
+import { setTooltip } from '../core/GuiTooltip';
+import { GuiState } from '../core/GuiState';
 
 let activeTextInput = null;
 const allTextInputs = [];
 
-
-const isMacOS = String(java.lang.System.getProperty('os.name'))
-    .toLowerCase()
-    .includes('mac');
-function getMacClipboardViaPbpaste() {
-    let reader = null;
-
-    try {
-        const ProcessBuilder = Java.type('java.lang.ProcessBuilder');
-        const InputStreamReader = Java.type('java.io.InputStreamReader');
-        const BufferedReader = Java.type('java.io.BufferedReader');
-
-        const process = new ProcessBuilder('/usr/bin/pbpaste')
-            .redirectErrorStream(true)
-            .start();
-
-        reader = new BufferedReader(
-            new InputStreamReader(process.getInputStream(), 'UTF-8')
-        );
-
-        const lines = [];
-        let line;
-
-        while ((line = reader.readLine()) !== null) {
-            lines.push(String(line));
-        }
-
-        const exitCode = process.waitFor();
-        if (exitCode !== 0) {
-            console.error('pbpaste exited with code: ' + exitCode);
-            return null;
-        }
-
-        return lines.join('\n');
-    } catch (e) {
-        console.error('macOS clipboard error: ' + e);
-        return null;
-    } finally {
-        if (reader !== null) {
-            try {
-                reader.close();
-            } catch (e) {}
-        }
-    }
-}
-function getClipboardText() {
-    if (isMacOS) {
-        const text = getMacClipboardViaPbpaste();
-        if (text !== null) return text;
-    }
-
-    try {
-        const clipboard = Toolkit.getDefaultToolkit()
-            .getSystemClipboard()
-            .getData(DataFlavor.stringFlavor);
-
-        return clipboard == null ? null : String(clipboard);
-    } catch (e) {
-        console.error('System clipboard error: ' + e);
-        return null;
-    }
-}
-
-
-
-function _getMacClipboard()  {
-    try {
-        // Explicitly use Java's fully qualified class names
-        const ProcessBuilder = Java.type("java.lang.ProcessBuilder");
-        const InputStreamReader = Java.type("java.io.InputStreamReader");
-        const BufferedReader = Java.type("java.io.BufferedReader");
-
-        // Start the 'pbpaste' subprocess
-        const process = new ProcessBuilder("pbpaste").start();
-
-        // Wrap the input stream to easily read it line-by-line
-        const reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
-        let line;
-        let output = [];
-
-        while ((line = reader.readLine()) !== null) {
-            output.push(line);
-        }
-
-        reader.close();
-        process.waitFor(); // Block until the process exits
-
-        return output.join("\n");
-    } catch (e) {
-        console.error("Failed to read macOS clipboard via pbpaste: " + e);
-        return null;
-    }
-}
-
-
 export class TextInput {
-  constructor(title, x, y, width, height, defaultValue = "", callback = null) {
-    this.title = title;
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.value = defaultValue;
-    this.callback = callback;
+    constructor(title, x, y, width, height, defaultValue = '', callback = null) {
+        this.title = title;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.value = defaultValue;
+        this.callback = callback;
 
-    this.isTyping = false;
-    this.text = String(defaultValue);
-    this.cursorIndex = this.text.length;
+        this.isTyping = false;
+        this.text = String(defaultValue);
+        this.cursorIndex = this.text.length;
 
-    this.scrollX = 0;
+        this.scrollX = 0;
 
-    this.textX = 0;
-    this.textWidth = 0;
+        this.textX = 0;
+        this.textWidth = 0;
 
-    this.optionPanelWidth = 0;
-    this.containerHeight = 24;
-    this.description = null;
-    this.highlight = createHighlight();
+        this.optionPanelWidth = 0;
+        this.containerHeight = 24;
+        this.description = null;
+        this.highlight = createHighlight();
 
-    this.inputRect = {};
-    this.lastPasteAt = 0;
-    allTextInputs.push(this);
+        this.inputRect = {};
+        allTextInputs.push(this);
 
-    register("guiKey", (char, keyCode, gui, event) => {
-      if (!GuiState.myGui.isOpen()) return;
-      if (this.isTyping && this.handleKeyType(char, keyCode)) {
-        cancel(event);
-      }
-    });
-  }
-
-  startHighlight() {
-    this.highlight.startHighlight();
-  }
-
-  drawHighlight(panelWidth, panelHeight) {
-    this.highlight.draw({
-      x: this.x,
-      y: this.y,
-      width: panelWidth,
-      height: panelHeight,
-      accentColor: THEME.ACCENT,
-      accentFillColor: THEME.ACCENT_DIM,
-    });
-  }
-
-  draw(mouseX, mouseY) {
-    const componentHeight = this.containerHeight;
-    const textColor = THEME.TEXT;
-    const panelWidth = this.optionPanelWidth - PADDING * 2;
-
-    this.drawHighlight(panelWidth, componentHeight);
-
-    const titleWidth = getTextWidth(this.title, FontSizes.REGULAR);
-    drawText(
-      this.title,
-      this.x,
-      this.y + componentHeight / 2,
-      FontSizes.REGULAR,
-      textColor,
-    );
-
-    const displayText = this.text;
-    const textWidth = getTextWidth(displayText, FontSizes.REGULAR);
-    const valuePadding = 8;
-    const boxHeight = 18;
-
-    const maxBoxWidth = Math.max(50, panelWidth - titleWidth - 40);
-    const minBoxWidth = 100;
-
-    const desiredWidth = textWidth + valuePadding * 2 + 10;
-    const boxWidth = Math.min(maxBoxWidth, Math.max(minBoxWidth, desiredWidth));
-
-    const rightMargin = 0;
-    const boxX = this.x + panelWidth - boxWidth - rightMargin;
-    const boxY = this.y + componentHeight / 2 - boxHeight / 2;
-
-    this.inputRect = {
-      x: boxX,
-      y: boxY,
-      width: boxWidth,
-      height: boxHeight,
-    };
-    if (this.isTyping) setTextInputArea(this.inputRect);
-
-    drawRoundedRectangle({
-      x: boxX,
-      y: boxY,
-      width: boxWidth,
-      height: boxHeight,
-      radius: 6,
-      color: this.isTyping ? THEME.ACCENT : THEME.BG_INSET,
-    });
-
-    const visibleWidth = boxWidth - valuePadding * 2;
-    const cursorText = displayText.slice(0, this.cursorIndex);
-    const cursorPixelX = getTextWidth(cursorText, FontSizes.REGULAR);
-
-    if (this.isTyping) {
-      if (cursorPixelX < this.scrollX) {
-        this.scrollX = cursorPixelX;
-      } else if (cursorPixelX > this.scrollX + visibleWidth) {
-        this.scrollX = cursorPixelX - visibleWidth;
-      }
-    }
-
-    const maxScroll = Math.max(0, textWidth - visibleWidth);
-    if (!this.isTyping || this.cursorIndex < displayText.length) {
-      this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
-    }
-
-    Render2D.save();
-    Render2D.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
-
-    const textDrawX = boxX + valuePadding - this.scrollX;
-    const textDrawY = boxY + boxHeight / 2;
-
-    this.textX = textDrawX;
-
-    drawText(
-      displayText,
-      textDrawX,
-      textDrawY,
-      FontSizes.REGULAR,
-      THEME.TEXT_DIM,
-    );
-
-    if (this.isTyping) {
-      const time = Date.now();
-      if (time % 1000 < 500) {
-        const cursorX = textDrawX + cursorPixelX;
-        const cursorY = textDrawY - 4;
-        const cursorHeight = 9;
-
-        drawRect({
-          x: cursorX,
-          y: cursorY,
-          width: 1,
-          height: cursorHeight,
-          color: THEME.TEXT_DIM,
+        register('guiKey', (char, keyCode, gui, event) => {
+            if (!GuiState.myGui.isOpen()) return;
+            if (this.isTyping && this.handleKeyType(char, keyCode)) {
+                cancel(event);
+            }
         });
-      }
     }
 
-    Render2D.restore();
-
-    const componentRect = {
-      x: this.x,
-      y: this.y,
-      width: panelWidth,
-      height: componentHeight,
-    };
-
-    if (this.description && isInside(mouseX, mouseY, componentRect)) {
-      setTooltip(this.description);
+    startHighlight() {
+        this.highlight.startHighlight();
     }
-  }
 
-  getCursorIndexFromMouseX(mouseX) {
-    if (!this.text || this.text.length === 0) return 0;
-    const relativeX = Math.max(0, mouseX - this.textX);
-    let prevWidth = 0;
-    for (let i = 0; i < this.text.length; i++) {
-      const nextWidth = getTextWidth(
-        this.text.slice(0, i + 1),
-        FontSizes.REGULAR,
-      );
-      const charWidth = nextWidth - prevWidth;
-      if (relativeX <= prevWidth + charWidth / 2) {
-        return i;
-      }
-      prevWidth = nextWidth;
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
     }
-    return this.text.length;
-  }
 
-  handleClick(mouseX, mouseY) {
-    if (isInside(mouseX, mouseY, this.inputRect)) {
-      if (activeTextInput && activeTextInput !== this) {
+    draw(mouseX, mouseY) {
+        const componentHeight = this.containerHeight;
+        const textColor = THEME.TEXT;
+        const panelWidth = this.optionPanelWidth - PADDING * 2;
+
+        this.drawHighlight(panelWidth, componentHeight);
+
+        const titleWidth = getTextWidth(this.title, FontSizes.REGULAR);
+        drawText(this.title, this.x, this.y + componentHeight / 2, FontSizes.REGULAR, textColor);
+
+        const displayText = this.text;
+        const textWidth = getTextWidth(displayText, FontSizes.REGULAR);
+        const valuePadding = 8;
+        const boxHeight = 18;
+
+        const maxBoxWidth = Math.max(50, panelWidth - titleWidth - 40);
+        const minBoxWidth = 100;
+
+        const desiredWidth = textWidth + valuePadding * 2 + 10;
+        const boxWidth = Math.min(maxBoxWidth, Math.max(minBoxWidth, desiredWidth));
+
+        const rightMargin = 0;
+        const boxX = this.x + panelWidth - boxWidth - rightMargin;
+        const boxY = this.y + componentHeight / 2 - boxHeight / 2;
+
+        this.inputRect = {
+            x: boxX,
+            y: boxY,
+            width: boxWidth,
+            height: boxHeight,
+        };
+        if (this.isTyping) setTextInputArea(this.inputRect);
+
+        drawRoundedRectangle({
+            x: boxX,
+            y: boxY,
+            width: boxWidth,
+            height: boxHeight,
+            radius: 6,
+            color: this.isTyping ? THEME.ACCENT : THEME.BG_INSET,
+        });
+
+        const visibleWidth = boxWidth - valuePadding * 2;
+        const cursorText = displayText.slice(0, this.cursorIndex);
+        const cursorPixelX = getTextWidth(cursorText, FontSizes.REGULAR);
+
+        if (this.isTyping) {
+            if (cursorPixelX < this.scrollX) {
+                this.scrollX = cursorPixelX;
+            } else if (cursorPixelX > this.scrollX + visibleWidth) {
+                this.scrollX = cursorPixelX - visibleWidth;
+            }
+        }
+
+        const maxScroll = Math.max(0, textWidth - visibleWidth);
+        if (!this.isTyping || this.cursorIndex < displayText.length) {
+            this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
+        }
+
+        Render2D.save();
+        Render2D.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
+
+        const textDrawX = boxX + valuePadding - this.scrollX;
+        const textDrawY = boxY + boxHeight / 2;
+
+        this.textX = textDrawX;
+
+        drawText(displayText, textDrawX, textDrawY, FontSizes.REGULAR, THEME.TEXT_DIM);
+
+        if (this.isTyping) {
+            const time = Date.now();
+            if (time % 1000 < 500) {
+                const cursorX = textDrawX + cursorPixelX;
+                const cursorY = textDrawY - 4;
+                const cursorHeight = 9;
+
+                drawRect({
+                    x: cursorX,
+                    y: cursorY,
+                    width: 1,
+                    height: cursorHeight,
+                    color: THEME.TEXT_DIM,
+                });
+            }
+        }
+
+        Render2D.restore();
+
+        const componentRect = {
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: componentHeight,
+        };
+
+        if (this.description && isInside(mouseX, mouseY, componentRect)) {
+            setTooltip(this.description);
+        }
+    }
+
+    getCursorIndexFromMouseX(mouseX) {
+        if (!this.text || this.text.length === 0) return 0;
+        const relativeX = Math.max(0, mouseX - this.textX);
+        let prevWidth = 0;
+        for (let i = 0; i < this.text.length; i++) {
+            const nextWidth = getTextWidth(this.text.slice(0, i + 1), FontSizes.REGULAR);
+            const charWidth = nextWidth - prevWidth;
+            if (relativeX <= prevWidth + charWidth / 2) {
+                return i;
+            }
+            prevWidth = nextWidth;
+        }
+        return this.text.length;
+    }
+
+    handleClick(mouseX, mouseY) {
+        if (isInside(mouseX, mouseY, this.inputRect)) {
+            if (activeTextInput && activeTextInput !== this) {
+                activeTextInput.handleInputFinish({ playSound: false });
+            }
+            if (!this.isTyping) {
+                this.isTyping = true;
+                TypingState.isTyping = true;
+                startTextInput(GuiState.myGui, this.inputRect);
+                playClickSound();
+            }
+            activeTextInput = this;
+            this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
+            return true;
+        }
+        if (this.isTyping) {
+            this.handleInputFinish();
+            return true;
+        }
+        return false;
+    }
+
+    handleKeyType(char, keyCode) {
+        if (!this.isTyping) return false;
+
+        if (keyCode === ScriptKey.ENTER || keyCode === ScriptKey.ESCAPE) {
+            this.handleInputFinish();
+            return true;
+        }
+
+        const ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        const commandDown = isMacOS && (Keyboard.isKeyDown(Keyboard.KEY_LMETA) || Keyboard.isKeyDown(Keyboard.KEY_RMETA));
+        const shortcutDown = ctrlDown || commandDown;
+        if (shortcutDown && keyCode === ScriptKey.V) {
+            try {
+                const pasted = String(Client.paste()).replace(/[\r\n]+/g, ' ');
+                if (pasted.length > 0) {
+                    this.text = this.text.slice(0, this.cursorIndex) + pasted + this.text.slice(this.cursorIndex);
+                    this.cursorIndex += pasted.length;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            return true;
+        }
+
+        if (keyCode === ScriptKey.LEFT) {
+            if (this.cursorIndex > 0) {
+                this.cursorIndex -= 1;
+            }
+            return true;
+        }
+
+        if (keyCode === ScriptKey.RIGHT) {
+            if (this.cursorIndex < this.text.length) {
+                this.cursorIndex += 1;
+            }
+            return true;
+        }
+
+        if (keyCode === ScriptKey.BACKSPACE) {
+            if (this.cursorIndex > 0) {
+                this.text = this.text.slice(0, this.cursorIndex - 1) + this.text.slice(this.cursorIndex);
+                this.cursorIndex -= 1;
+            }
+            return true;
+        }
+
+        if (shortcutDown) return true;
+
+        if (!IS_MC_26_3 && keyCode === ScriptKey.SPACE) {
+            this.text = this.text.slice(0, this.cursorIndex) + ' ' + this.text.slice(this.cursorIndex);
+            this.cursorIndex += 1;
+            return true;
+        }
+
+        const charString = String(char || '');
+        if (charString && charString.codePointAt(0) >= ScriptKey.SPACE) {
+            const charToAppend = getTypedCharacter(charString);
+
+            this.text = this.text.slice(0, this.cursorIndex) + charToAppend + this.text.slice(this.cursorIndex);
+            this.cursorIndex += charToAppend.length;
+            return true;
+        }
+
+        return false;
+    }
+
+    handleInputFinish({ playSound = true } = {}) {
+        const wasTyping = this.isTyping;
+        this.isTyping = false;
+        if (wasTyping) stopTextInput(GuiState.myGui);
+        if (activeTextInput === this) {
+            activeTextInput = null;
+        }
+        TypingState.isTyping = !!activeTextInput;
+        this.value = this.text;
+        if (this.callback) this.callback(this.value);
+        if (playSound && wasTyping) {
+            playClickSound();
+        }
+    }
+
+    static finalizeAllTyping({ playSound = false } = {}) {
+        allTextInputs.forEach((input) => {
+            if (input.isTyping) {
+                input.handleInputFinish({ playSound });
+            }
+        });
+    }
+
+    static handleGlobalClick(mouseX, mouseY) {
+        if (!activeTextInput || !activeTextInput.isTyping) return false;
+        if (isInside(mouseX, mouseY, activeTextInput.inputRect)) return false;
+
         activeTextInput.handleInputFinish({ playSound: false });
-      }
-      if (!this.isTyping) {
-        this.isTyping = true;
-        TypingState.isTyping = true;
-        startTextInput(GuiState.myGui, this.inputRect);
-        playClickSound();
-      }
-      activeTextInput = this;
-      this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
-      return true;
+        return true;
     }
-    if (this.isTyping) {
-      this.handleInputFinish();
-      return true;
-    }
-    return false;
-  }
-
-
-  handleKeyType(char, keyCode) {
-      if (!this.isTyping) return false;
-
-      const ctrlDown =
-          Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) ||
-          Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-
-      const commandDown = isMacOS && (
-          Keyboard.isKeyDown(Keyboard.KEY_LMETA) ||
-          Keyboard.isKeyDown(Keyboard.KEY_RMETA)
-      );
-
-      const shortcutDown = ctrlDown || commandDown;
-
-      // MC 26.3 may send characters with keyCode 0.
-      const charString = String(char || '');
-      const isPasteKey =
-          keyCode === ScriptKey.V ||
-          (IS_MC_26_3 && keyCode === 0 &&
-              charString.toLowerCase() === 'v');
-
-      if (shortcutDown && isPasteKey) {
-          // Prevent key + character events from pasting twice.
-          const now = Date.now();
-
-          if (now - this.lastPasteAt >= 75) {
-              this.lastPasteAt = now;
-
-              const clipboard = getClipboardText();
-
-              if (clipboard !== null) {
-                  const pasted = clipboard
-                      .replace(/[\r\n]+/g, ' ')
-                      .trim();
-
-                  if (pasted.length > 0) {
-                      this.text =
-                          this.text.slice(0, this.cursorIndex) +
-                          pasted +
-                          this.text.slice(this.cursorIndex);
-
-                      this.cursorIndex += pasted.length;
-                  }
-              }
-          }
-
-          return true;
-      }
-
-      // Prevent shortcuts from inserting literal characters.
-      if (shortcutDown) return true;
-
-      if (keyCode === ScriptKey.ENTER ||
-          keyCode === ScriptKey.ESCAPE) {
-          this.handleInputFinish();
-          return true;
-      }
-
-      if (keyCode === ScriptKey.LEFT) {
-          if (this.cursorIndex > 0) {
-              this.cursorIndex--;
-          }
-          return true;
-      }
-
-      if (keyCode === ScriptKey.RIGHT) {
-          if (this.cursorIndex < this.text.length) {
-              this.cursorIndex++;
-          }
-          return true;
-      }
-
-      if (keyCode === ScriptKey.BACKSPACE) {
-          if (this.cursorIndex > 0) {
-              this.text =
-                  this.text.slice(0, this.cursorIndex - 1) +
-                  this.text.slice(this.cursorIndex);
-
-              this.cursorIndex--;
-          }
-          return true;
-      }
-
-      if (!IS_MC_26_3 && keyCode === ScriptKey.SPACE) {
-          this.text =
-              this.text.slice(0, this.cursorIndex) +
-              ' ' +
-              this.text.slice(this.cursorIndex);
-
-          this.cursorIndex++;
-          return true;
-      }
-
-      if (charString &&
-          charString.codePointAt(0) >= ScriptKey.SPACE) {
-          const typed = getTypedCharacter(charString);
-
-          this.text =
-              this.text.slice(0, this.cursorIndex) +
-              typed +
-              this.text.slice(this.cursorIndex);
-
-          this.cursorIndex += typed.length;
-          return true;
-      }
-
-      return false;
-  }
-
-
-  handleInputFinish({ playSound = true } = {}) {
-    const wasTyping = this.isTyping;
-    this.isTyping = false;
-    if (wasTyping) stopTextInput(GuiState.myGui);
-    if (activeTextInput === this) {
-      activeTextInput = null;
-    }
-    TypingState.isTyping = !!activeTextInput;
-    this.value = this.text;
-    if (this.callback) this.callback(this.value);
-    if (playSound && wasTyping) {
-      playClickSound();
-    }
-  }
-
-  static finalizeAllTyping({ playSound = false } = {}) {
-    allTextInputs.forEach((input) => {
-      if (input.isTyping) {
-        input.handleInputFinish({ playSound });
-      }
-    });
-  }
-
-  static handleGlobalClick(mouseX, mouseY) {
-    if (!activeTextInput || !activeTextInput.isTyping) return false;
-    if (isInside(mouseX, mouseY, activeTextInput.inputRect)) return false;
-
-    activeTextInput.handleInputFinish({ playSound: false });
-    return true;
-  }
 }
