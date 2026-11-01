@@ -1,4 +1,4 @@
-import { DataFlavor, IS_MC_26_3, ScriptKey, Toolkit } from '../../utils/Constants';
+import { IS_MC_26_3, ScriptKey, isMacOS } from '../../utils/Constants';
 import {
     FontSizes,
     PADDING,
@@ -218,15 +218,14 @@ export class TextInput {
         }
 
         const ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-        if (ctrlDown && keyCode === ScriptKey.V) {
+        const commandDown = isMacOS && (Keyboard.isKeyDown(Keyboard.KEY_LMETA) || Keyboard.isKeyDown(Keyboard.KEY_RMETA));
+        const shortcutDown = ctrlDown || commandDown;
+        if (shortcutDown && keyCode === ScriptKey.V) {
             try {
-                const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
-                if (clipboard !== null && clipboard !== undefined) {
-                    const pasted = String(clipboard).replace(/[\r\n]+/g, ' ');
-                    if (pasted.length > 0) {
-                        this.text = this.text.slice(0, this.cursorIndex) + pasted + this.text.slice(this.cursorIndex);
-                        this.cursorIndex += pasted.length;
-                    }
+                const pasted = String(Client.paste()).replace(/[\r\n]+/g, ' ');
+                if (pasted.length > 0) {
+                    this.text = this.text.slice(0, this.cursorIndex) + pasted + this.text.slice(this.cursorIndex);
+                    this.cursorIndex += pasted.length;
                 }
             } catch (e) {
                 console.error(e);
@@ -256,6 +255,8 @@ export class TextInput {
             return true;
         }
 
+        if (shortcutDown) return true;
+
         if (!IS_MC_26_3 && keyCode === ScriptKey.SPACE) {
             this.text = this.text.slice(0, this.cursorIndex) + ' ' + this.text.slice(this.cursorIndex);
             this.cursorIndex += 1;
@@ -267,7 +268,7 @@ export class TextInput {
             const charToAppend = getTypedCharacter(charString);
 
             this.text = this.text.slice(0, this.cursorIndex) + charToAppend + this.text.slice(this.cursorIndex);
-            this.cursorIndex += 1;
+            this.cursorIndex += charToAppend.length;
             return true;
         }
 
