@@ -2,6 +2,7 @@ import { ArmorStandEntity, CreeperEntity, DataComponents, EndermanEntity, MobEnt
 import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { ClientboundSystemChatPacket } from '../../utils/Packets';
 import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
 import { isLookingAtEntity } from '../../utils/Raytrace';
@@ -107,6 +108,17 @@ class Combat extends ModuleBase {
         this.pathfindingThreshold = 15;
         this.attackCPS = 10;
         this.attackButton = 'Left Click';
+        this.autoHeal = true;
+        this.healThreshold = 20;
+        this.health = null;
+        this.healthUpdatedAt = 0;
+        this.vitality = null;
+        this.vitalityUpdatedAt = 0;
+        this.healReadyAt = new Map();
+        this.healReturnSlot = null;
+        this.healingSlot = null;
+        this.nextHealAt = 0;
+        this.suppressCombatClickThisTick = false;
         this.overrideRotationSpeed = false;
         this.combatRotationSpeed = 400;
 
@@ -142,6 +154,19 @@ class Combat extends ModuleBase {
             'Mouse button used to attack.',
             'Left Click'
         );
+
+        this.addToggle(
+            'Auto Heal',
+            (value) => {
+                this.autoHeal = !!value;
+                if (!this.autoHeal) this.stopHealing();
+            },
+            'Use a Zombie Sword or healing wand from the hotbar when health is low.',
+            true
+        );
+        this.addSlider('Heal Threshold', 1, 100, 20, (value) => (this.healThreshold = value), 'Heal below this percentage of maximum SkyBlock health.');
+
+        this.addButton('Healing Debug', () => this.showHealingDebug(), 'Show the latest health reading and healing items found in the hotbar.');
 
         let rotationSpeedSlider;
         this.addToggle(
@@ -208,14 +233,31 @@ class Combat extends ModuleBase {
 
         this.on('postRenderWorld', () => this.renderTargets());
         this.on('tick', () => this.onTick());
+        register('actionBar', (text) => this.readHealth(text)).setCriteria('${text}');
+        register('packetReceived', (packet) => {
+            if (packet.overlay()) this.readHealth(packet.content().getString());
+        }).setFilteredClass(ClientboundSystemChatPacket);
+        register('packetReceived', (packet) => this.readHealth(packet.text().getString())).setFilteredClass(
+            net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket
+        );
+        register('worldUnload', () => this.resetHealing());
     }
 
     onTick() {
         if (!this.enabled) return;
-        if (!Client.isInChat() && Client.isInGui()) {
+        this.suppressCombatClickThisTick = false;
+        if (!World.isLoaded() || !Player.getPlayer()) {
+            this.resetHealing();
             this.pauseMovement();
             return;
         }
+        if (!Client.isInChat() && Client.isInGui()) {
+            this.stopHealing();
+            this.pauseMovement();
+            return;
+        }
+
+        this.heal();
 
         this.scanBlackholes();
         this.expireTargetData();
@@ -262,6 +304,146 @@ class Combat extends ModuleBase {
         this.engage(position, distance);
     }
 
+    readHealth(text) {
+        const clean = this.stripHealingFormatting(text);
+        const vitalityMatch = clean.match(/([\d,]+(?:\.\d+)?)\s*\/\s*([\d,]+(?:\.\d+)?)\s*[♡\uE028]/);
+        if (vitalityMatch) {
+            const current = Number(vitalityMatch[1].replace(/,/g, ''));
+            const maximum = Number(vitalityMatch[2].replace(/,/g, ''));
+            if (Number.isFinite(current) && Number.isFinite(maximum) && current >= 0 && maximum > 0) {
+                this.vitality = current;
+                this.vitalityUpdatedAt = Date.now();
+            }
+        }
+        const match = clean.match(/([\d,]+(?:\.\d+)?)\s*\/\s*([\d,]+(?:\.\d+)?)\s*[❤♥\uE010]/);
+        if (!match) return;
+
+        const current = Number(match[1].replace(/,/g, ''));
+        const maximum = Number(match[2].replace(/,/g, ''));
+        if (!Number.isFinite(current) || !Number.isFinite(maximum) || current < 0 || maximum <= 0) return;
+
+        this.health = { current, maximum };
+        this.healthUpdatedAt = Date.now();
+    }
+
+    showHealingDebug() {
+        const reading = this.health ? `${this.health.current}/${this.health.maximum} (${Date.now() - this.healthUpdatedAt}ms old)` : 'No health received';
+        const slot = this.findHealSlot();
+        const item =
+            slot === -1 ? 'None found in hotbar' : `Slot ${slot + 1}: ${this.stripHealingFormatting(Player.getInventory().getStackInSlot(slot).getName())}`;
+        this.message(`&7Auto Heal: &f${this.autoHeal ? 'On' : 'Off'} &7Threshold: &f${this.healThreshold}% &7Health: &f${reading}`);
+        const ability = slot === -1 ? null : this.getHealingAbility(Player.getInventory().getStackInSlot(slot));
+        const vitality = this.vitality === null ? 'No vitality received' : `${this.vitality} (${Date.now() - this.vitalityUpdatedAt}ms old)`;
+        this.message(`&7Healing item: &f${item} &7Vitality cost: &f${ability?.cost ?? 'Unknown'} &7Vitality: &f${vitality}`);
+    }
+
+    stripHealingFormatting(text) {
+        if (text == null) return '';
+        const value = text.getUnformattedText?.() ?? text.getString?.() ?? String(text);
+        return ChatLib.removeFormatting(String(value)).replace(/\s+/g, ' ').trim();
+    }
+
+    getHealingAbility(item) {
+        if (!item) return null;
+        const lore = Array.from(item.getLore() || [], (line) => this.stripHealingFormatting(line)).join('\n');
+        const costMatch = lore.match(/Vitality Cost:\s*([\d,]+(?:\.\d+)?)/i);
+        if (!costMatch) return null;
+        const cost = Number(costMatch[1].replace(/,/g, ''));
+        if (!Number.isFinite(cost) || cost < 0) return null;
+        const cooldownMatch = lore.match(/Cooldown:\s*([\d,]+(?:\.\d+)?)\s*(ms|s)\b/i);
+        const cooldown = cooldownMatch ? Number(cooldownMatch[1].replace(/,/g, '')) * (cooldownMatch[2].toLowerCase() === 'ms' ? 1 : 1000) : 1000;
+        return { cost, cooldown: Number.isFinite(cooldown) ? Math.max(100, cooldown) : 1000 };
+    }
+
+    findHealingItem(usableOnly = false, now = Date.now()) {
+        const inventory = Player.getInventory();
+        if (!inventory) return null;
+
+        let wand = null;
+        for (let slot = 0; slot < Math.min(inventory.getSize(), 9); slot++) {
+            if (usableOnly && now < (this.healReadyAt.get(slot) || 0)) continue;
+
+            const item = inventory.getStackInSlot(slot);
+            const name = this.stripHealingFormatting(item?.getName?.()).toLowerCase();
+            const isSword = name.includes('zombie sword');
+            const isWand = /\bwand of (healing|mending|restoration|atonement)\b/.test(name);
+            if (!isSword && !isWand) continue;
+
+            const ability = usableOnly ? this.getHealingAbility(item) : null;
+            if (usableOnly && (!ability || this.vitality < ability.cost)) continue;
+
+            const candidate = { slot, ability };
+            if (isSword) return candidate;
+            if (!wand) wand = candidate;
+        }
+        return wand;
+    }
+
+    findHealSlot(usableOnly = false) {
+        return this.findHealingItem(usableOnly)?.slot ?? -1;
+    }
+
+    heal() {
+        const now = Date.now();
+        const player = Player.getPlayer();
+        const health = this.health;
+        if (
+            !this.autoHeal ||
+            !World.isLoaded() ||
+            !player ||
+            player.isDeadOrDying() ||
+            Client.isInGui() ||
+            !health ||
+            this.vitality === null ||
+            now - this.vitalityUpdatedAt >= 5000 ||
+            now - this.healthUpdatedAt >= 5000 ||
+            health.current <= 0 ||
+            health.current >= (health.maximum * this.healThreshold) / 100
+        ) {
+            return this.stopHealing();
+        }
+
+        const candidate = this.findHealingItem(true, now);
+        if (!candidate) return this.stopHealing();
+
+        const { slot, ability } = candidate;
+        const heldSlot = Player.getHeldItemIndex();
+        if (this.healReturnSlot === null) this.healReturnSlot = heldSlot;
+        this.suppressCombatClickThisTick = true;
+        this.healingSlot = slot;
+        if (heldSlot !== slot) {
+            Player.setHeldItemIndex(slot);
+            this.nextHealAt = now + 100;
+        } else if (now >= this.nextHealAt) {
+            Client.rightClick();
+            this.vitality = Math.max(0, this.vitality - ability.cost);
+            this.healReadyAt.set(slot, now + ability.cooldown);
+            this.nextHealAt = now + 100;
+        }
+        return true;
+    }
+
+    resetHealing() {
+        this.health = null;
+        this.healthUpdatedAt = 0;
+        this.vitality = null;
+        this.vitalityUpdatedAt = 0;
+        this.healReadyAt.clear();
+        this.stopHealing(false);
+    }
+
+    stopHealing(restoreSlot = true) {
+        if (this.healReturnSlot === null) return false;
+        this.suppressCombatClickThisTick = true;
+        if (restoreSlot && World.isLoaded() && Player.getPlayer() && Player.getHeldItemIndex() === this.healingSlot) {
+            Player.setHeldItemIndex(this.healReturnSlot);
+        }
+        this.healReturnSlot = null;
+        this.healingSlot = null;
+        this.nextHealAt = 0;
+        return true;
+    }
+
     setTarget(target) {
         if (this.sameTarget(this.target, target)) return;
 
@@ -304,6 +486,7 @@ class Combat extends ModuleBase {
     }
 
     tryAttack(distance) {
+        if (this.suppressCombatClickThisTick || this.healReturnSlot !== null) return;
         const now = Date.now();
         if (distance > ATTACK_REACH + 0.35 || now < this.nextAttackAt) return;
         if (!isLookingAtEntity(this.target, ATTACK_REACH + 0.5)) return;
@@ -738,6 +921,7 @@ class Combat extends ModuleBase {
     }
 
     onDisable() {
+        this.stopHealing();
         if (!this.isParentManaged) this.message('&cDisabled');
 
         this.cancelPath();
