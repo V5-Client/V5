@@ -369,6 +369,9 @@ class Finder {
             case 'JUMP':
                 forceJump(4);
                 break;
+            case 'WALL':
+                Rotations.setTemporaryLookahead(Math.max(Rotations.RECOVERY_MIN_LOOKAHEAD, 0.35), 12);
+                break;
             case 'CLOSE_LOOK':
                 Rotations.setTemporaryLookahead(Rotations.RECOVERY_MIN_LOOKAHEAD, 40);
                 //forceJump(4);
