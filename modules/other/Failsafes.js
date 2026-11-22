@@ -184,7 +184,9 @@ class Failsafes extends ModuleBase {
 
     getConfigFileContents() {
         try {
-            return FileLib.read('V5Config', 'config.json');
+            const config = JSON.parse(FileLib.read('V5Config', 'config.json'));
+            if (config?.['Ban Wave Guard']) delete config['Ban Wave Guard']['Hypixel API Key'];
+            return JSON.stringify(config);
         } catch (e) {
             console.error(`Exception reading config for ban log: ${e}`);
             return null;

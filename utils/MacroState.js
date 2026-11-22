@@ -16,6 +16,10 @@ let activeMacro = null;
 let startTime = 0;
 let lastMacroToggleKey = null;
 let hasBoundLastMacroToggleKey = false;
+let moduleEnableBlockReason = null;
+
+export const getModuleEnableBlockReason = () => moduleEnableBlockReason;
+export const setModuleEnableBlockReason = (reason) => (moduleEnableBlockReason = reason || null);
 
 const getLastActiveMacro = () => lastActiveMacros[0] || null;
 export const getLastActiveMacros = () => lastActiveMacros;

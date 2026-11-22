@@ -2,7 +2,15 @@ import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { chat } from './Chat';
-import { getModule, isMacroRunning, markEnabledModulesChanged, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
+import {
+    getModule,
+    getModuleEnableBlockReason,
+    isMacroRunning,
+    markEnabledModulesChanged,
+    onModuleDisabled,
+    onModuleEnabled,
+    registerModule,
+} from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { ScriptKey } from './Constants';
@@ -79,9 +87,11 @@ export class ModuleBase {
                 chat('&cYou were spawned in limbo! Attempting to recover...');
                 ChatLib.command('leave');
                 ScheduleTask(20, () => {
+                    if (getModuleEnableBlockReason()) return;
                     ChatLib.command('play skyblock');
                 });
                 ScheduleTask(60, () => {
+                    if (getModuleEnableBlockReason()) return;
                     this.toggle(true);
                     chat('&aRecovered from limbo?');
                 });
@@ -164,6 +174,8 @@ export class ModuleBase {
      */
     toggle(value, parentManaged = false, toggleContext = 'user') {
         const newVal = typeof value === 'boolean' ? value : !this.enabled;
+
+        if (newVal && getModuleEnableBlockReason()) return;
 
         if (this.enabled === newVal) {
             if (newVal) this.isParentManaged = parentManaged;

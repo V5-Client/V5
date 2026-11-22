@@ -19,6 +19,7 @@ register('packetSent', (packet, event) => {
 
 /* Utils */
 import { setupLastMacroToggleKey } from './utils/MacroState';
+import './modules/other/BanWaveGuard';
 import './modules/other/MacroScheduler';
 import './modules/other/MacroControllers';
 import './modules/other/DiscordIntegration';

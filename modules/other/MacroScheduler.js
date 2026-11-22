@@ -138,6 +138,19 @@ class MacroScheduler extends ModuleBase {
         this.message('&cStopped.');
     }
 
+    stopForBanWave() {
+        this.state = STATE.IDLE;
+        this.trackedMacros = [];
+        this.timerEnd = 0;
+        this.breakDurationMs = 0;
+        this.resumeSessionEnd = 0;
+        this.returnStep = 0;
+        this.pausedRemainingMs = 0;
+        this.worldUnloadTimer.reset();
+        this.toggle(false, false, 'ban-wave');
+        this.saveState();
+    }
+
     tick() {
         if (!this.enabled) return;
         this.updateOverlay();
